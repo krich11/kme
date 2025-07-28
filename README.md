@@ -98,6 +98,54 @@ The KME project implements a Key Management Entity that conforms to the ETSI GS 
 5. **Set up database and Redis**
    - Install PostgreSQL and Redis
    - Create database and configure connection
+
+## Environment Configuration
+
+The KME project uses environment variables for configuration. Copy `env.template` to `.env` and update the values:
+
+### Required Configuration (No Defaults)
+
+These values must be set in your `.env` file:
+
+```bash
+# KME Identity (16 characters)
+KME_ID=AAAABBBBCCCCDDDD
+
+# Database Connection URL
+DATABASE_URL=postgresql+asyncpg://username:password@localhost:5432/kme_db
+
+# Security Keys (change these in production!)
+SECRET_KEY=your-secret-key-here-change-this-in-production
+JWT_SECRET_KEY=your-jwt-secret-key-here-change-this-in-production
+```
+
+### Database Setup Variables
+
+For the database setup script to work properly, also configure:
+
+```bash
+# Database Setup Script Variables
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=your_password
+```
+
+### Quick Database Setup
+
+Once configured, set up the database:
+
+```bash
+# Create database and schema
+python scripts/database_setup.py create
+
+# Test the setup
+python test/test_week3.py
+```
+
+### Optional Configuration
+
+All other variables in `env.template` have sensible defaults and can be left as-is for development.
    - Update .env with connection details
 
 6. **Set up TLS certificates**
