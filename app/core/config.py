@@ -69,9 +69,8 @@ Usage:
     current_settings = get_settings()
 """
 
-from typing import Any
-
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
