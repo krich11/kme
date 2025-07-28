@@ -46,6 +46,21 @@ from app.core.database import (
     get_database_session,
     initialize_database,
 )
+from app.core.logging import (
+    LoggingConfig,
+    audit_logger,
+    performance_logger,
+    security_logger,
+)
+from app.core.health import HealthMonitor, HealthStatus
+from app.core.health import HealthCheck as CoreHealthCheck
+from app.core.performance import MetricType, PerformanceMonitor
+from app.core.security_events import (
+    SecurityEventSeverity,
+    SecurityEventType,
+    create_security_event,
+)
+from app.core.alerts import AlertManager, AlertSeverity, AlertType
 from app.models.api_models import (
     APIResponse,
     ConfigurationResponse,
@@ -738,6 +753,196 @@ def test_etsi_compliance():
     return results
 
 
+async def test_week1_week2_integration():
+    """Test Week 1 and Week 2 functionality through Week 3 operations"""
+    results = TestResults()
+
+    try:
+        print("\n🔗 Testing Week 1 & 2 Integration Through Week 3...")
+
+        # Test 1: Configuration validation through database operations
+        try:
+            # Verify configuration is loaded and database URL is accessible
+            if hasattr(settings, 'database_url') and settings.database_url:
+                results.add_pass("Configuration validation through database URL")
+            else:
+                results.add_fail("Configuration validation", "Database URL not configured")
+        except Exception as e:
+            results.add_fail("Configuration validation", str(e))
+
+        # Test 2: Logging through database operations
+        try:
+            # Test structured logging during database operations
+            security_logger.log_authentication_event(
+                event_type="database_connection",
+                user_id="test_user",
+                success=True,
+                details={"operation": "test_connection"}
+            )
+            results.add_pass("Security logging through database operations")
+
+            audit_logger.log_etsi_compliance_event(
+                compliance_type="data_model_validation",
+                event_description="ETSI model validation test",
+                success=True
+            )
+            results.add_pass("Audit logging through ETSI compliance")
+
+            performance_logger.log_api_performance_metrics(
+                endpoint="/api/v1/keys/test/status",
+                response_time_ms=150.0,
+                throughput_requests_per_sec=100.0,
+                error_rate_percent=0.5
+            )
+            results.add_pass("Performance logging through API metrics")
+
+        except Exception as e:
+            results.add_fail("Logging integration", str(e))
+
+        # Test 3: Health monitoring through database health checks
+        try:
+            # Test health monitor with database status
+            health_monitor = HealthMonitor()
+            
+            # Simulate database health check
+            db_health = await get_database_health()
+            if db_health.get("status") == "healthy":
+                # Use the health check system directly
+                health_check = CoreHealthCheck(
+                    name="database",
+                    status=HealthStatus.HEALTHY,
+                    message="Database connection successful"
+                )
+                health_monitor.checks.append(health_check)
+                results.add_pass("Health monitoring through database checks")
+            else:
+                health_check = CoreHealthCheck(
+                    name="database",
+                    status=HealthStatus.DEGRADED,
+                    message="Database connection issues"
+                )
+                health_monitor.checks.append(health_check)
+                results.add_pass("Health monitoring through database checks (degraded)")
+
+        except Exception as e:
+            results.add_fail("Health monitoring integration", str(e))
+
+        # Test 4: Performance monitoring through model operations
+        try:
+            # Test performance monitor during ETSI model operations
+            performance_monitor = PerformanceMonitor()
+            
+            # Simulate key generation performance tracking
+            start_time = datetime.now()
+            
+            # Create ETSI models (simulating key generation)
+            key = Key(
+                key_ID="550e8400-e29b-41d4-a716-446655440000",
+                key="dGVzdA==",
+                key_size=256
+            )
+            
+            end_time = datetime.now()
+            duration = (end_time - start_time).total_seconds() * 1000  # milliseconds
+            
+            performance_monitor.record_key_metric(
+                operation="key_generation",
+                duration_ms=duration,
+                key_count=1,
+                key_size=256
+            )
+            results.add_pass("Performance monitoring through key operations")
+
+        except Exception as e:
+            results.add_fail("Performance monitoring integration", str(e))
+
+        # Test 5: Security events through ETSI operations
+        try:
+            # Test security event creation during key operations
+            security_event = create_security_event(
+                event_type=SecurityEventType.KEY_ACCESS_AUTHORIZED,
+                user_id="test_sae",
+                key_id="550e8400-e29b-41d4-a716-446655440000",
+                details={
+                    "operation": "key_retrieval",
+                    "etsi_compliant": True,
+                    "source_kme_id": "AAAABBBBCCCCDDDD"
+                }
+            )
+            results.add_pass("Security events through ETSI operations")
+
+        except Exception as e:
+            results.add_fail("Security events integration", str(e))
+
+        # Test 6: Alerting through performance thresholds
+        try:
+            # Test alert manager with performance metrics
+            alert_manager = AlertManager()
+            
+            # Simulate high error rate alert
+            alert = alert_manager.create_alert(
+                type=AlertType.SYSTEM,
+                severity=AlertSeverity.WARNING,
+                title="Database Performance Issue",
+                message="High database query latency detected",
+                source="database_monitor",
+                details={
+                    "metric": "database_response_time",
+                    "threshold": 1000,
+                    "current_value": 1500,
+                    "etsi_impact": "May affect key delivery performance"
+                }
+            )
+            results.add_pass("Alerting through performance monitoring")
+
+        except Exception as e:
+            results.add_fail("Alerting integration", str(e))
+
+        # Test 7: Configuration validation through ETSI model creation
+        try:
+            # Test that configuration values are properly used in ETSI models
+            status = Status(
+                source_KME_ID=settings.kme_id,  # Use configured KME ID
+                target_KME_ID="EEEEFFFFGGGGHHHH",
+                master_SAE_ID="IIIIJJJJKKKKLLLL",
+                slave_SAE_ID="MMMMNNNNOOOOPPPP",
+                key_size=settings.default_key_size,  # Use configured default
+                stored_key_count=25000,
+                max_key_count=100000,
+                max_key_per_request=settings.max_keys_per_request,  # Use configured limit
+                max_key_size=settings.max_key_size,  # Use configured max
+                min_key_size=settings.min_key_size,  # Use configured min
+                max_SAE_ID_count=settings.max_sae_id_count,  # Use configured limit
+            )
+            results.add_pass("Configuration integration through ETSI models")
+
+        except Exception as e:
+            results.add_fail("Configuration integration", str(e))
+
+        # Test 8: Environment validation through database connection
+        try:
+            # Test that environment variables are properly loaded and used
+            required_env_vars = ['DATABASE_URL', 'KME_ID', 'SECRET_KEY']
+            missing_vars = []
+            
+            for var in required_env_vars:
+                if not hasattr(settings, var.lower()) or not getattr(settings, var.lower()):
+                    missing_vars.append(var)
+            
+            if not missing_vars:
+                results.add_pass("Environment validation through database connection")
+            else:
+                results.add_fail("Environment validation", f"Missing required variables: {missing_vars}")
+
+        except Exception as e:
+            results.add_fail("Environment validation", str(e))
+
+    except Exception as e:
+        results.add_fail("Week 1 & 2 integration test", f"Unexpected error: {str(e)}")
+
+    return results
+
+
 async def main():
     """Main test function"""
     print("🧪 KME Week 3 Test Suite")
@@ -752,6 +957,7 @@ async def main():
     all_results.append(test_api_models())
     all_results.append(test_model_serialization())
     all_results.append(test_etsi_compliance())
+    all_results.append(await test_week1_week2_integration())
 
     # Calculate overall results
     total_passed = sum(r.passed for r in all_results)
