@@ -183,9 +183,8 @@ yarn-error.log*
 *.tar
 *.zip
 
-# Large files that shouldn't be in version control (excluding docs/)
+# Large files that shouldn't be in version control
 *.pdf
-!docs/*.pdf
 *.mp4
 *.avi
 *.mov
