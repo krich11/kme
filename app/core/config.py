@@ -203,6 +203,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "ignore"  # Allow extra environment variables (like DB_HOST, DB_PORT, etc.)
 
 
 # Global settings instance

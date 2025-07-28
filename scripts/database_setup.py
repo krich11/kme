@@ -24,6 +24,7 @@ Progress: 70% (7/10 tasks completed)
 
 import argparse
 import asyncio
+import json
 import os
 import sys
 from pathlib import Path
@@ -404,7 +405,7 @@ class DatabaseManager:
                 "KME001",
                 "localhost",
                 8443,
-                {"subject": "CN=KME001", "issuer": "CN=CA"},
+                json.dumps({"subject": "CN=KME001", "issuer": "CN=CA"}),
             )
 
             # Insert sample SAE entity
@@ -416,7 +417,7 @@ class DatabaseManager:
             """,
                 "SAE001",
                 "KME001",
-                {"subject": "CN=SAE001", "issuer": "CN=CA"},
+                json.dumps({"subject": "CN=SAE001", "issuer": "CN=CA"}),
             )
 
             # Insert sample key
@@ -467,6 +468,10 @@ async def main():
         database_url = os.getenv(
             "DATABASE_URL", f"postgresql://postgres@localhost:5432/{args.database}"
         )
+    
+    # Convert postgresql+asyncpg:// to postgresql:// for asyncpg compatibility
+    if database_url.startswith("postgresql+asyncpg://"):
+        database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
 
     print(f"🔧 KME Database Setup Script")
     print(f"Action: {args.action}")
