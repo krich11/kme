@@ -38,7 +38,7 @@ import cryptography
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.x509.oid import NameOID
 
@@ -71,12 +71,12 @@ class CertificateInfo:
     serial_number: str
     not_before: datetime.datetime
     not_after: datetime.datetime
-    key_usage: List[str]
-    extended_key_usage: List[str]
-    subject_alt_names: List[str]
+    key_usage: list[str]
+    extended_key_usage: list[str]
+    subject_alt_names: list[str]
     certificate_type: CertificateType
     is_valid: bool
-    validation_errors: List[str]
+    validation_errors: list[str]
 
 
 class TLSConfig:
@@ -85,11 +85,11 @@ class TLSConfig:
     def __init__(self, security_level: SecurityLevel = SecurityLevel.PRODUCTION):
         """Initialize TLS configuration"""
         self.security_level = security_level
-        self.ssl_context: Optional[ssl.SSLContext] = None
-        self.certificate_path: Optional[Path] = None
-        self.private_key_path: Optional[Path] = None
-        self.ca_certificate_path: Optional[Path] = None
-        self.cipher_suites: List[str] = []
+        self.ssl_context: ssl.SSLContext | None = None
+        self.certificate_path: Path | None = None
+        self.private_key_path: Path | None = None
+        self.ca_certificate_path: Path | None = None
+        self.cipher_suites: list[str] = []
         self.min_tls_version: ssl.TLSVersion = ssl.TLSVersion.TLSv1_2
         self.max_tls_version: ssl.TLSVersion = ssl.TLSVersion.TLSv1_3
 
@@ -123,7 +123,12 @@ class TLSConfig:
 
         # Configure session resumption
         self.ssl_context.session_tickets = True
-        self.ssl_context.session_cache_mode = ssl.SSLSessionCacheMode.SERVER
+        # Note: SSLSessionCacheMode not available in all Python versions
+        try:
+            self.ssl_context.session_cache_mode = ssl.SSLSessionCacheMode.SERVER
+        except AttributeError:
+            # Fallback for older Python versions
+            pass
 
         security_logger.log_certificate_validation(
             certificate_type="tls_context",
@@ -183,9 +188,9 @@ class CertificateManager:
 
     def __init__(self):
         """Initialize certificate manager"""
-        self.ca_certificates: List[x509.Certificate] = []
-        self.trusted_certificates: Dict[str, x509.Certificate] = {}
-        self.certificate_cache: Dict[str, CertificateInfo] = {}
+        self.ca_certificates: list[x509.Certificate] = []
+        self.trusted_certificates: dict[str, x509.Certificate] = {}
+        self.certificate_cache: dict[str, CertificateInfo] = {}
 
     def load_ca_certificates(self, ca_path: Path) -> bool:
         """Load CA certificates from path"""
@@ -201,7 +206,9 @@ class CertificateManager:
                 for cert_file in ca_path.glob("*.pem"):
                     with open(cert_file, "rb") as f:
                         cert_data = f.read()
-                        cert = x509.load_pem_x509_certificate(cert_data, default_backend())
+                        cert = x509.load_pem_x509_certificate(
+                            cert_data, default_backend()
+                        )
                         self.ca_certificates.append(cert)
 
             logger.info(f"Loaded {len(self.ca_certificates)} CA certificates")
@@ -218,20 +225,22 @@ class CertificateManager:
         try:
             # Parse certificate
             cert = x509.load_pem_x509_certificate(cert_data, default_backend())
-            
+
             # Extract basic information
             subject = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
             issuer = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
             serial_number = str(cert.serial_number)
-            
+
             # Check validity period
             now = datetime.datetime.utcnow()
             is_valid = cert.not_valid_before <= now <= cert.not_valid_after
-            
+
             # Extract key usage
             key_usage = []
             try:
-                ku = cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.KEY_USAGE)
+                ku = cert.extensions.get_extension_for_oid(
+                    x509.oid.ExtensionOID.KEY_USAGE
+                )
                 if ku.value.digital_signature:
                     key_usage.append("digital_signature")
                 if ku.value.key_encipherment:
@@ -269,7 +278,9 @@ class CertificateManager:
             # Validate against expected ID if provided
             validation_errors = []
             if expected_id and not self._validate_certificate_id(cert, expected_id):
-                validation_errors.append(f"Certificate ID mismatch: expected {expected_id}")
+                validation_errors.append(
+                    f"Certificate ID mismatch: expected {expected_id}"
+                )
                 is_valid = False
 
             # Create certificate info
@@ -327,7 +338,7 @@ class CertificateManager:
         # Check for KME-specific extensions or naming
         if "KME" in subject.upper() or "KEY_MANAGEMENT" in subject.upper():
             return CertificateType.KME
-        
+
         # Check for CA certificate
         try:
             ku = cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.KEY_USAGE)
@@ -339,7 +350,9 @@ class CertificateManager:
         # Default to SAE
         return CertificateType.SAE
 
-    def _validate_certificate_id(self, cert: x509.Certificate, expected_id: str) -> bool:
+    def _validate_certificate_id(
+        self, cert: x509.Certificate, expected_id: str
+    ) -> bool:
         """Validate that certificate contains expected ID"""
         # Check common name
         try:
@@ -371,17 +384,18 @@ class CertificateManager:
 
         return False
 
-    def extract_sae_id_from_certificate(self, cert_data: bytes) -> Optional[str]:
+    def extract_sae_id_from_certificate(self, cert_data: bytes) -> str | None:
         """Extract SAE ID from certificate"""
         try:
             cert = x509.load_pem_x509_certificate(cert_data, default_backend())
-            
+
             # Try to extract from common name
             try:
                 cn = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
                 # Look for SAE ID pattern (16 characters)
                 import re
-                sae_match = re.search(r'[A-F0-9]{16}', cn)
+
+                sae_match = re.search(r"[A-F0-9]{16}", cn)
                 if sae_match:
                     return sae_match.group(0)
             except IndexError:
@@ -395,7 +409,8 @@ class CertificateManager:
                 for name in san.value:
                     name_str = str(name.value)
                     import re
-                    sae_match = re.search(r'[A-F0-9]{16}', name_str)
+
+                    sae_match = re.search(r"[A-F0-9]{16}", name_str)
                     if sae_match:
                         return sae_match.group(0)
             except x509.extensions.ExtensionNotFound:
@@ -428,35 +443,35 @@ class SecureRandomGenerator:
         """Generate random key of specified size"""
         if key_size % 8 != 0:
             raise ValueError("Key size must be a multiple of 8")
-        
+
         key_bytes = key_size // 8
         return self.generate_random_bytes(key_bytes)
 
     def generate_base64_key(self, key_size: int) -> str:
         """Generate random key and encode as base64"""
         key_bytes = self.generate_random_key(key_size)
-        return base64.b64encode(key_bytes).decode('utf-8')
+        return base64.b64encode(key_bytes).decode("utf-8")
 
     def validate_entropy_source(self) -> bool:
         """Validate entropy source quality"""
         try:
             # Test entropy source
             test_data = os.urandom(32)
-            
+
             # Basic entropy check (not cryptographically sound, but good enough for validation)
             byte_counts = [0] * 256
             for byte in test_data:
                 byte_counts[byte] += 1
-            
+
             # Check for reasonable distribution
             min_count = min(byte_counts)
             max_count = max(byte_counts)
-            
+
             # If distribution is too skewed, entropy might be poor
             if max_count - min_count > 8:
                 logger.warning("Entropy source distribution appears skewed")
                 return False
-            
+
             return True
 
         except Exception as e:
@@ -467,15 +482,15 @@ class SecureRandomGenerator:
         """Generate secure password"""
         import secrets
         import string
-        
+
         alphabet = string.ascii_letters + string.digits + string.punctuation
-        return ''.join(secrets.choice(alphabet) for _ in range(length))
+        return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 class KeyStorageSecurity:
     """Secure key storage for KME"""
 
-    def __init__(self, encryption_key: Optional[bytes] = None):
+    def __init__(self, encryption_key: bytes | None = None):
         """Initialize key storage security"""
         self.encryption_key = encryption_key or self._generate_encryption_key()
         self.algorithm = algorithms.AES256
@@ -485,29 +500,33 @@ class KeyStorageSecurity:
         """Generate encryption key for key storage"""
         return os.urandom(32)  # 256-bit key
 
-    def encrypt_key_data(self, key_data: bytes, key_id: str) -> Dict[str, Any]:
+    def encrypt_key_data(self, key_data: bytes, key_id: str) -> dict[str, Any]:
         """Encrypt key data for storage"""
         try:
             # Generate random IV
             iv = os.urandom(12)  # 96-bit IV for GCM
-            
+
             # Create cipher
-            cipher = Cipher(self.algorithm(self.encryption_key), self.mode(iv), backend=default_backend())
+            cipher = Cipher(
+                self.algorithm(self.encryption_key),
+                self.mode(iv),
+                backend=default_backend(),
+            )
             encryptor = cipher.encryptor()
-            
+
             # Add associated data (key ID for integrity)
-            encryptor.authenticate_additional_data(key_id.encode('utf-8'))
-            
+            encryptor.authenticate_additional_data(key_id.encode("utf-8"))
+
             # Encrypt data
             ciphertext = encryptor.update(key_data) + encryptor.finalize()
-            
+
             # Get authentication tag
             tag = encryptor.tag
-            
+
             return {
-                "ciphertext": base64.b64encode(ciphertext).decode('utf-8'),
-                "iv": base64.b64encode(iv).decode('utf-8'),
-                "tag": base64.b64encode(tag).decode('utf-8'),
+                "ciphertext": base64.b64encode(ciphertext).decode("utf-8"),
+                "iv": base64.b64encode(iv).decode("utf-8"),
+                "tag": base64.b64encode(tag).decode("utf-8"),
                 "algorithm": "AES256-GCM",
                 "key_id": key_id,
                 "encrypted_at": datetime.datetime.utcnow().isoformat(),
@@ -517,7 +536,7 @@ class KeyStorageSecurity:
             logger.error(f"Key encryption failed: {e}")
             raise
 
-    def decrypt_key_data(self, encrypted_data: Dict[str, Any]) -> bytes:
+    def decrypt_key_data(self, encrypted_data: dict[str, Any]) -> bytes:
         """Decrypt key data from storage"""
         try:
             # Extract components
@@ -525,24 +544,30 @@ class KeyStorageSecurity:
             iv = base64.b64decode(encrypted_data["iv"])
             tag = base64.b64decode(encrypted_data["tag"])
             key_id = encrypted_data["key_id"]
-            
+
             # Create cipher
-            cipher = Cipher(self.algorithm(self.encryption_key), self.mode(iv, tag), backend=default_backend())
+            cipher = Cipher(
+                self.algorithm(self.encryption_key),
+                self.mode(iv, tag),
+                backend=default_backend(),
+            )
             decryptor = cipher.decryptor()
-            
+
             # Add associated data
-            decryptor.authenticate_additional_data(key_id.encode('utf-8'))
-            
+            decryptor.authenticate_additional_data(key_id.encode("utf-8"))
+
             # Decrypt data
             plaintext = decryptor.update(ciphertext) + decryptor.finalize()
-            
+
             return plaintext
 
         except Exception as e:
             logger.error(f"Key decryption failed: {e}")
             raise
 
-    def generate_key_metadata(self, key_data: bytes, key_id: str, sae_id: str) -> Dict[str, Any]:
+    def generate_key_metadata(
+        self, key_data: bytes, key_id: str, sae_id: str
+    ) -> dict[str, Any]:
         """Generate metadata for key storage"""
         return {
             "key_id": key_id,
@@ -591,24 +616,26 @@ def initialize_security_infrastructure() -> bool:
     """Initialize security infrastructure"""
     try:
         logger.info("Initializing KME security infrastructure")
-        
+
         # Validate entropy source
         if not secure_random.validate_entropy_source():
             logger.error("Entropy source validation failed")
             return False
-        
+
         # Configure TLS
         tls_config.configure_tls_context()
-        
+
         # Load CA certificates if configured
-        if hasattr(settings, 'ca_certificate_path') and settings.ca_certificate_path:
+        if hasattr(settings, "ca_certificate_path") and settings.ca_certificate_path:
             ca_path = Path(settings.ca_certificate_path)
             if not certificate_manager.load_ca_certificates(ca_path):
-                logger.warning("Failed to load CA certificates, continuing without CA validation")
-        
+                logger.warning(
+                    "Failed to load CA certificates, continuing without CA validation"
+                )
+
         logger.info("Security infrastructure initialized successfully")
         return True
-        
+
     except Exception as e:
         logger.error(f"Security infrastructure initialization failed: {e}")
-        return False 
+        return False
