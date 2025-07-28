@@ -468,7 +468,7 @@ async def main():
         database_url = os.getenv(
             "DATABASE_URL", f"postgresql://postgres@localhost:5432/{args.database}"
         )
-    
+
     # Convert postgresql+asyncpg:// to postgresql:// for asyncpg compatibility
     if database_url.startswith("postgresql+asyncpg://"):
         database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")

@@ -47,6 +47,9 @@ from app.core.health import check_health, get_health_summary
 # Import performance monitoring
 from app.core.performance import get_performance_monitor
 
+# Import security infrastructure
+from app.core.security import initialize_security_infrastructure
+
 # Import KME modules (to be implemented)
 # from app.core.config import settings
 # from app.core.logging import setup_logging
@@ -111,11 +114,16 @@ async def startup_event():
     """Application startup event handler"""
     logger.info("KME application starting up")
 
+    # Initialize security infrastructure
+    if initialize_security_infrastructure():
+        logger.info("Security infrastructure initialized successfully")
+    else:
+        logger.error("Security infrastructure initialization failed")
+
     # Initialize components (to be implemented)
     # await setup_logging()
     # await initialize_database()
     # await initialize_redis()
-    # await setup_security()
 
     logger.info("KME application startup complete")
 
