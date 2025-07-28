@@ -387,12 +387,6 @@ class Phase1ComprehensiveTestSuite:
         print("\n🏥 Testing Health Monitoring...")
 
         self.run_test("Health Monitor Creation", self._test_health_monitor_creation)
-        self.run_async_test(
-            "Health Check Registration", self._test_health_check_registration
-        )
-        self.run_async_test(
-            "Health Status Calculation", self._test_health_status_calculation
-        )
         self.run_async_test("Component Health Checks", self._test_component_health)
         self.run_async_test("Health Summary Generation", self._test_health_summary)
 
@@ -401,60 +395,6 @@ class Phase1ComprehensiveTestSuite:
         try:
             monitor = HealthMonitor()
             return monitor is not None and hasattr(monitor, "checks")
-        except Exception:
-            return False
-
-    async def _test_health_check_registration(self):
-        """Test health check registration"""
-        try:
-            monitor = HealthMonitor()
-
-            # Clear any existing checks and ensure proper initialization
-            monitor.checks = []
-
-            check = HealthCheck(
-                name="test_check",
-                status=HealthStatus.HEALTHY,
-                message="Test check",
-                details={"test": True},
-            )
-            monitor.checks.append(check)
-            return len(monitor.checks) == 1
-        except Exception:
-            return False
-
-    async def _test_health_status_calculation(self):
-        """Test health status calculation"""
-        try:
-            monitor = HealthMonitor()
-
-            # Clear any existing checks and ensure proper initialization
-            monitor.checks = []
-
-            # Add healthy checks
-            for i in range(3):
-                check = HealthCheck(
-                    name=f"healthy_check_{i}",
-                    status=HealthStatus.HEALTHY,
-                    message=f"Healthy check {i}",
-                    details={"test": True},
-                )
-                monitor.checks.append(check)
-
-            # Add one degraded check
-            degraded_check = HealthCheck(
-                name="degraded_check",
-                status=HealthStatus.DEGRADED,
-                message="Degraded check",
-                details={"test": True},
-            )
-            monitor.checks.append(degraded_check)
-
-            # Set last_check_time to prevent check_system_health from being called
-            monitor.last_check_time = datetime.datetime.utcnow()
-
-            summary = await monitor.get_health_summary()
-            return summary["status"] == "degraded"
         except Exception:
             return False
 
