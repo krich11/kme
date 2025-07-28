@@ -1,0 +1,44 @@
+# KME Project Dependencies
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Data Validation and Serialization
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database and Storage
+sqlalchemy[asyncio]==2.0.23
+asyncpg==0.29.0
+redis==5.0.1
+aioredis==2.0.1
+
+# Security and Cryptography
+cryptography==41.0.7
+pyOpenSSL==23.3.0
+certifi==2023.11.17
+
+# HTTP Client and Testing
+httpx==0.25.2
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+fakeredis==2.20.1
+
+# Logging and Monitoring
+structlog==23.2.0
+prometheus-client==0.19.0
+
+# Development Tools
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+pre-commit==3.6.0
+
+# Environment and Configuration
+python-dotenv==1.0.0
+
+# Additional Utilities
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
