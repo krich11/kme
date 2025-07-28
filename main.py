@@ -22,6 +22,7 @@ ToDo List:
 Progress: 0% (Not started)
 """
 
+import datetime
 import os
 import sys
 from pathlib import Path
@@ -40,11 +41,19 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
+# Import health monitoring
+from app.core.health import check_health, get_health_summary
+
+# Import performance monitoring
+from app.core.performance import get_performance_monitor
+
 # Import KME modules (to be implemented)
 # from app.core.config import settings
 # from app.core.logging import setup_logging
 # from app.api.routes import api_router
 # from app.core.middleware import AuthMiddleware
+
+
 
 # Initialize structured logging
 structlog.configure(
@@ -137,6 +146,81 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
+    return await check_health()
+
+
+@app.get("/health/summary")
+async def health_summary():
+    """Health summary endpoint"""
+    return await get_health_summary()
+
+
+@app.get("/health/ready")
+async def health_ready():
+    """Readiness check endpoint"""
+    health_data = await check_health()
+    if health_data["status"] in ["healthy", "degraded"]:
+        return {"status": "ready", "message": "KME is ready to serve requests"}
+    else:
+        return {"status": "not_ready", "message": "KME is not ready to serve requests"}
+
+
+@app.get("/health/live")
+async def health_live():
+    """Liveness check endpoint"""
+    return {"status": "alive", "message": "KME is alive and responding"}
+
+
+@app.get("/metrics/performance")
+async def get_performance_metrics():
+    """Get performance metrics"""
+    monitor = get_performance_monitor()
+    return {
+        "api_performance": monitor.get_api_performance_summary(),
+        "key_performance": monitor.get_key_performance_summary(),
+        "system_performance": monitor.get_system_performance_metrics(),
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+    }
+
+
+@app.get("/metrics/api")
+async def get_api_metrics():
+    """Get API performance metrics"""
+    monitor = get_performance_monitor()
+    return {
+        "api_performance": monitor.get_api_performance_summary(),
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+    }
+
+
+@app.get("/metrics/keys")
+async def get_key_metrics():
+    """Get key management performance metrics"""
+    monitor = get_performance_monitor()
+    return {
+        "key_performance": monitor.get_key_performance_summary(),
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+    }
+
+
+@app.get("/metrics/system")
+async def get_system_metrics():
+    """Get system performance metrics"""
+    monitor = get_performance_monitor()
+    return {
+        "system_performance": monitor.get_system_performance_metrics(),
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+    }
+
+
+@app.get("/metrics/database")
+async def get_database_metrics():
+    """Get database performance metrics"""
+    monitor = get_performance_monitor()
+    return {
+        "database_performance": monitor.get_database_performance_summary(),
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+    }
     # Health check logic (to be implemented)
     return {
         "status": "healthy",
@@ -150,6 +234,10 @@ async def get_status(slave_sae_id: str):
     """Get Status endpoint - Placeholder implementation"""
     # TODO: Implement actual status endpoint
     logger.info(f"Status request for slave SAE: {slave_sae_id}")
+
+    # Record performance metric
+    monitor = get_performance_monitor()
+    monitor.record_api_metric("/api/v1/keys/{slave_sae_id}/status", 0.0, 200)
 
     # Placeholder response
     return {
@@ -173,6 +261,11 @@ async def get_key(slave_sae_id: str):
     # TODO: Implement actual key endpoint
     logger.info(f"Key request for slave SAE: {slave_sae_id}")
 
+    # Record performance metric
+    monitor = get_performance_monitor()
+    monitor.record_api_metric("/api/v1/keys/{slave_sae_id}/enc_keys", 0.0, 200)
+    monitor.record_key_metric("key_retrieval", 0.0, 1, 352)
+
     # Placeholder response
     return {
         "keys": [
@@ -189,6 +282,11 @@ async def get_key_with_ids(master_sae_id: str):
     """Get Key with Key IDs endpoint - Placeholder implementation"""
     # TODO: Implement actual key with IDs endpoint
     logger.info(f"Key with IDs request for master SAE: {master_sae_id}")
+
+    # Record performance metric
+    monitor = get_performance_monitor()
+    monitor.record_api_metric("/api/v1/keys/{master_sae_id}/dec_keys", 0.0, 200)
+    monitor.record_key_metric("key_retrieval_with_ids", 0.0, 1, 352)
 
     # Placeholder response
     return {

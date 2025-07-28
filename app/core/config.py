@@ -88,6 +88,16 @@ class Settings(BaseSettings):
     database_url: str = Field(..., description="Database connection URL")
     database_pool_size: int = Field(default=10, description="Database pool size")
     database_max_overflow: int = Field(default=20, description="Database max overflow")
+    database_echo: bool = Field(default=False, description="Enable SQL query logging")
+    database_pool_pre_ping: bool = Field(
+        default=True, description="Verify connections before use"
+    )
+    database_pool_recycle: int = Field(
+        default=3600, description="Connection recycle time in seconds"
+    )
+    database_pool_timeout: int = Field(
+        default=30, description="Connection timeout in seconds"
+    )
 
     # Redis Configuration
     redis_url: str = Field(
