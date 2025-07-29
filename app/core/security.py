@@ -219,7 +219,7 @@ class CertificateManager:
             return False
 
     def validate_certificate(
-        self, cert_data: bytes, expected_id: str = None
+        self, cert_data: bytes, expected_id: str | None = None
     ) -> CertificateInfo:
         """Validate certificate and extract information"""
         try:

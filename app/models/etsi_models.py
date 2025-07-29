@@ -186,9 +186,7 @@ class KeyRequest(BaseModel):
     priority: str | None = Field(
         default="normal", description="Request priority (low, normal, high, critical)"
     )
-    timeout_seconds: int | None = Field(
-        None, description="Request timeout in seconds"
-    )
+    timeout_seconds: int | None = Field(None, description="Request timeout in seconds")
     route_preference: str | None = Field(
         None, description="Route preference (direct, indirect, any)"
     )
@@ -498,9 +496,7 @@ class Error(BaseModel):
         None, description="Error code for programmatic handling"
     )
     timestamp: datetime | None = Field(None, description="Error timestamp")
-    request_id: str | None = Field(
-        None, description="Request ID that caused the error"
-    )
+    request_id: str | None = Field(None, description="Request ID that caused the error")
     severity: str | None = Field(
         default="error", description="Error severity (info, warning, error, critical)"
     )

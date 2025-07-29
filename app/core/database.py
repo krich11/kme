@@ -30,10 +30,10 @@ Progress: 50% (7/15 tasks completed)
 
 import asyncio
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Dict, Optional
-from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError, SQLAlchemyError

@@ -85,7 +85,7 @@ class HealthMonitor:
         )
 
         # Process results
-        health_checks = []
+        health_checks: list[HealthCheck] = []
         for check in checks:
             if isinstance(check, Exception):
                 health_checks.append(
@@ -96,8 +96,18 @@ class HealthMonitor:
                         details={"error": str(check)},
                     )
                 )
-            else:
+            elif isinstance(check, HealthCheck):
                 health_checks.append(check)
+            else:
+                # Handle unexpected types
+                health_checks.append(
+                    HealthCheck(
+                        name="system_check",
+                        status=HealthStatus.UNHEALTHY,
+                        message=f"Unexpected check type: {type(check)}",
+                        details={"error": f"Expected HealthCheck, got {type(check)}"},
+                    )
+                )
 
         self.checks = health_checks
         self.last_check_time = datetime.datetime.utcnow()

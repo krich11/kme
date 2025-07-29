@@ -162,7 +162,7 @@ class SecurityLogger:
         event_type: str,
         user_id: str,
         success: bool,
-        details: dict[str, Any] = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log authentication event"""
         self.logger.info(
@@ -181,7 +181,7 @@ class SecurityLogger:
         user_id: str,
         resource: str,
         granted: bool,
-        details: dict[str, Any] = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log authorization event"""
         # Create security event
@@ -223,7 +223,10 @@ class SecurityLogger:
         )
 
     def log_security_violation(
-        self, violation_type: str, user_id: str = None, details: dict[str, Any] = None
+        self,
+        violation_type: str,
+        user_id: str | None = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log security violation"""
         self.logger.warning(
@@ -241,7 +244,7 @@ class SecurityLogger:
         key_id: str,
         user_id: str,
         success: bool,
-        details: dict[str, Any] = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log key access event"""
         # Create security event
@@ -279,7 +282,7 @@ class SecurityLogger:
         sae_id: str,
         kme_id: str,
         success: bool,
-        certificate_info: dict[str, Any] = None,
+        certificate_info: dict[str, Any] | None = None,
     ):
         """Log SAE authentication event (ETSI QKD 014 specific)"""
         # Create security event
@@ -319,7 +322,7 @@ class SecurityLogger:
         kme_id: str,
         sae_id: str,
         success: bool,
-        certificate_info: dict[str, Any] = None,
+        certificate_info: dict[str, Any] | None = None,
     ):
         """Log KME authentication event (ETSI QKD 014 specific)"""
         self.logger.info(
@@ -339,7 +342,7 @@ class SecurityLogger:
         certificate_type: str,
         subject_id: str,
         success: bool,
-        validation_details: dict[str, Any] = None,
+        validation_details: dict[str, Any] | None = None,
     ):
         """Log certificate validation event"""
         # Create security event
@@ -403,7 +406,7 @@ class AuditLogger:
         kme_id: str,
         status_code: int,
         duration_ms: float,
-        request_details: dict[str, Any] = None,
+        request_details: dict[str, Any] | None = None,
     ):
         """Log ETSI QKD 014 API request"""
         self.logger.info(
@@ -429,7 +432,7 @@ class AuditLogger:
         key_count: int,
         key_size: int,
         success: bool,
-        details: dict[str, Any] = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log key distribution event (ETSI QKD 014 specific)"""
         self.logger.info(
@@ -453,7 +456,7 @@ class AuditLogger:
         table: str,
         user_id: str,
         success: bool,
-        details: dict[str, Any] = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log database operation"""
         self.logger.info(
@@ -468,7 +471,7 @@ class AuditLogger:
         )
 
     def log_configuration_change(
-        self, change_type: str, user_id: str, details: dict[str, Any] = None
+        self, change_type: str, user_id: str, details: dict[str, Any] | None = None
     ):
         """Log configuration change"""
         self.logger.info(
@@ -485,7 +488,7 @@ class AuditLogger:
         compliance_type: str,
         event_description: str,
         success: bool,
-        details: dict[str, Any] = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log ETSI QKD 014 compliance event"""
         self.logger.info(
@@ -507,7 +510,7 @@ class AuditLogger:
         resource: str,
         action: str,
         result: str,
-        details: dict[str, Any] = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log security audit trail event"""
         self.logger.info(
@@ -533,7 +536,11 @@ class PerformanceLogger:
         self.logger = logger
 
     def log_performance_metric(
-        self, metric_name: str, value: float, unit: str, details: dict[str, Any] = None
+        self,
+        metric_name: str,
+        value: float,
+        unit: str,
+        details: dict[str, Any] | None = None,
     ):
         """Log performance metric"""
         self.logger.info(
@@ -547,7 +554,7 @@ class PerformanceLogger:
         )
 
     def log_system_health(
-        self, component: str, status: str, details: dict[str, Any] = None
+        self, component: str, status: str, details: dict[str, Any] | None = None
     ):
         """Log system health"""
         self.logger.info(
@@ -565,7 +572,7 @@ class PerformanceLogger:
         max_key_count: int,
         available_keys: int,
         key_size: int,
-        details: dict[str, Any] = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log key pool status (ETSI QKD 014 specific)"""
         self.logger.info(
@@ -589,7 +596,7 @@ class PerformanceLogger:
         link_status: str,
         key_generation_rate: float,
         link_quality: str,
-        details: dict[str, Any] = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log QKD network status"""
         self.logger.info(
@@ -610,7 +617,7 @@ class PerformanceLogger:
         response_time_ms: float,
         throughput_requests_per_sec: float,
         error_rate_percent: float,
-        details: dict[str, Any] = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log API performance metrics"""
         self.logger.info(
@@ -632,7 +639,7 @@ class PerformanceLogger:
         key_distribution_rate: float,
         key_retrieval_rate: float,
         key_cleanup_rate: float,
-        details: dict[str, Any] = None,
+        details: dict[str, Any] | None = None,
     ):
         """Log key management performance metrics"""
         self.logger.info(
@@ -704,7 +711,7 @@ def setup_logging(log_level: str = "INFO", log_file: str | None = None):
     logger.info("Logging system initialized", log_level=log_level, log_file=log_file)
 
 
-def get_logger(name: str = None) -> structlog.BoundLogger:
+def get_logger(name: str | None = None) -> structlog.BoundLogger:
     """Get logger instance"""
     return logging_config.get_logger(name)
 

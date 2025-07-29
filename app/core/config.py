@@ -163,12 +163,25 @@ class Settings(BaseSettings):
     allowed_hosts: list[str] = Field(default=["*"], description="Allowed hosts")
 
     # Security Configuration
-    security_level: str = Field(default="production", description="Security level (development/testing/production)")
-    tls_certificate_path: str | None = Field(default=None, description="Path to TLS certificate")
-    tls_private_key_path: str | None = Field(default=None, description="Path to TLS private key")
-    ca_certificate_path: str | None = Field(default=None, description="Path to CA certificate")
-    key_encryption_key: str | None = Field(default=None, description="Key encryption key for storage")
-    enable_mutual_tls: bool = Field(default=True, description="Enable mutual TLS authentication")
+    security_level: str = Field(
+        default="production",
+        description="Security level (development/testing/production)",
+    )
+    tls_certificate_path: str | None = Field(
+        default=None, description="Path to TLS certificate"
+    )
+    tls_private_key_path: str | None = Field(
+        default=None, description="Path to TLS private key"
+    )
+    ca_certificate_path: str | None = Field(
+        default=None, description="Path to CA certificate"
+    )
+    key_encryption_key: str | None = Field(
+        default=None, description="Key encryption key for storage"
+    )
+    enable_mutual_tls: bool = Field(
+        default=True, description="Enable mutual TLS authentication"
+    )
     min_tls_version: str = Field(default="TLSv1.2", description="Minimum TLS version")
     max_tls_version: str = Field(default="TLSv1.3", description="Maximum TLS version")
 

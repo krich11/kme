@@ -25,11 +25,11 @@ Progress: 10% (1/10 tasks completed)
 import asyncio
 import datetime
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import wraps
 from typing import Any, Dict, List, Optional
-from collections.abc import Callable
 
 import psutil
 
