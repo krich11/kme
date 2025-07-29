@@ -1,0 +1,418 @@
+2025-07-29 09:58:45 [info     ] Starting comprehensive test run
+2025-07-29 09:58:45 [info     ] Starting Phase 1 test suite
+2025-07-29 09:58:45 [warning  ] No Phase 1 test files found
+2025-07-29 09:58:45 [info     ] Starting Phase 2 test suite
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.10.12, pytest-7.4.3, pluggy-1.6.0 -- /home/krich/src/kme/venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/krich/src/kme
+plugins: cov-4.1.0, asyncio-0.21.1, anyio-3.7.1
+asyncio: mode=strict
+[1mcollecting ... [0mcollected 0 items / 1 error
+
+==================================== ERRORS ====================================
+[31m[1m______________ ERROR collecting test/phase2/test_api_endpoints.py ______________[0m
+[31mImportError while importing test module '/home/krich/src/kme/test/phase2/test_api_endpoints.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+test/phase2/test_api_endpoints.py:31: in <module>
+    from app.main import app
+E   ModuleNotFoundError: No module named 'app.main'[0m
+[36m[1m=========================== short test summary info ============================[0m
+[31mERROR[0m test/phase2/test_api_endpoints.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+[31m=============================== [31m[1m1 error[0m[31m in 0.12s[0m[31m ===============================[0m
+2025-07-29 09:58:45 [info     ] Starting linter checks
+app/api/routes.py:25:1: F401 'datetime' imported but unused
+app/api/routes.py:26:1: F401 'os' imported but unused
+app/api/routes.py:27:1: F401 'uuid' imported but unused
+app/api/routes.py:32:80: E501 line too long (82 > 79 characters)
+app/api/routes.py:116:80: E501 line too long (82 > 79 characters)
+app/api/routes.py:195:80: E501 line too long (80 > 79 characters)
+app/api/routes.py:203:80: E501 line too long (89 > 79 characters)
+app/api/routes.py:279:80: E501 line too long (84 > 79 characters)
+app/api/routes.py:385:80: E501 line too long (88 > 79 characters)
+app/core/alerts.py:30:1: F401 'typing.Dict' imported but unused
+app/core/alerts.py:30:1: F401 'typing.List' imported but unused
+app/core/alerts.py:30:1: F401 'typing.Optional' imported but unused
+app/core/alerts.py:32:1: F401 '.logging.performance_logger' imported but unused
+app/core/alerts.py:117:80: E501 line too long (81 > 79 characters)
+app/core/alerts.py:126:80: E501 line too long (86 > 79 characters)
+app/core/alerts.py:129:80: E501 line too long (84 > 79 characters)
+app/core/alerts.py:132:80: E501 line too long (88 > 79 characters)
+app/core/alerts.py:135:80: E501 line too long (86 > 79 characters)
+app/core/alerts.py:142:80: E501 line too long (112 > 79 characters)
+app/core/alerts.py:177:80: E501 line too long (109 > 79 characters)
+app/core/alerts.py:214:80: E501 line too long (106 > 79 characters)
+app/core/alerts.py:294:80: E501 line too long (87 > 79 characters)
+app/core/alerts.py:332:80: E501 line too long (86 > 79 characters)
+app/core/alerts.py:335:80: E501 line too long (80 > 79 characters)
+app/core/config.py:28:80: E501 line too long (86 > 79 characters)
+app/core/config.py:72:1: F401 'os' imported but unused
+app/core/config.py:73:1: F401 'typing.List' imported but unused
+app/core/config.py:73:1: F401 'typing.Optional' imported but unused
+app/core/config.py:89:80: E501 line too long (81 > 79 characters)
+app/core/config.py:90:80: E501 line too long (87 > 79 characters)
+app/core/config.py:91:80: E501 line too long (86 > 79 characters)
+app/core/config.py:109:80: E501 line too long (84 > 79 characters)
+app/core/config.py:110:80: E501 line too long (83 > 79 characters)
+app/core/config.py:111:80: E501 line too long (85 > 79 characters)
+app/core/config.py:127:80: E501 line too long (86 > 79 characters)
+app/core/config.py:128:80: E501 line too long (83 > 79 characters)
+app/core/config.py:129:80: E501 line too long (81 > 79 characters)
+app/core/config.py:133:80: E501 line too long (81 > 79 characters)
+app/core/config.py:136:80: E501 line too long (86 > 79 characters)
+app/core/config.py:137:80: E501 line too long (88 > 79 characters)
+app/core/config.py:143:80: E501 line too long (86 > 79 characters)
+app/core/config.py:144:80: E501 line too long (80 > 79 characters)
+app/core/config.py:145:80: E501 line too long (86 > 79 characters)
+app/core/config.py:152:80: E501 line too long (88 > 79 characters)
+app/core/config.py:163:80: E501 line too long (80 > 79 characters)
+app/core/config.py:185:80: E501 line too long (86 > 79 characters)
+app/core/config.py:186:80: E501 line too long (86 > 79 characters)
+app/core/config.py:230:80: E501 line too long (87 > 79 characters)
+app/core/config.py:261:80: E501 line too long (80 > 79 characters)
+app/core/database.py:31:1: F401 'asyncio' imported but unused
+app/core/database.py:32:1: F401 'logging' imported but unused
+app/core/database.py:35:1: F401 'datetime.datetime' imported but unused
+app/core/database.py:36:1: F401 'typing.Dict' imported but unused
+app/core/database.py:36:1: F401 'typing.Optional' imported but unused
+app/core/database.py:39:1: F401 'sqlalchemy.exc.SQLAlchemyError' imported but unused
+app/core/database.py:73:80: E501 line too long (82 > 79 characters)
+app/core/database.py:77:80: E501 line too long (95 > 79 characters)
+app/core/database.py:78:80: E501 line too long (83 > 79 characters)
+app/core/database.py:79:80: E501 line too long (82 > 79 characters)
+app/core/database.py:105:80: E501 line too long (82 > 79 characters)
+app/core/database.py:123:80: E501 line too long (84 > 79 characters)
+app/core/database.py:169:80: E501 line too long (85 > 79 characters)
+app/core/database.py:214:80: E501 line too long (80 > 79 characters)
+app/core/database.py:221:80: E501 line too long (87 > 79 characters)
+app/core/database.py:340:80: E501 line too long (85 > 79 characters)
+app/core/database.py:345:80: E501 line too long (82 > 79 characters)
+app/core/health.py:29:1: F401 'typing.Dict' imported but unused
+app/core/health.py:29:1: F401 'typing.List' imported but unused
+app/core/health.py:29:1: F401 'typing.Optional' imported but unused
+app/core/health.py:108:80: E501 line too long (86 > 79 characters)
+app/core/health.py:125:80: E501 line too long (82 > 79 characters)
+app/core/health.py:128:80: E501 line too long (83 > 79 characters)
+app/core/health.py:131:80: E501 line too long (84 > 79 characters)
+app/core/health.py:162:80: E501 line too long (105 > 79 characters)
+app/core/health.py:312:80: E501 line too long (86 > 79 characters)
+app/core/health.py:316:80: E501 line too long (82 > 79 characters)
+app/core/health.py:318:80: E501 line too long (80 > 79 characters)
+app/core/health.py:341:80: E501 line too long (80 > 79 characters)
+app/core/health.py:369:80: E501 line too long (88 > 79 characters)
+app/core/health.py:373:80: E501 line too long (85 > 79 characters)
+app/core/health.py:396:80: E501 line too long (87 > 79 characters)
+app/core/health.py:433:80: E501 line too long (83 > 79 characters)
+app/core/health.py:486:80: E501 line too long (87 > 79 characters)
+app/core/health.py:511:80: E501 line too long (86 > 79 characters)
+app/core/health.py:556:80: E501 line too long (83 > 79 characters)
+app/core/logging.py:27:1: F401 'os' imported but unused
+app/core/logging.py:30:1: F401 'typing.Dict' imported but unused
+app/core/logging.py:30:1: F401 'typing.Optional' imported but unused
+app/core/logging.py:42:1: F401 '.security_events.SecurityEvent' imported but unused
+app/core/logging.py:42:1: F401 '.security_events.SecurityEventCategory' imported but unused
+app/core/logging.py:42:1: F401 '.security_events.SecurityEventSeverity' imported but unused
+app/core/logging.py:111:80: E501 line too long (87 > 79 characters)
+app/core/logging.py:138:13: F541 f-string is missing placeholders
+app/core/logging.py:150:26: F541 f-string is missing placeholders
+app/core/logging.py:387:80: E501 line too long (88 > 79 characters)
+app/core/logging.py:474:80: E501 line too long (83 > 79 characters)
+app/core/logging.py:557:80: E501 line too long (80 > 79 characters)
+app/core/logging.py:711:80: E501 line too long (85 > 79 characters)
+app/core/performance.py:25:1: F401 'asyncio' imported but unused
+app/core/performance.py:32:1: F401 'typing.Dict' imported but unused
+app/core/performance.py:32:1: F401 'typing.List' imported but unused
+app/core/performance.py:32:1: F401 'typing.Optional' imported but unused
+app/core/performance.py:176:80: E501 line too long (87 > 79 characters)
+app/core/performance.py:202:80: E501 line too long (83 > 79 characters)
+app/core/performance.py:203:80: E501 line too long (83 > 79 characters)
+app/core/performance.py:256:80: E501 line too long (82 > 79 characters)
+app/core/performance.py:257:80: E501 line too long (82 > 79 characters)
+app/core/performance.py:283:80: E501 line too long (80 > 79 characters)
+app/core/performance.py:315:13: F841 local variable 'e' is assigned to but never used
+app/core/performance.py:317:80: E501 line too long (83 > 79 characters)
+app/core/performance.py:334:80: E501 line too long (87 > 79 characters)
+app/core/performance.py:344:13: F841 local variable 'e' is assigned to but never used
+app/core/performance.py:346:80: E501 line too long (80 > 79 characters)
+app/core/performance.py:363:80: E501 line too long (87 > 79 characters)
+app/core/performance.py:372:13: F841 local variable 'e' is assigned to but never used
+app/core/security.py:7:80: E501 line too long (107 > 79 characters)
+app/core/security.py:25:1: F401 'asyncio' imported but unused
+app/core/security.py:35:1: F401 'typing.Dict' imported but unused
+app/core/security.py:35:1: F401 'typing.List' imported but unused
+app/core/security.py:35:1: F401 'typing.Optional' imported but unused
+app/core/security.py:35:1: F401 'typing.Tuple' imported but unused
+app/core/security.py:37:1: F401 'cryptography' imported but unused
+app/core/security.py:40:1: F401 'cryptography.hazmat.primitives.hashes' imported but unused
+app/core/security.py:40:1: F401 'cryptography.hazmat.primitives.serialization' imported but unused
+app/core/security.py:41:1: F401 'cryptography.hazmat.primitives.asymmetric.padding' imported but unused
+app/core/security.py:41:1: F401 'cryptography.hazmat.primitives.asymmetric.rsa' imported but unused
+app/core/security.py:85:80: E501 line too long (81 > 79 characters)
+app/core/security.py:103:80: E501 line too long (87 > 79 characters)
+app/core/security.py:128:80: E501 line too long (80 > 79 characters)
+app/core/security.py:202:80: E501 line too long (87 > 79 characters)
+app/core/security.py:230:80: E501 line too long (87 > 79 characters)
+app/core/security.py:231:80: E501 line too long (85 > 79 characters)
+app/core/security.py:280:80: E501 line too long (84 > 79 characters)
+app/core/security.py:344:80: E501 line too long (87 > 79 characters)
+app/core/security.py:359:80: E501 line too long (82 > 79 characters)
+app/core/security.py:394:80: E501 line too long (86 > 79 characters)
+app/core/security.py:411:21: F402 import 're' from line 396 shadowed by loop variable
+app/core/security.py:461:80: E501 line too long (95 > 79 characters)
+app/core/security.py:582:80: E501 line too long (82 > 79 characters)
+app/core/security.py:629:80: E501 line too long (85 > 79 characters)
+app/core/security.py:633:80: E501 line too long (86 > 79 characters)
+app/core/security_events.py:28:1: F401 'typing.Dict' imported but unused
+app/core/security_events.py:28:1: F401 'typing.Optional' imported but unused
+app/core/security_events.py:124:80: E501 line too long (83 > 79 characters)
+app/core/security_events.py:201:80: E501 line too long (84 > 79 characters)
+app/core/security_events.py:221:80: E501 line too long (82 > 79 characters)
+app/core/version.py:27:1: F401 'typing.Dict' imported but unused
+app/core/version.py:27:1: F401 'typing.Optional' imported but unused
+app/core/version.py:50:80: E501 line too long (93 > 79 characters)
+app/models/__init__.py:25:80: E501 line too long (83 > 79 characters)
+app/models/api_models.py:29:1: F401 'typing.Dict' imported but unused
+app/models/api_models.py:29:1: F401 'typing.List' imported but unused
+app/models/api_models.py:29:1: F401 'typing.Optional' imported but unused
+app/models/api_models.py:29:1: F401 'typing.Union' imported but unused
+app/models/api_models.py:144:80: E501 line too long (83 > 79 characters)
+app/models/api_models.py:153:80: E501 line too long (85 > 79 characters)
+app/models/api_models.py:212:80: E501 line too long (82 > 79 characters)
+app/models/api_models.py:228:80: E501 line too long (82 > 79 characters)
+app/models/api_models.py:247:80: E501 line too long (88 > 79 characters)
+app/models/api_models.py:286:80: E501 line too long (83 > 79 characters)
+app/models/database_models.py:32:1: F401 'typing.Dict' imported but unused
+app/models/database_models.py:32:1: F401 'typing.List' imported but unused
+app/models/database_models.py:32:1: F401 'typing.Optional' imported but unused
+app/models/database_models.py:35:1: F401 'sqlalchemy.ARRAY' imported but unused
+app/models/database_models.py:35:1: F401 'sqlalchemy.JSON' imported but unused
+app/models/database_models.py:35:1: F401 'sqlalchemy.Boolean' imported but unused
+app/models/database_models.py:35:1: F401 'sqlalchemy.Column' imported but unused
+app/models/database_models.py:35:1: F401 'sqlalchemy.DateTime' imported but unused
+app/models/database_models.py:35:1: F401 'sqlalchemy.Integer' imported but unused
+app/models/database_models.py:35:1: F401 'sqlalchemy.LargeBinary' imported but unused
+app/models/database_models.py:35:1: F401 'sqlalchemy.String' imported but unused
+app/models/database_models.py:35:1: F401 'sqlalchemy.Text' imported but unused
+app/models/database_models.py:46:1: F401 'sqlalchemy.dialects.postgresql.JSONB' imported but unused
+app/models/database_models.py:46:1: F401 'sqlalchemy.dialects.postgresql.UUID' imported but unused
+app/models/database_models.py:63:80: E501 line too long (82 > 79 characters)
+app/models/database_models.py:106:80: E501 line too long (83 > 79 characters)
+app/models/database_models.py:109:80: E501 line too long (82 > 79 characters)
+app/models/database_models.py:153:80: E501 line too long (81 > 79 characters)
+app/models/database_models.py:158:80: E501 line too long (81 > 79 characters)
+app/models/database_models.py:178:80: E501 line too long (81 > 79 characters)
+app/models/database_models.py:224:80: E501 line too long (82 > 79 characters)
+app/models/database_models.py:237:80: E501 line too long (83 > 79 characters)
+app/models/database_models.py:238:80: E501 line too long (82 > 79 characters)
+app/models/database_models.py:275:80: E501 line too long (86 > 79 characters)
+app/models/database_models.py:303:80: E501 line too long (82 > 79 characters)
+app/models/database_models.py:304:80: E501 line too long (83 > 79 characters)
+app/models/database_models.py:354:80: E501 line too long (83 > 79 characters)
+app/models/database_models.py:483:80: E501 line too long (82 > 79 characters)
+app/models/database_models.py:490:80: E501 line too long (82 > 79 characters)
+app/models/etsi_models.py:34:1: F401 'typing.Dict' imported but unused
+app/models/etsi_models.py:34:1: F401 'typing.List' imported but unused
+app/models/etsi_models.py:34:1: F401 'typing.Optional' imported but unused
+app/models/etsi_models.py:34:1: F401 'typing.Union' imported but unused
+app/models/etsi_models.py:49:80: E501 line too long (83 > 79 characters)
+app/models/etsi_models.py:50:80: E501 line too long (83 > 79 characters)
+app/models/etsi_models.py:52:80: E501 line too long (86 > 79 characters)
+app/models/etsi_models.py:57:80: E501 line too long (85 > 79 characters)
+app/models/etsi_models.py:62:80: E501 line too long (86 > 79 characters)
+app/models/etsi_models.py:65:80: E501 line too long (86 > 79 characters)
+app/models/etsi_models.py:69:80: E501 line too long (129 > 79 characters)
+app/models/etsi_models.py:78:80: E501 line too long (88 > 79 characters)
+app/models/etsi_models.py:92:80: E501 line too long (81 > 79 characters)
+app/models/etsi_models.py:94:80: E501 line too long (94 > 79 characters)
+app/models/etsi_models.py:123:80: E501 line too long (80 > 79 characters)
+app/models/etsi_models.py:129:80: E501 line too long (80 > 79 characters)
+app/models/etsi_models.py:163:80: E501 line too long (81 > 79 characters)
+app/models/etsi_models.py:167:80: E501 line too long (116 > 79 characters)
+app/models/etsi_models.py:171:80: E501 line too long (212 > 79 characters)
+app/models/etsi_models.py:175:80: E501 line too long (188 > 79 characters)
+app/models/etsi_models.py:179:80: E501 line too long (167 > 79 characters)
+app/models/etsi_models.py:187:80: E501 line too long (86 > 79 characters)
+app/models/etsi_models.py:189:80: E501 line too long (87 > 79 characters)
+app/models/etsi_models.py:233:80: E501 line too long (85 > 79 characters)
+app/models/etsi_models.py:266:80: E501 line too long (83 > 79 characters)
+app/models/etsi_models.py:267:80: E501 line too long (85 > 79 characters)
+app/models/etsi_models.py:315:80: E501 line too long (91 > 79 characters)
+app/models/etsi_models.py:321:80: E501 line too long (159 > 79 characters)
+app/models/etsi_models.py:330:80: E501 line too long (85 > 79 characters)
+app/models/etsi_models.py:355:80: E501 line too long (81 > 79 characters)
+app/models/etsi_models.py:433:80: E501 line too long (81 > 79 characters)
+app/models/etsi_models.py:435:80: E501 line too long (80 > 79 characters)
+app/models/etsi_models.py:466:80: E501 line too long (86 > 79 characters)
+app/models/etsi_models.py:472:80: E501 line too long (88 > 79 characters)
+app/models/etsi_models.py:491:80: E501 line too long (161 > 79 characters)
+app/models/etsi_models.py:499:80: E501 line too long (88 > 79 characters)
+app/models/etsi_models.py:501:80: E501 line too long (86 > 79 characters)
+app/models/etsi_models.py:515:80: E501 line too long (82 > 79 characters)
+app/models/etsi_models.py:518:80: E501 line too long (92 > 79 characters)
+app/services/key_service.py:28:1: F401 'typing.Dict' imported but unused
+app/services/key_service.py:28:1: F401 'typing.List' imported but unused
+app/services/key_service.py:28:1: F401 'typing.Optional' imported but unused
+app/services/key_service.py:81:80: E501 line too long (109 > 79 characters)
+app/services/key_service.py:87:80: E501 line too long (88 > 79 characters)
+app/services/key_service.py:96:80: E501 line too long (80 > 79 characters)
+app/services/key_service.py:102:80: E501 line too long (93 > 79 characters)
+app/services/key_service.py:106:80: E501 line too long (86 > 79 characters)
+app/services/key_service.py:113:80: E501 line too long (88 > 79 characters)
+app/services/key_service.py:116:80: E501 line too long (87 > 79 characters)
+app/services/key_service.py:123:80: E501 line too long (134 > 79 characters)
+app/services/key_service.py:130:80: E501 line too long (93 > 79 characters)
+app/services/key_service.py:149:80: E501 line too long (87 > 79 characters)
+app/services/key_service.py:228:80: E501 line too long (86 > 79 characters)
+app/services/key_service.py:307:80: E501 line too long (97 > 79 characters)
+app/services/key_service.py:345:80: E501 line too long (80 > 79 characters)
+app/services/key_service.py:363:80: E501 line too long (86 > 79 characters)
+app/services/key_service.py:369:80: E501 line too long (85 > 79 characters)
+app/services/key_service.py:385:80: E501 line too long (83 > 79 characters)
+app/services/key_service.py:402:80: E501 line too long (84 > 79 characters)
+app/services/key_service.py:482:80: E501 line too long (87 > 79 characters)
+app/services/key_service.py:530:80: E501 line too long (85 > 79 characters)
+app/services/status_service.py:27:1: F401 'typing.Optional' imported but unused
+app/services/status_service.py:75:80: E501 line too long (109 > 79 characters)
+app/services/status_service.py:81:80: E501 line too long (88 > 79 characters)
+app/services/status_service.py:116:80: E501 line too long (82 > 79 characters)
+app/services/status_service.py:219:80: E501 line too long (84 > 79 characters)
+app/utils/security_utils.py:30:1: F401 'typing.Dict' imported but unused
+app/utils/security_utils.py:30:1: F401 'typing.List' imported but unused
+app/utils/security_utils.py:30:1: F401 'typing.Optional' imported but unused
+app/utils/security_utils.py:30:1: F401 'typing.Tuple' imported but unused
+app/utils/security_utils.py:130:80: E501 line too long (82 > 79 characters)
+app/utils/security_utils.py:136:80: E501 line too long (81 > 79 characters)
+app/utils/security_utils.py:144:80: E501 line too long (88 > 79 characters)
+app/utils/security_utils.py:169:80: E501 line too long (81 > 79 characters)
+app/utils/security_utils.py:207:80: E501 line too long (82 > 79 characters)
+app/utils/security_utils.py:325:80: E501 line too long (82 > 79 characters)
+app/utils/security_utils.py:328:80: E501 line too long (82 > 79 characters)
+app/utils/security_utils.py:331:80: E501 line too long (82 > 79 characters)
+app/utils/security_utils.py:334:80: E501 line too long (80 > 79 characters)
+main.py:36:1: E402 module level import not at top of file
+main.py:40:1: E402 module level import not at top of file
+main.py:41:1: E402 module level import not at top of file
+main.py:42:1: E402 module level import not at top of file
+main.py:43:1: E402 module level import not at top of file
+main.py:46:1: E402 module level import not at top of file
+main.py:49:1: E402 module level import not at top of file
+main.py:52:1: E402 module level import not at top of file
+main.py:55:1: E402 module level import not at top of file
+main.py:88:80: E501 line too long (80 > 79 characters)
+main.py:89:80: E501 line too long (82 > 79 characters)
+main.py:205:80: E501 line too long (88 > 79 characters)
+app/core/config.py:235: error: Missing named argument "kme_id" for "Settings"  [call-arg]
+app/core/config.py:235: error: Missing named argument "database_url" for "Settings"  [call-arg]
+app/core/config.py:235: error: Missing named argument "tls_cert_file" for "Settings"  [call-arg]
+app/core/config.py:235: error: Missing named argument "tls_key_file" for "Settings"  [call-arg]
+app/core/config.py:235: error: Missing named argument "tls_ca_file" for "Settings"  [call-arg]
+app/core/config.py:235: error: Missing named argument "secret_key" for "Settings"  [call-arg]
+app/core/config.py:235: error: Missing named argument "jwt_secret_key" for "Settings"  [call-arg]
+app/core/config.py:235: error: Missing named argument "log_file" for "Settings"  [call-arg]
+app/core/config.py:256: error: Missing named argument "kme_id" for "Settings"  [call-arg]
+app/core/config.py:256: error: Missing named argument "database_url" for "Settings"  [call-arg]
+app/core/config.py:256: error: Missing named argument "tls_cert_file" for "Settings"  [call-arg]
+app/core/config.py:256: error: Missing named argument "tls_key_file" for "Settings"  [call-arg]
+app/core/config.py:256: error: Missing named argument "tls_ca_file" for "Settings"  [call-arg]
+app/core/config.py:256: error: Missing named argument "secret_key" for "Settings"  [call-arg]
+app/core/config.py:256: error: Missing named argument "jwt_secret_key" for "Settings"  [call-arg]
+app/core/config.py:256: error: Missing named argument "log_file" for "Settings"  [call-arg]
+app/services/status_service.py:125: error: Argument "master_SAE_ID" to "Status" has incompatible type "str | None"; expected "str"  [arg-type]
+app/core/logging.py:111: error: "None" has no attribute "info"  [attr-defined]
+app/core/logging.py:119: error: Incompatible default for argument "name" (default has type "None", argument has type "str")  [assignment]
+app/core/logging.py:119: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+app/core/logging.py:119: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+app/core/logging.py:123: error: Incompatible return value type (got "None", expected "BoundLogger")  [return-value]
+app/core/logging.py:137: error: "None" has no attribute "info"  [attr-defined]
+app/core/logging.py:150: error: "None" has no attribute "info"  [attr-defined]
+app/core/logging.py:716: error: Argument 1 to "get_logger" of "LoggingConfig" has incompatible type "str | None"; expected "str"  [arg-type]
+app/utils/security_utils.py:282: error: Incompatible default for argument "user_id" (default has type "None", argument has type "str")  [assignment]
+app/utils/security_utils.py:282: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+app/utils/security_utils.py:282: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+app/utils/security_utils.py:283: error: Incompatible default for argument "resource" (default has type "None", argument has type "str")  [assignment]
+app/utils/security_utils.py:283: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+app/utils/security_utils.py:283: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+app/utils/security_utils.py:285: error: Incompatible default for argument "details" (default has type "None", argument has type "dict[str, Any]")  [assignment]
+app/utils/security_utils.py:285: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+app/utils/security_utils.py:285: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+app/core/security.py:125: error: "SSLContext" has no attribute "session_tickets"; maybe "session_stats"?  [attr-defined]
+app/core/security.py:128: error: "SSLContext" has no attribute "session_cache_mode"  [attr-defined]
+app/core/security.py:128: error: Module has no attribute "SSLSessionCacheMode"  [attr-defined]
+app/core/security.py:191: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/security.py:192: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/security.py:193: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/security.py:244: error: "ExtensionType" has no attribute "digital_signature"  [attr-defined]
+app/core/security.py:246: error: "ExtensionType" has no attribute "key_encipherment"  [attr-defined]
+app/core/security.py:248: error: "ExtensionType" has no attribute "key_agreement"  [attr-defined]
+app/core/security.py:259: error: "ExtensionType" has no attribute "__iter__" (not iterable)  [attr-defined]
+app/core/security.py:270: error: "ExtensionType" has no attribute "__iter__" (not iterable)  [attr-defined]
+app/core/security.py:276: error: Argument 2 to "_determine_certificate_type" of "CertificateManager" has incompatible type "str | bytes"; expected "str"  [arg-type]
+app/core/security.py:288: error: Argument "subject" to "CertificateInfo" has incompatible type "str | bytes"; expected "str"  [arg-type]
+app/core/security.py:289: error: Argument "issuer" to "CertificateInfo" has incompatible type "str | bytes"; expected "str"  [arg-type]
+app/core/security.py:307: error: Argument "subject_id" to "log_certificate_validation" of "SecurityLogger" has incompatible type "str | bytes"; expected "str"  [arg-type]
+app/core/security.py:345: error: "ExtensionType" has no attribute "key_cert_sign"  [attr-defined]
+app/core/security.py:370: error: "ExtensionType" has no attribute "__iter__" (not iterable)  [attr-defined]
+app/core/security.py:398: error: Argument 2 to "search" has incompatible type "str | bytes"; expected "str"  [arg-type]
+app/core/security.py:409: error: "ExtensionType" has no attribute "__iter__" (not iterable)  [attr-defined]
+app/core/performance.py:66: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/performance.py:68: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/performance.py:69: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/performance.py:70: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/performance.py:254: error: Item "None" of "sdiskio | None" has no attribute "read_bytes"  [union-attr]
+app/core/performance.py:255: error: Item "None" of "sdiskio | None" has no attribute "write_bytes"  [union-attr]
+app/core/health.py:65: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/health.py:66: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/health.py:162: error: Module "psutil" does not explicitly export attribute "sys"  [attr-defined]
+app/core/health.py:163: error: Module "psutil" does not explicitly export attribute "sys"  [attr-defined]
+app/core/health.py:375: error: "Settings" has no attribute "qkd_links"  [attr-defined]
+app/core/health.py:376: error: "Settings" has no attribute "key_generation_rate"; maybe "qkd_key_generation_rate"?  [attr-defined]
+app/core/health.py:432: error: Unsupported operand types for > ("int" and "SupportsDunderGT[Any]")  [operator]
+app/core/health.py:432: note: Left operand is of type "SupportsDunderLT[Any] | SupportsDunderGT[Any]"
+app/core/health.py:432: error: Argument 1 to "max" has incompatible type "list[float] | dict[str, Any] | int | tuple[float, float, float] | None"; expected "Iterable[SupportsDunderLT[Any] | SupportsDunderGT[Any]]"  [arg-type]
+app/core/health.py:433: error: Unsupported operand types for > ("int" and "object")  [operator]
+app/core/health.py:486: error: Item "None" of "sdiskio | None" has no attribute "read_bytes"  [union-attr]
+app/core/health.py:486: error: Item "None" of "sdiskio | None" has no attribute "write_bytes"  [union-attr]
+app/core/health.py:510: error: Item "None" of "sdiskio | None" has no attribute "read_bytes"  [union-attr]
+app/core/health.py:510: error: Item "None" of "sdiskio | None" has no attribute "write_bytes"  [union-attr]
+app/core/health.py:523: error: Item "None" of "sdiskio | None" has no attribute "read_bytes"  [union-attr]
+app/core/health.py:524: error: Item "None" of "sdiskio | None" has no attribute "write_bytes"  [union-attr]
+app/core/health.py:525: error: Item "None" of "sdiskio | None" has no attribute "read_count"  [union-attr]
+app/core/health.py:526: error: Item "None" of "sdiskio | None" has no attribute "write_count"  [union-attr]
+app/core/database.py:57: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/database.py:58: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/database.py:111: error: Item "None" of "AsyncEngine | None" has no attribute "begin"  [union-attr]
+app/core/database.py:125: error: "None" not callable  [misc]
+app/core/database.py:157: error: Item "None" of "AsyncEngine | None" has no attribute "pool"  [union-attr]
+app/core/database.py:157: error: Item "Pool" of "Pool | Any" has no attribute "size"  [union-attr]
+app/core/database.py:158: error: Item "None" of "AsyncEngine | None" has no attribute "pool"  [union-attr]
+app/core/database.py:158: error: Item "Pool" of "Pool | Any" has no attribute "checkedin"  [union-attr]
+app/core/database.py:159: error: Item "None" of "AsyncEngine | None" has no attribute "pool"  [union-attr]
+app/core/database.py:159: error: Item "Pool" of "Pool | Any" has no attribute "checkedout"  [union-attr]
+app/core/database.py:160: error: Item "None" of "AsyncEngine | None" has no attribute "pool"  [union-attr]
+app/core/database.py:160: error: Item "Pool" of "Pool | Any" has no attribute "overflow"  [union-attr]
+app/core/database.py:161: error: Item "None" of "AsyncEngine | None" has no attribute "pool"  [union-attr]
+app/core/database.py:161: error: Item "Pool" of "Pool | Any" has no attribute "invalid"  [union-attr]
+app/core/database.py:262: error: "Pool" has no attribute "size"  [attr-defined]
+app/core/database.py:263: error: "Pool" has no attribute "checkedin"  [attr-defined]
+app/core/database.py:264: error: "Pool" has no attribute "checkedout"  [attr-defined]
+app/core/database.py:265: error: "Pool" has no attribute "overflow"  [attr-defined]
+app/core/database.py:266: error: "Pool" has no attribute "invalid"; maybe "_invalidate"?  [attr-defined]
+app/core/alerts.py:100: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/alerts.py:101: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/alerts.py:102: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+app/core/alerts.py:189: error: Incompatible types in assignment (expression has type "datetime", variable has type "None")  [assignment]
+app/core/alerts.py:199: error: Incompatible types in assignment (expression has type "datetime", variable has type "None")  [assignment]
+app/services/key_service.py:147: error: Missing named argument "container_id" for "KeyContainer"  [call-arg]
+app/services/key_service.py:147: error: Missing named argument "created_at" for "KeyContainer"  [call-arg]
+app/services/key_service.py:147: error: Missing named argument "master_sae_id" for "KeyContainer"  [call-arg]
+app/services/key_service.py:147: error: Missing named argument "slave_sae_id" for "KeyContainer"  [call-arg]
+app/services/key_service.py:147: error: Missing named argument "total_key_size" for "KeyContainer"  [call-arg]
+app/services/key_service.py:409: error: Missing named argument "key_container_extension" for "KeyContainer"  [call-arg]
+app/services/key_service.py:525: error: Missing named argument "key_ID_extension" for "Key"  [call-arg]
+app/services/key_service.py:525: error: Missing named argument "key_extension" for "Key"  [call-arg]
+Found 86 errors in 10 files (checked 22 source files)
+2025-07-29 09:58:47 [info     ] Starting security checks

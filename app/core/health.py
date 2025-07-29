@@ -26,12 +26,11 @@ import asyncio
 import datetime
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import psutil
 
-from app.core.config import settings
-from app.core.logging import logger, performance_logger
+from .logging import logger, performance_logger
 
 
 class HealthStatus(Enum):
@@ -97,11 +96,18 @@ class HealthMonitor:
                         details={"error": str(check)},
                     )
                 )
+            elif isinstance(check, HealthCheck):
+                health_checks.append(check)
             else:
-                # Type cast to ensure it's a HealthCheck
-                health_check = check
-                assert isinstance(health_check, HealthCheck)
-                health_checks.append(health_check)
+                # Handle unexpected types
+                health_checks.append(
+                    HealthCheck(
+                        name="system_check",
+                        status=HealthStatus.UNHEALTHY,
+                        message=f"Unexpected check type: {type(check)}",
+                        details={"error": f"Expected HealthCheck, got {type(check)}"},
+                    )
+                )
 
         self.checks = health_checks
         self.last_check_time = datetime.datetime.utcnow()
@@ -147,18 +153,14 @@ class HealthMonitor:
     async def _check_basic_system(self) -> HealthCheck:
         """Check basic system functionality"""
         try:
-            import sys
-
             # Basic system check
             return HealthCheck(
                 name="basic_system",
                 status=HealthStatus.HEALTHY,
                 message="Basic system functionality is operational",
                 details={
-                    "python_version": (
-                        f"{sys.version_info.major}.{sys.version_info.minor}"
-                    ),
-                    "platform": sys.platform,
+                    "python_version": f"{psutil.sys.version_info.major}.{psutil.sys.version_info.minor}",
+                    "platform": psutil.sys.platform,
                     "uptime_seconds": psutil.boot_time(),
                 },
             )
@@ -304,7 +306,7 @@ class HealthMonitor:
         """Check database connectivity and health"""
         try:
             # Import here to avoid circular imports
-            # from .config import settings
+            from .config import settings
 
             # For now, return a placeholder check
             # TODO: Implement actual database connection check when database is set up
@@ -333,7 +335,7 @@ class HealthMonitor:
         """Check Redis connectivity and health"""
         try:
             # Import here to avoid circular imports
-            # from .config import settings
+            from .config import settings
 
             # For now, return a placeholder check
             # TODO: Implement actual Redis connection check when Redis is set up
@@ -361,7 +363,7 @@ class HealthMonitor:
         """Check QKD network connectivity and health"""
         try:
             # Import here to avoid circular imports
-            # from .config import settings
+            from .config import settings
 
             # For now, return a placeholder check
             # TODO: Implement actual QKD network health check when QKD network is set up
@@ -370,8 +372,8 @@ class HealthMonitor:
                 status=HealthStatus.HEALTHY,
                 message="QKD network health check placeholder - not yet implemented",
                 details={
-                    "qkd_network_enabled": settings.qkd_network_enabled,
-                    "qkd_key_generation_rate": settings.qkd_key_generation_rate,
+                    "qkd_links": settings.qkd_links,
+                    "key_generation_rate": settings.key_generation_rate,
                     "link_quality": "unknown",
                     "network_status": "placeholder",
                 },
@@ -427,22 +429,8 @@ class HealthMonitor:
 
             # Determine overall resource status
             memory_healthy = memory_info["percent"] < 80
-            cpu_percent_value = cpu_info["cpu_percent"]
-
-            # Handle different types of cpu_percent_value
-            if isinstance(cpu_percent_value, list):
-                cpu_healthy = max(cpu_percent_value) < 70
-            elif isinstance(cpu_percent_value, (int, float)):
-                cpu_healthy = cpu_percent_value < 70
-            else:
-                # Default to healthy if we can't determine
-                cpu_healthy = True
-
-            disk_healthy = all(
-                (disk["percent"] if isinstance(disk["percent"], (int, float)) else 0)
-                < 80
-                for disk in disk_info.values()
-            )
+            cpu_healthy = max(cpu_info["cpu_percent"]) < 70
+            disk_healthy = all(disk["percent"] < 80 for disk in disk_info.values())
 
             if memory_healthy and cpu_healthy and disk_healthy:
                 status = HealthStatus.HEALTHY
@@ -495,10 +483,7 @@ class HealthMonitor:
             # Check performance against thresholds
             cpu_ok = cpu_percent < cpu_threshold
             memory_ok = memory_percent < memory_threshold
-            disk_io_ok = (
-                (disk_io.read_bytes if disk_io else 0)
-                + (disk_io.write_bytes if disk_io else 0)
-            ) < disk_io_threshold
+            disk_io_ok = (disk_io.read_bytes + disk_io.write_bytes) < disk_io_threshold
             network_io_ok = (
                 network_io.bytes_sent + network_io.bytes_recv
             ) < network_io_threshold
@@ -522,8 +507,7 @@ class HealthMonitor:
                 details={
                     "cpu_percent": cpu_percent,
                     "memory_percent": memory_percent,
-                    "disk_io_bytes": (disk_io.read_bytes if disk_io else 0)
-                    + (disk_io.write_bytes if disk_io else 0),
+                    "disk_io_bytes": disk_io.read_bytes + disk_io.write_bytes,
                     "network_io_bytes": network_io.bytes_sent + network_io.bytes_recv,
                 },
             )
@@ -536,10 +520,10 @@ class HealthMonitor:
                     "cpu_percent": cpu_percent,
                     "memory_percent": memory_percent,
                     "disk_io": {
-                        "read_bytes": disk_io.read_bytes if disk_io else 0,
-                        "write_bytes": disk_io.write_bytes if disk_io else 0,
-                        "read_count": disk_io.read_count if disk_io else 0,
-                        "write_count": disk_io.write_count if disk_io else 0,
+                        "read_bytes": disk_io.read_bytes,
+                        "write_bytes": disk_io.write_bytes,
+                        "read_count": disk_io.read_count,
+                        "write_count": disk_io.write_count,
                     },
                     "network_io": {
                         "bytes_sent": network_io.bytes_sent,

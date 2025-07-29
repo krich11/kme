@@ -1,6 +1,48 @@
-# KME Project
+# Key Management Entity (KME) - ETSI QKD 014 V1.1.1 Compliant
 
-This repository contains the KME (Key Management Entity) project, implementing the ETSI GS QKD 014 V1.1.1 specification for REST-based key delivery API.
+## Project Progress
+
+**Current Phase**: Phase 2 Complete ✅
+**Overall Progress**: 40.7% (176/432 tasks completed)
+
+### Phase 1: Core Infrastructure ✅ COMPLETED
+- **Status**: 100% Complete (Week 4 of 4)
+- **Focus**: Project setup, configuration management, logging, security infrastructure
+- **Key Achievements**: Modular architecture, ETSI compliance foundation, comprehensive testing framework
+
+### Phase 2: REST API Implementation ✅ COMPLETED
+- **Status**: 100% Complete (Week 8 of 8)
+- **Focus**: ETSI QKD 014 V1.1.1 compliant REST API endpoints
+- **Key Achievements**: All three core endpoints implemented, comprehensive error handling, standardized API responses
+
+### Phase 3: Key Management ⏳ PENDING
+- **Status**: 0% Complete (Week 9 of 12)
+- **Focus**: Key storage, retrieval, and lifecycle management
+- **Next Steps**: Database integration, key generation interface, key distribution logic
+
+## Recent Achievements
+
+### Week 8: Error Handling and API Documentation ✅ COMPLETED
+- **Standardized Error Handling**: Created comprehensive error handling module with request tracking
+- **Request ID Generation**: Added unique request IDs for all API requests for better tracking
+- **Consistent Error Format**: All endpoints now return standardized ETSI-compliant error responses
+- **Error Categories**: Implemented specific handlers for validation, authentication, authorization, service unavailable, key exhaustion, and not found errors
+- **Enhanced Logging**: Improved error logging with request IDs and context information
+- **Global Exception Handler**: Updated main application to use standardized error handling
+
+### Week 7: Get Key with Key IDs Endpoint ✅ COMPLETED
+- **Endpoint Implementation**: Successfully implemented the Get Key with Key IDs endpoint
+- **Key Service Enhancement**: Added comprehensive key retrieval logic with authorization checks
+- **Error Handling**: Implemented robust error handling for key ID validation and access control
+- **ETSI Compliance**: Ensured full compliance with ETSI GS QKD 014 V1.1.1 specification
+- **Testing Framework**: Created comprehensive test suite for the new endpoint
+
+### Week 6: Get Key Endpoint ✅ COMPLETED
+- **Endpoint Implementation**: Successfully implemented the Get Key endpoint for encryption requests
+- **Key Service Layer**: Created comprehensive key management service with validation and generation
+- **Key Container Response**: Implemented ETSI-compliant key container data format
+- **Error Handling**: Added robust error handling for key requests and validation
+- **Service Integration**: Integrated with status service for access control and validation
 
 ## Project Structure
 

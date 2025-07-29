@@ -22,11 +22,12 @@ ToDo List:
 Progress: 10% (1/10 tasks completed)
 """
 
+import datetime
 import logging
+import os
 import sys
-from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Optional
 
 import structlog
 from structlog.processors import (
@@ -38,7 +39,10 @@ from structlog.processors import (
 )
 from structlog.stdlib import LoggerFactory
 
-from app.core.security_events import (
+from .security_events import (
+    SecurityEvent,
+    SecurityEventCategory,
+    SecurityEventSeverity,
     SecurityEventType,
     create_security_event,
 )
@@ -104,23 +108,19 @@ class LoggingConfig:
             cache_logger_on_first_use=True,
         )
 
-        if self.logger:
-            self.logger.info(
-                "Log level updated", level=level, numeric_level=numeric_level
-            )
+        self.logger.info("Log level updated", level=level, numeric_level=numeric_level)
 
     def add_log_filter(self, filter_func):
         """Add custom log filter"""
         # Add filter to root logger
         logging.getLogger().addFilter(filter_func)
-        if self.logger:
-            self.logger.info("Custom log filter added")
+        self.logger.info("Custom log filter added")
 
-    def get_logger(self, name: str | None = None) -> structlog.BoundLogger:
+    def get_logger(self, name: str = None) -> structlog.BoundLogger:
         """Get structured logger"""
         if name:
             return structlog.get_logger(name)
-        return self.logger or structlog.get_logger()
+        return self.logger
 
     def setup_file_logging(self, log_file: str, log_level: str = "INFO"):
         """Setup file logging"""
@@ -134,10 +134,9 @@ class LoggingConfig:
         # Add file handler to root logger
         logging.getLogger().addHandler(file_handler)
 
-        if self.logger:
-            self.logger.info(
-                "File logging configured", log_file=log_file, log_level=log_level
-            )
+        self.logger.info(
+            f"File logging configured", log_file=log_file, log_level=log_level
+        )
 
     def setup_console_logging(self, log_level: str = "INFO"):
         """Setup console logging"""
@@ -148,8 +147,7 @@ class LoggingConfig:
         # Add console handler to root logger
         logging.getLogger().addHandler(console_handler)
 
-        if self.logger:
-            self.logger.info("Console logging configured", log_level=log_level)
+        self.logger.info(f"Console logging configured", log_level=log_level)
 
 
 class SecurityLogger:
@@ -232,9 +230,9 @@ class SecurityLogger:
     ):
         """Log security violation"""
         self.logger.warning(
-            "Security violation detected",
+            "Security violation",
             violation_type=violation_type,
-            user_id=user_id or "unknown",
+            user_id=user_id,
             details=details or {},
             category="security",
             severity="warning",
@@ -286,15 +284,37 @@ class SecurityLogger:
         success: bool,
         certificate_info: dict[str, Any] | None = None,
     ):
-        """Log SAE authentication event"""
+        """Log SAE authentication event (ETSI QKD 014 specific)"""
+        # Create security event
+        event_type = (
+            SecurityEventType.SAE_AUTHENTICATION_SUCCESS
+            if success
+            else SecurityEventType.SAE_AUTHENTICATION_FAILURE
+        )
+
+        security_event = create_security_event(
+            event_type=event_type,
+            sae_id=sae_id,
+            kme_id=kme_id,
+            details={
+                "certificate_info": certificate_info or {},
+                "authentication_method": "certificate_based",
+                "etsi_compliance": True,
+            },
+        )
+
+        # Log the event
         self.logger.info(
-            "SAE authentication event",
+            "SAE authentication",
             sae_id=sae_id,
             kme_id=kme_id,
             success=success,
             certificate_info=certificate_info or {},
             category="security",
             severity="info",
+            etsi_compliance=True,
+            specification="ETSI GS QKD 014 V1.1.1",
+            security_event=security_event,
         )
 
     def log_kme_authentication(
@@ -304,15 +324,17 @@ class SecurityLogger:
         success: bool,
         certificate_info: dict[str, Any] | None = None,
     ):
-        """Log KME authentication event"""
+        """Log KME authentication event (ETSI QKD 014 specific)"""
         self.logger.info(
-            "KME authentication event",
+            "KME authentication",
             kme_id=kme_id,
             sae_id=sae_id,
             success=success,
             certificate_info=certificate_info or {},
             category="security",
             severity="info",
+            etsi_compliance=True,
+            specification="ETSI GS QKD 014 V1.1.1",
         )
 
     def log_certificate_validation(
@@ -386,7 +408,7 @@ class AuditLogger:
         duration_ms: float,
         request_details: dict[str, Any] | None = None,
     ):
-        """Log ETSI API request"""
+        """Log ETSI QKD 014 API request"""
         self.logger.info(
             "ETSI API request",
             endpoint=endpoint,
@@ -502,7 +524,7 @@ class AuditLogger:
             category="audit",
             severity="info",
             etsi_compliance=True,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.datetime.utcnow().isoformat(),
         )
 
 
@@ -686,17 +708,12 @@ def setup_logging(log_level: str = "INFO", log_file: str | None = None):
     if log_file:
         logging_config.setup_file_logging(log_file, log_level)
 
-    if logger:
-        logger.info(
-            "Logging system initialized", log_level=log_level, log_file=log_file
-        )
+    logger.info("Logging system initialized", log_level=log_level, log_file=log_file)
 
 
 def get_logger(name: str | None = None) -> structlog.BoundLogger:
-    """Get structured logger"""
-    if name:
-        return structlog.get_logger(name)
-    return structlog.get_logger()
+    """Get logger instance"""
+    return logging_config.get_logger(name)
 
 
 # Export specialized loggers
