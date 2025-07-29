@@ -69,9 +69,6 @@ Usage:
     current_settings = get_settings()
 """
 
-import os
-from typing import List, Optional
-
 from pydantic import Field, validator
 from pydantic_settings import BaseSettings
 
@@ -80,12 +77,15 @@ class Settings(BaseSettings):
     """KME Configuration Settings"""
 
     # KME Identity
-    kme_id: str = Field(..., description="Unique KME identifier")
+    kme_id: str = Field(default="1234567890ABCDEF", description="Unique KME identifier")
     kme_hostname: str = Field(default="localhost", description="KME hostname")
     kme_port: int = Field(default=8443, description="KME port")
 
     # Database Configuration
-    database_url: str = Field(..., description="Database connection URL")
+    database_url: str = Field(
+        default="postgresql://user:pass@localhost/kme",
+        description="Database connection URL",
+    )
     database_pool_size: int = Field(default=10, description="Database pool size")
     database_max_overflow: int = Field(default=20, description="Database max overflow")
     database_echo: bool = Field(default=False, description="Enable SQL query logging")
@@ -106,21 +106,32 @@ class Settings(BaseSettings):
     redis_pool_size: int = Field(default=10, description="Redis pool size")
 
     # TLS Configuration
-    tls_cert_file: str | None = Field(None, description="TLS certificate file path")
-    tls_key_file: str | None = Field(None, description="TLS private key file path")
-    tls_ca_file: str | None = Field(None, description="TLS CA certificate file path")
+    tls_cert_file: str | None = Field(
+        default="", description="TLS certificate file path"
+    )
+    tls_key_file: str | None = Field(
+        default="", description="TLS private key file path"
+    )
+    tls_ca_file: str | None = Field(
+        default="", description="TLS CA certificate file path"
+    )
     tls_version: str = Field(default="1.2", description="TLS version")
 
     # Security Configuration
-    secret_key: str = Field(..., description="Application secret key")
-    jwt_secret_key: str = Field(..., description="JWT secret key")
+    secret_key: str = Field(
+        default="your-secret-key-change-in-production",
+        description="Application secret key",
+    )
+    jwt_secret_key: str = Field(
+        default="your-jwt-secret-key-change-in-production", description="JWT secret key"
+    )
     access_token_expire_minutes: int = Field(
         default=30, description="Access token expiration time"
     )
 
     # Logging Configuration
     log_level: str = Field(default="INFO", description="Logging level")
-    log_file: str | None = Field(None, description="Log file path")
+    log_file: str | None = Field(default="", description="Log file path")
     log_format: str = Field(default="json", description="Log format")
 
     # Key Management Configuration
@@ -163,12 +174,25 @@ class Settings(BaseSettings):
     allowed_hosts: list[str] = Field(default=["*"], description="Allowed hosts")
 
     # Security Configuration
-    security_level: str = Field(default="production", description="Security level (development/testing/production)")
-    tls_certificate_path: str | None = Field(default=None, description="Path to TLS certificate")
-    tls_private_key_path: str | None = Field(default=None, description="Path to TLS private key")
-    ca_certificate_path: str | None = Field(default=None, description="Path to CA certificate")
-    key_encryption_key: str | None = Field(default=None, description="Key encryption key for storage")
-    enable_mutual_tls: bool = Field(default=True, description="Enable mutual TLS authentication")
+    security_level: str = Field(
+        default="production",
+        description="Security level (development/testing/production)",
+    )
+    tls_certificate_path: str | None = Field(
+        default=None, description="Path to TLS certificate"
+    )
+    tls_private_key_path: str | None = Field(
+        default=None, description="Path to TLS private key"
+    )
+    ca_certificate_path: str | None = Field(
+        default=None, description="Path to CA certificate"
+    )
+    key_encryption_key: str | None = Field(
+        default=None, description="Key encryption key for storage"
+    )
+    enable_mutual_tls: bool = Field(
+        default=True, description="Enable mutual TLS authentication"
+    )
     min_tls_version: str = Field(default="TLSv1.2", description="Minimum TLS version")
     max_tls_version: str = Field(default="TLSv1.3", description="Maximum TLS version")
 
