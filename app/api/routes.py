@@ -85,7 +85,7 @@ async def get_status(
     """
     # Generate request ID for tracking
     request_id = str(uuid.uuid4())
-    
+
     logger.info(
         "Get Status request received",
         slave_sae_id=slave_sae_id,
@@ -196,7 +196,7 @@ async def get_key(
     """
     # Generate request ID for tracking
     request_id = str(uuid.uuid4())
-    
+
     logger.info(
         "Get Key request received",
         slave_sae_id=slave_sae_id,
@@ -309,7 +309,7 @@ async def get_key_with_ids(
     """
     # Generate request ID for tracking
     request_id = str(uuid.uuid4())
-    
+
     logger.info(
         "Get Key with Key IDs request received",
         master_sae_id=master_sae_id,

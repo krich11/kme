@@ -26,8 +26,8 @@ Progress: 100% (All tasks completed)
 import datetime
 import os
 import sys
-from pathlib import Path
 import uuid
+from pathlib import Path
 
 # Add the project root to Python path
 project_root = Path(__file__).parent
@@ -118,7 +118,7 @@ async def http_exception_handler(request, exc):
     """Global HTTP exception handler"""
     # Generate request ID for tracking
     request_id = str(uuid.uuid4())
-    
+
     logger.error(
         "HTTP exception occurred",
         status_code=exc.status_code,
@@ -127,11 +127,11 @@ async def http_exception_handler(request, exc):
         method=request.method,
         request_id=request_id,
     )
-    
+
     # If the exception already has a standardized error response, return it as-is
     if isinstance(exc.detail, dict) and "message" in exc.detail:
         return exc.detail
-    
+
     # Otherwise, create a standardized error response
     error_response = error_handler.create_error_response(
         message=exc.detail if isinstance(exc.detail, str) else "HTTP error occurred",
@@ -139,7 +139,7 @@ async def http_exception_handler(request, exc):
         error_code=f"HTTP_{exc.status_code}",
         request_id=request_id,
     )
-    
+
     return error_response
 
 
