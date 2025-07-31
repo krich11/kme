@@ -36,6 +36,7 @@ from app.models.etsi_models import Key, KeyContainer, KeyRequest
 from app.services.key_generation_service import KeyGenerationFactory
 from app.services.key_pool_service import KeyPoolService
 from app.services.key_storage_service import KeyStorageService
+from app.services.qkd_network_service import QKDNetworkService
 
 logger = structlog.get_logger()
 
@@ -59,6 +60,7 @@ class KeyService:
         self.key_storage_service = KeyStorageService(db_session)
         self.key_pool_service = KeyPoolService(db_session, self.key_storage_service)
         self.key_generator = KeyGenerationFactory.create_generator()
+        self.qkd_network_service = QKDNetworkService()
         self._current_requesting_sae_id: str | None = None
         self._current_master_sae_id: str | None = None
         self.logger.info("Key service initialized")
@@ -805,6 +807,142 @@ class KeyService:
                     "error": str(e),
                 },
                 "timestamp": datetime.datetime.utcnow().isoformat(),
+            }
+
+    async def establish_qkd_link(
+        self, remote_kme_id: str, link_params: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Establish QKD link with remote KME
+
+        Args:
+            remote_kme_id: ID of remote KME
+            link_params: Link establishment parameters
+
+        Returns:
+            Dict containing link establishment result
+        """
+        self.logger.info(
+            "Establishing QKD link",
+            remote_kme_id=remote_kme_id,
+            link_params=link_params,
+        )
+
+        try:
+            result = await self.qkd_network_service.establish_secure_link(
+                remote_kme_id, link_params
+            )
+            return result
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to establish QKD link",
+                remote_kme_id=remote_kme_id,
+                error=str(e),
+            )
+            return {
+                "success": False,
+                "error": str(e),
+                "remote_kme_id": remote_kme_id,
+            }
+
+    async def perform_key_exchange_with_kme(
+        self, target_kme_id: str, key_count: int, key_size: int
+    ) -> dict[str, Any]:
+        """
+        Perform key exchange with target KME
+
+        Args:
+            target_kme_id: ID of target KME
+            key_count: Number of keys to exchange
+            key_size: Size of keys in bits
+
+        Returns:
+            Dict containing exchange result
+        """
+        self.logger.info(
+            "Performing key exchange with KME",
+            target_kme_id=target_kme_id,
+            key_count=key_count,
+            key_size=key_size,
+        )
+
+        try:
+            result = await self.qkd_network_service.perform_secure_key_exchange(
+                target_kme_id, key_count, key_size
+            )
+            return result
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to perform key exchange with KME",
+                target_kme_id=target_kme_id,
+                error=str(e),
+            )
+            return {
+                "success": False,
+                "error": str(e),
+                "target_kme_id": target_kme_id,
+            }
+
+    async def get_qkd_network_status(self) -> dict[str, Any]:
+        """
+        Get QKD network status
+
+        Returns:
+            Dict containing network status
+        """
+        self.logger.info("Getting QKD network status")
+
+        try:
+            result = await self.qkd_network_service.get_network_status()
+            return result
+
+        except Exception as e:
+            self.logger.error("Failed to get QKD network status", error=str(e))
+            return {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            }
+
+    async def relay_keys_multi_hop(
+        self, hop_sequence: list[str], key_count: int, key_size: int
+    ) -> dict[str, Any]:
+        """
+        Relay keys through multi-hop network
+
+        Args:
+            hop_sequence: Sequence of KME IDs to relay through
+            key_count: Number of keys to relay
+            key_size: Size of keys in bits
+
+        Returns:
+            Dict containing relay result
+        """
+        self.logger.info(
+            "Relaying keys multi-hop",
+            hop_sequence=hop_sequence,
+            key_count=key_count,
+            key_size=key_size,
+        )
+
+        try:
+            result = await self.qkd_network_service.key_exchange_protocol.relay_keys_multi_hop(
+                hop_sequence, key_count, key_size
+            )
+            return result
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to relay keys multi-hop",
+                hop_sequence=hop_sequence,
+                error=str(e),
+            )
+            return {
+                "success": False,
+                "error": str(e),
+                "hop_sequence": hop_sequence,
             }
 
 
