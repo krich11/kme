@@ -275,7 +275,7 @@ class ExtensionService:
                         ignored_extensions.append(
                             {
                                 "extension": ext,
-                                "error": response.error_message,
+                                "error": response.error_message or "Unknown error",
                             }
                         )
 
@@ -352,6 +352,7 @@ class ExtensionService:
                 return ExtensionResponse(
                     extension_type=ext_type,
                     status=ExtensionStatus.UNSUPPORTED,
+                    result=None,
                     error_message=f"Extension {ext_type} is not supported",
                     processing_time_ms=processing_time,
                 )
@@ -367,6 +368,7 @@ class ExtensionService:
                 return ExtensionResponse(
                     extension_type=ext_type,
                     status=ExtensionStatus.FAILED,
+                    result=None,
                     error_message=f"Extension validation failed: {validation_result['error']}",
                     processing_time_ms=processing_time,
                 )
@@ -384,6 +386,7 @@ class ExtensionService:
                 extension_type=ext_type,
                 status=ExtensionStatus.SUCCESS,
                 result=handler_result,
+                error_message=None,
                 processing_time_ms=processing_time,
             )
 
@@ -399,6 +402,7 @@ class ExtensionService:
             return ExtensionResponse(
                 extension_type=extension.get("type", "unknown"),
                 status=ExtensionStatus.FAILED,
+                result=None,
                 error_message=str(e),
                 processing_time_ms=processing_time,
             )
@@ -424,7 +428,7 @@ class ExtensionService:
                 return True
 
         # For now, support basic extensions
-        supported_extensions = [
+        supported_extensions: list[str] = [
             "route_type",
             "key_quality",
             "encryption_mode",
@@ -456,7 +460,11 @@ class ExtensionService:
                 # Use default validation for unknown extensions
                 for param_name, param_value in data.items():
                     validation_result = self._validate_parameter(
-                        param_name, param_value, None
+                        param_name, param_value, ext_def or ExtensionDefinition(
+                            name="default", version="1.0", type=ExtensionType.OPTIONAL,
+                            description="Default extension", handler=lambda x: x,
+                            required_parameters=[], optional_parameters=[], security_level="low"
+                        )
                     )
                     if not validation_result["valid"]:
                         return validation_result
@@ -540,7 +548,7 @@ class ExtensionService:
         try:
             ext_def = self._get_extension_definition(ext_type, vendor)
 
-            if ext_def and ext_def.handler:
+            if ext_def and ext_def.handler is not None:
                 # Execute custom handler
                 if asyncio.iscoroutinefunction(ext_def.handler):
                     result = await ext_def.handler(data)

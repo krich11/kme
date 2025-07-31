@@ -45,18 +45,6 @@ class APIResponse(BaseModel):
     request_id: str | None = Field(None, description="Request identifier")
     version: str = Field(default="1.0.0", description="API version")
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "success": True,
-                "message": "Operation completed successfully",
-                "data": {"key_count": 3},
-                "timestamp": "2025-07-28T17:30:00Z",
-                "request_id": "req_123",
-                "version": "1.0.0",
-            }
-        }
-    )
 
 
 class HealthResponse(BaseModel):
@@ -97,29 +85,6 @@ class HealthResponse(BaseModel):
                 raise ValueError(f"Summary must contain '{field}' field")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "status": "healthy",
-                "timestamp": "2025-07-28T17:30:00Z",
-                "version": "1.0.0",
-                "uptime_seconds": 3600.5,
-                "checks": [
-                    {
-                        "name": "database_health",
-                        "status": "healthy",
-                        "message": "Database connection is operational",
-                    }
-                ],
-                "summary": {
-                    "total_checks": 5,
-                    "healthy_checks": 5,
-                    "degraded_checks": 0,
-                    "unhealthy_checks": 0,
-                },
-            }
-        }
-    )
 
 
 class MetricsResponse(BaseModel):
@@ -133,22 +98,6 @@ class MetricsResponse(BaseModel):
         default_factory=dict, description="Metrics metadata"
     )
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "timestamp": "2025-07-28T17:30:00Z",
-                "metrics": {
-                    "api_response_time": {
-                        "avg": 150.5,
-                        "min": 50.2,
-                        "max": 500.0,
-                        "p95": 300.0,
-                    }
-                },
-                "metadata": {"collection_interval": 60, "retention_period": 86400},
-            }
-        }
-    )
 
 
 class ErrorResponse(BaseModel):
@@ -164,21 +113,6 @@ class ErrorResponse(BaseModel):
     request_id: str | None = Field(None, description="Request identifier")
     trace_id: str | None = Field(None, description="Error trace identifier")
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "success": False,
-                "error": {
-                    "message": "Invalid request parameters",
-                    "error_code": "INVALID_PARAMETERS",
-                    "severity": "error",
-                },
-                "timestamp": "2025-07-28T17:30:00Z",
-                "request_id": "req_123",
-                "trace_id": "trace_456",
-            }
-        }
-    )
 
 
 class StatusResponse(BaseModel):
@@ -190,27 +124,6 @@ class StatusResponse(BaseModel):
     )
     request_id: str | None = Field(None, description="Request identifier")
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "status": {
-                    "source_KME_ID": "AAAABBBBCCCCDDDD",
-                    "target_KME_ID": "EEEEFFFFGGGGHHHH",
-                    "master_SAE_ID": "IIIIJJJJKKKKLLLL",
-                    "slave_SAE_ID": "MMMMNNNNOOOOPPPP",
-                    "key_size": 352,
-                    "stored_key_count": 25000,
-                    "max_key_count": 100000,
-                    "max_key_per_request": 128,
-                    "max_key_size": 1024,
-                    "min_key_size": 64,
-                    "max_SAE_ID_count": 0,
-                },
-                "timestamp": "2025-07-28T17:30:00Z",
-                "request_id": "req_123",
-            }
-        }
-    )
 
 
 class KeyResponse(BaseModel):
@@ -225,23 +138,6 @@ class KeyResponse(BaseModel):
         None, description="Request processing time in milliseconds"
     )
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "keys": {
-                    "keys": [
-                        {
-                            "key_ID": "bc490419-7d60-487f-adc1-4ddcc177c139",
-                            "key": "wHHVxRwDJs3/bXd38GHP3oe4svTuRpZS0yCC7x4Ly+s=",
-                        }
-                    ]
-                },
-                "timestamp": "2025-07-28T17:30:00Z",
-                "request_id": "req_123",
-                "processing_time_ms": 150.5,
-            }
-        }
-    )
 
 
 class SystemInfoResponse(BaseModel):
@@ -260,33 +156,6 @@ class SystemInfoResponse(BaseModel):
         default_factory=datetime.utcnow, description="Response timestamp"
     )
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "kme_id": "AAAABBBBCCCCDDDD",
-                "version": "1.0.0",
-                "build_date": "2025-07-28",
-                "uptime_seconds": 3600.5,
-                "system_info": {
-                    "platform": "Linux",
-                    "python_version": "3.10.0",
-                    "cpu_count": 4,
-                    "memory_total_gb": 16.0,
-                },
-                "qkd_network_info": {
-                    "connected_links": 2,
-                    "key_generation_rate": 1000.0,
-                    "network_status": "operational",
-                },
-                "certificate_info": {
-                    "subject": "CN=KME001",
-                    "issuer": "CN=CA",
-                    "valid_until": "2025-12-31T23:59:59Z",
-                },
-                "timestamp": "2025-07-28T17:30:00Z",
-            }
-        }
-    )
 
 
 class ConfigurationResponse(BaseModel):
@@ -306,31 +175,3 @@ class ConfigurationResponse(BaseModel):
         default_factory=datetime.utcnow, description="Response timestamp"
     )
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "kme_configuration": {
-                    "kme_id": "AAAABBBBCCCCDDDD",
-                    "hostname": "kme1.example.com",
-                    "port": 8443,
-                    "default_key_size": 352,
-                },
-                "database_configuration": {
-                    "database_url": "postgresql://user@localhost:5432/kme",
-                    "pool_size": 10,
-                    "max_overflow": 20,
-                },
-                "security_configuration": {
-                    "tls_version": "1.2",
-                    "certificate_file": "/path/to/cert.pem",
-                    "key_file": "/path/to/key.pem",
-                },
-                "network_configuration": {
-                    "allowed_origins": ["*"],
-                    "allowed_hosts": ["*"],
-                    "cors_enabled": True,
-                },
-                "timestamp": "2025-07-28T17:30:00Z",
-            }
-        }
-    )

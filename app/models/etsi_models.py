@@ -134,26 +134,6 @@ class Status(BaseModel):
 
         return values
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "source_KME_ID": "AAAABBBBCCCCDDDD",
-                "target_KME_ID": "EEEEFFFFGGGGHHHH",
-                "master_SAE_ID": "IIIIJJJJKKKKLLLL",
-                "slave_SAE_ID": "MMMMNNNNOOOOPPPP",
-                "key_size": 352,
-                "stored_key_count": 25000,
-                "max_key_count": 100000,
-                "max_key_per_request": 128,
-                "max_key_size": 1024,
-                "min_key_size": 64,
-                "max_SAE_ID_count": 0,
-                "kme_status": "operational",
-                "qkd_network_status": "connected",
-                "key_generation_rate": 1000.0,
-            }
-        }
-    )
 
 
 class KeyRequest(BaseModel):
@@ -234,22 +214,6 @@ class KeyRequest(BaseModel):
             raise ValueError(f"Priority must be one of: {valid_priorities}")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "number": 3,
-                "size": 1024,
-                "additional_slave_SAE_IDs": ["ABCDEFGHIJKLMNOP", "QRSTUVWXYZ123456"],
-                "extension_mandatory": [
-                    {"abc_route_type": "direct"},
-                    {"abc_transfer_method": "qkd"},
-                ],
-                "extension_optional": [{"abc_max_age": 30000}],
-                "priority": "high",
-                "route_preference": "direct",
-            }
-        }
-    )
 
 
 class Key(BaseModel):
@@ -309,17 +273,6 @@ class Key(BaseModel):
             raise ValueError("Key size must be positive")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "key_ID": "bc490419-7d60-487f-adc1-4ddcc177c139",
-                "key": "wHHVxRwDJs3/bXd38GHP3oe4svTuRpZS0yCC7x4Ly+s=",
-                "key_size": 256,
-                "created_at": "2025-07-28T17:30:00Z",
-                "expires_at": "2025-07-28T18:30:00Z",
-            }
-        }
-    )
 
 
 class KeyContainer(BaseModel):
@@ -371,24 +324,6 @@ class KeyContainer(BaseModel):
                 raise ValueError("All keys in container must have the same size")
         return values
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "keys": [
-                    {
-                        "key_ID": "bc490419-7d60-487f-adc1-4ddcc177c139",
-                        "key": "wHHVxRwDJs3/bXd38GHP3oe4svTuRpZS0yCC7x4Ly+s=",
-                    },
-                    {
-                        "key_ID": "0a782fb5-3434-48fe-aa4d-14f41d46cf92",
-                        "key": "OeGMPxh1+2RpJpNCYixWHFLYRubpOKCw94FcCI7VdJA=",
-                    },
-                ],
-                "container_id": "container_123",
-                "created_at": "2025-07-28T17:30:00Z",
-            }
-        }
-    )
 
 
 class KeyID(BaseModel):
@@ -422,15 +357,6 @@ class KeyID(BaseModel):
             raise ValueError("key_ID must be a valid UUID")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "key_ID": "bc490419-7d60-487f-adc1-4ddcc177c139",
-                "requested_at": "2025-07-28T17:30:00Z",
-                "priority": "high",
-            }
-        }
-    )
 
 
 class KeyIDs(BaseModel):
@@ -462,18 +388,6 @@ class KeyIDs(BaseModel):
             raise ValueError("Key IDs array cannot be empty")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "key_IDs": [
-                    {"key_ID": "bc490419-7d60-487f-adc1-4ddcc177c139"},
-                    {"key_ID": "0a782fb5-3434-48fe-aa4d-14f41d46cf92"},
-                ],
-                "request_id": "req_123",
-                "master_sae_id": "IIIIJJJJKKKKLLLL",
-            }
-        }
-    )
 
 
 class ErrorDetail(BaseModel):
@@ -486,15 +400,6 @@ class ErrorDetail(BaseModel):
     # Error detail can be any name/value pair
     detail: dict[str, Any] = Field(..., description="Error detail as name/value pair")
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "detail": {
-                    "extension_mandatory_unsupported": "abc_route_type is not supported"
-                }
-            }
-        }
-    )
 
 
 class Error(BaseModel):
@@ -532,17 +437,3 @@ class Error(BaseModel):
             raise ValueError(f"Severity must be one of: {valid_severities}")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "message": "not all extension_mandatory parameters are supported",
-                "details": [
-                    {
-                        "extension_mandatory_unsupported": "abc_route_type is not supported"
-                    }
-                ],
-                "error_code": "EXTENSION_NOT_SUPPORTED",
-                "severity": "error",
-            }
-        }
-    )

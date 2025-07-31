@@ -78,20 +78,6 @@ class KMEEntity(BaseModel):
             raise ValueError("Port must be between 1 and 65535")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "kme_id": "AAAABBBBCCCCDDDD",
-                "hostname": "kme1.example.com",
-                "port": 8443,
-                "certificate_info": {
-                    "subject": "CN=KME001",
-                    "issuer": "CN=CA",
-                    "valid_until": "2025-12-31T23:59:59Z",
-                },
-            }
-        }
-    )
 
 
 class SAEEntity(BaseModel):
@@ -128,20 +114,6 @@ class SAEEntity(BaseModel):
             raise ValueError(f"Status must be one of: {valid_statuses}")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "sae_id": "IIIIJJJJKKKKLLLL",
-                "kme_id": "AAAABBBBCCCCDDDD",
-                "certificate_info": {
-                    "subject": "CN=SAE001",
-                    "issuer": "CN=CA",
-                    "valid_until": "2025-12-31T23:59:59Z",
-                },
-                "status": "active",
-            }
-        }
-    )
 
 
 class KeyRecord(BaseModel):
@@ -210,20 +182,6 @@ class KeyRecord(BaseModel):
                     raise ValueError("SAE ID must be exactly 16 characters")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "key_id": "550e8400-e29b-41d4-a716-446655440000",
-                "key_data": b"sample_key_data_32_bytes_long",
-                "key_size": 256,
-                "master_sae_id": "IIIIJJJJKKKKLLLL",
-                "slave_sae_id": "MMMMNNNNOOOOPPPP",
-                "source_kme_id": "AAAABBBBCCCCDDDD",
-                "target_kme_id": "EEEEFFFFGGGGHHHH",
-                "status": "active",
-            }
-        }
-    )
 
 
 class KeyRequestRecord(BaseModel):
@@ -294,18 +252,6 @@ class KeyRequestRecord(BaseModel):
             raise ValueError(f"Status must be one of: {valid_statuses}")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "request_id": "12345678-1234-1234-1234-123456789abc",
-                "master_sae_id": "IIIIJJJJKKKKLLLL",
-                "slave_sae_id": "MMMMNNNNOOOOPPPP",
-                "number_of_keys": 3,
-                "key_size": 256,
-                "status": "pending",
-            }
-        }
-    )
 
 
 class KeyDistributionEvent(BaseModel):
@@ -346,18 +292,6 @@ class KeyDistributionEvent(BaseModel):
             raise ValueError("Key size must be positive")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "event_type": "key_distribution_success",
-                "master_sae_id": "IIIIJJJJKKKKLLLL",
-                "slave_sae_id": "MMMMNNNNOOOOPPPP",
-                "key_count": 3,
-                "key_size": 256,
-                "success": True,
-            }
-        }
-    )
 
 
 class SecurityEventRecord(BaseModel):
@@ -422,18 +356,6 @@ class SecurityEventRecord(BaseModel):
                 raise ValueError("key_id must be a valid UUID")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "event_type": "sae_authentication_success",
-                "severity": "low",
-                "category": "authentication",
-                "sae_id": "IIIIJJJJKKKKLLLL",
-                "kme_id": "AAAABBBBCCCCDDDD",
-                "etsi_compliance": True,
-            }
-        }
-    )
 
 
 class PerformanceMetric(BaseModel):
@@ -456,17 +378,6 @@ class PerformanceMetric(BaseModel):
             raise ValueError(f"Metric type must be one of: {valid_types}")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "metric_name": "api_response_time",
-                "metric_value": 150.5,
-                "metric_unit": "milliseconds",
-                "metric_type": "histogram",
-                "labels": {"endpoint": "/api/v1/keys/status"},
-            }
-        }
-    )
 
 
 class HealthCheck(BaseModel):
@@ -488,16 +399,6 @@ class HealthCheck(BaseModel):
             raise ValueError(f"Status must be one of: {valid_statuses}")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "check_name": "database_health",
-                "status": "healthy",
-                "message": "Database connection is operational",
-                "details": {"response_time_ms": 5.2},
-            }
-        }
-    )
 
 
 class AlertRecord(BaseModel):
@@ -546,16 +447,3 @@ class AlertRecord(BaseModel):
             raise ValueError(f"Alert type must be one of: {valid_types}")
         return v
 
-    model_config = ConfigDict(
-        schema_extra={
-            "example": {
-                "alert_id": "alert_123",
-                "alert_type": "performance",
-                "severity": "warning",
-                "title": "High CPU Usage",
-                "message": "CPU usage is above 80%",
-                "source": "system_monitor",
-                "details": {"cpu_percent": 85.2},
-            }
-        }
-    )

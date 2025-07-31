@@ -534,7 +534,7 @@ class VendorExtensionService:
             Dict containing documentation generation results
         """
         try:
-            doc_result = {
+            doc_result: dict[str, Any] = {
                 "generated": True,
                 "file_path": None,
                 "content": None,
