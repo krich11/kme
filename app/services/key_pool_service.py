@@ -658,7 +658,9 @@ class KeyPoolService:
             # Try to get from database
             query = text("SELECT * FROM key_pool_status LIMIT 1")
             result = await self.db_session.execute(query)
-            pool_status = result.scalar_one_or_none()
+            pool_status = (
+                result.fetchone()
+            )  # Use fetchone() instead of scalar_one_or_none()
 
             if pool_status:
                 return {
@@ -704,7 +706,9 @@ class KeyPoolService:
             # Get existing record or create new one
             query = text("SELECT * FROM key_pool_status LIMIT 1")
             result = await self.db_session.execute(query)
-            pool_status = result.scalar_one_or_none()
+            pool_status = (
+                result.fetchone()
+            )  # Use fetchone() instead of scalar_one_or_none()
 
             if pool_status:
                 # Update existing record
@@ -726,7 +730,7 @@ class KeyPoolService:
                         "active_keys": status["active_keys"],
                         "expired_keys": status["expired_keys"],
                         "consumed_keys": status["consumed_keys"],
-                        "last_updated": datetime.datetime.now(datetime.timezone.utc),
+                        "last_updated": datetime.datetime.utcnow(),  # Use utcnow() for timezone-naive
                     },
                 )
             else:
@@ -748,7 +752,7 @@ class KeyPoolService:
                         "min_key_threshold": status["min_key_threshold"],
                         "key_generation_rate": status.get("key_generation_rate"),
                         "last_key_generation": status.get("last_key_generation"),
-                        "last_updated": datetime.datetime.now(datetime.timezone.utc),
+                        "last_updated": datetime.datetime.utcnow(),  # Use utcnow() for timezone-naive
                     },
                 )
 

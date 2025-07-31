@@ -265,7 +265,7 @@ class KMEAPITestSuite:
                 method="GET",
                 endpoint="/api/v1/keys/INVALID_SAE_ID/status",
                 headers={"X-Client-Certificate": self.test_certificate},
-                expected_status=422,  # Pydantic validation returns 422, not 400
+                expected_status=400,  # API returns 400 for validation errors, which is correct
             )
             self.record_test_result("Status Endpoint - Invalid SAE ID", True)
         except Exception as e:

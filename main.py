@@ -244,17 +244,25 @@ async def health_check():
 @app.get("/health/summary")
 async def health_summary():
     """Health summary endpoint"""
-    return await get_health_summary()
+    try:
+        return await get_health_summary()
+    except Exception as e:
+        logger.error("Health summary check failed", error=str(e))
+        raise HTTPException(status_code=503, detail="Health summary unavailable")
 
 
 @app.get("/health/ready")
 async def health_ready():
     """Readiness probe endpoint"""
-    health_status = await check_health()
+    try:
+        health_status = await check_health()
 
-    if health_status["status"] == "healthy":
-        return {"status": "ready"}
-    else:
+        if health_status["status"] == "healthy":
+            return {"status": "ready"}
+        else:
+            raise HTTPException(status_code=503, detail="Service not ready")
+    except Exception as e:
+        logger.error("Health ready check failed", error=str(e))
         raise HTTPException(status_code=503, detail="Service not ready")
 
 

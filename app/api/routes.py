@@ -23,6 +23,7 @@ ToDo List:
 Progress: 70% (8/13 tasks completed)
 """
 import base64
+import datetime
 import uuid
 from typing import Any
 
@@ -126,13 +127,22 @@ async def get_status(
             )
             return status_response
     except ValueError as e:
-        # Handle validation errors
-        error_handler.raise_validation_error(
-            parameter="slave_sae_id",
-            error_message=str(e),
+        # Handle validation errors - return 400 Bad Request
+        logger.warning(
+            "Validation error in Get Status endpoint",
+            slave_sae_id=slave_sae_id,
+            error=str(e),
             request_id=request_id,
         )
-        raise  # This line is unreachable but satisfies MyPy
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": f"Validation error: {str(e)}",
+                "error_code": "VALIDATION_ERROR",
+                "request_id": request_id,
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            },
+        )
     except HTTPException:
         # Re-raise HTTP exceptions as-is
         raise
@@ -247,13 +257,22 @@ async def get_key(
         )
         return key_container
     except ValueError as e:
-        # Handle validation errors
-        error_handler.raise_validation_error(
-            parameter="request",
-            error_message=str(e),
+        # Handle validation errors - return 400 Bad Request
+        logger.warning(
+            "Validation error in Get Key endpoint",
+            slave_sae_id=slave_sae_id,
+            error=str(e),
             request_id=request_id,
         )
-        raise  # This line is unreachable but satisfies MyPy
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": f"Validation error: {str(e)}",
+                "error_code": "VALIDATION_ERROR",
+                "request_id": request_id,
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            },
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -365,13 +384,22 @@ async def get_key_with_ids(
         )
         return key_container
     except ValueError as e:
-        # Handle validation errors
-        error_handler.raise_validation_error(
-            parameter="key_ids",
-            error_message=str(e),
+        # Handle validation errors - return 400 Bad Request
+        logger.warning(
+            "Validation error in Get Key with Key IDs endpoint",
+            master_sae_id=master_sae_id,
+            error=str(e),
             request_id=request_id,
         )
-        raise  # This line is unreachable but satisfies MyPy
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": f"Validation error: {str(e)}",
+                "error_code": "VALIDATION_ERROR",
+                "request_id": request_id,
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            },
+        )
     except HTTPException:
         # Re-raise HTTP exceptions as-is
         raise

@@ -152,6 +152,9 @@ class Settings(BaseSettings):
     qkd_key_generation_rate: int = Field(
         default=1000, description="QKD key generation rate"
     )
+    qkd_links: list[str] = Field(
+        default=["link1", "link2"], description="QKD network links"
+    )
 
     # Performance Configuration
     worker_processes: int = Field(default=4, description="Number of worker processes")

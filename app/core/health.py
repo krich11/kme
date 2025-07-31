@@ -373,7 +373,7 @@ class HealthMonitor:
                 message="QKD network health check placeholder - not yet implemented",
                 details={
                     "qkd_links": settings.qkd_links,
-                    "key_generation_rate": settings.key_generation_rate,
+                    "key_generation_rate": settings.qkd_key_generation_rate,
                     "link_quality": "unknown",
                     "network_status": "placeholder",
                 },
