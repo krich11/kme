@@ -33,10 +33,9 @@ import datetime
 from typing import Any, Dict, List, Optional
 
 import structlog
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.sqlalchemy_models import Key, KeyPoolStatus
 from app.services.key_storage_service import KeyStorageService
 
 logger = structlog.get_logger()
@@ -384,14 +383,17 @@ class KeyPoolService:
             yesterday = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 
             # Count keys consumed in last 24 hours
-            consumed_query = select(Key).where(
-                and_(
-                    Key.is_active.is_(False),
-                    Key.updated_at >= yesterday,
-                )
+            consumed_query = text(
+                """
+                SELECT COUNT(*) FROM keys
+                WHERE status = 'consumed'
+                AND updated_at >= :yesterday
+            """
             )
-            result = await self.db_session.execute(consumed_query)
-            consumed_count = len(result.scalars().all())
+            result = await self.db_session.execute(
+                consumed_query, {"yesterday": yesterday}
+            )
+            consumed_count = result.scalar() or 0
 
             return consumed_count / 24.0  # keys per hour
 
@@ -406,14 +408,17 @@ class KeyPoolService:
             yesterday = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 
             # Count keys generated in last 24 hours
-            generated_query = select(Key).where(
-                and_(
-                    Key.is_active.is_(True),
-                    Key.created_at >= yesterday,
-                )
+            generated_query = text(
+                """
+                SELECT COUNT(*) FROM keys
+                WHERE status = 'active'
+                AND created_at >= :yesterday
+            """
             )
-            result = await self.db_session.execute(generated_query)
-            generated_count = len(result.scalars().all())
+            result = await self.db_session.execute(
+                generated_query, {"yesterday": yesterday}
+            )
+            generated_count = result.scalar() or 0
 
             return generated_count / 24.0  # keys per hour
 
@@ -610,39 +615,40 @@ class KeyPoolService:
 
     async def _count_total_keys(self) -> int:
         """Count total keys in the pool"""
-        query = select(func.count(Key.id))
+        query = text("SELECT COUNT(*) FROM keys")
         result = await self.db_session.execute(query)
         return result.scalar() or 0
 
     async def _count_active_keys(self) -> int:
         """Count active (non-expired, non-consumed) keys"""
         now = datetime.datetime.now(datetime.timezone.utc)
-        query = select(func.count(Key.id)).where(
-            and_(
-                Key.is_active.is_(True),
-                Key.is_consumed.is_(False),
-                (Key.expires_at.is_(None) | (Key.expires_at > now)),
-            )
+        query = text(
+            """
+            SELECT COUNT(*) FROM keys
+            WHERE status = 'active'
+            AND (expires_at IS NULL OR expires_at > :now)
+        """
         )
-        result = await self.db_session.execute(query)
+        result = await self.db_session.execute(query, {"now": now})
         return result.scalar() or 0
 
     async def _count_expired_keys(self) -> int:
         """Count expired keys"""
         now = datetime.datetime.now(datetime.timezone.utc)
-        query = select(func.count(Key.id)).where(
-            and_(
-                Key.is_active.is_(True),
-                Key.expires_at.isnot(None),
-                Key.expires_at <= now,
-            )
+        query = text(
+            """
+            SELECT COUNT(*) FROM keys
+            WHERE status = 'active'
+            AND expires_at IS NOT NULL
+            AND expires_at <= :now
+        """
         )
-        result = await self.db_session.execute(query)
+        result = await self.db_session.execute(query, {"now": now})
         return result.scalar() or 0
 
     async def _count_consumed_keys(self) -> int:
         """Count consumed keys"""
-        query = select(func.count(Key.id)).where(Key.is_consumed.is_(True))
+        query = text("SELECT COUNT(*) FROM keys WHERE status = 'consumed'")
         result = await self.db_session.execute(query)
         return result.scalar() or 0
 
@@ -650,7 +656,7 @@ class KeyPoolService:
         """Get pool configuration from database or defaults"""
         try:
             # Try to get from database
-            query = select(KeyPoolStatus).limit(1)
+            query = text("SELECT * FROM key_pool_status LIMIT 1")
             result = await self.db_session.execute(query)
             pool_status = result.scalar_one_or_none()
 
@@ -696,31 +702,55 @@ class KeyPoolService:
         """Update pool status record in database"""
         try:
             # Get existing record or create new one
-            query = select(KeyPoolStatus).limit(1)
+            query = text("SELECT * FROM key_pool_status LIMIT 1")
             result = await self.db_session.execute(query)
             pool_status = result.scalar_one_or_none()
 
             if pool_status:
                 # Update existing record
-                pool_status.total_keys = status["total_keys"]
-                pool_status.active_keys = status["active_keys"]
-                pool_status.expired_keys = status["expired_keys"]
-                pool_status.consumed_keys = status["consumed_keys"]
-                pool_status.last_updated = datetime.datetime.now(datetime.timezone.utc)  # type: ignore[assignment]
+                query = text(
+                    """
+                    UPDATE key_pool_status
+                    SET total_keys = :total_keys,
+                        active_keys = :active_keys,
+                        expired_keys = :expired_keys,
+                        consumed_keys = :consumed_keys,
+                        last_updated = :last_updated
+                    WHERE id = (SELECT id FROM key_pool_status LIMIT 1)
+                """
+                )
+                await self.db_session.execute(
+                    query,
+                    {
+                        "total_keys": status["total_keys"],
+                        "active_keys": status["active_keys"],
+                        "expired_keys": status["expired_keys"],
+                        "consumed_keys": status["consumed_keys"],
+                        "last_updated": datetime.datetime.now(datetime.timezone.utc),
+                    },
+                )
             else:
                 # Create new record
-                pool_status = KeyPoolStatus(
-                    total_keys=status["total_keys"],
-                    active_keys=status["active_keys"],
-                    expired_keys=status["expired_keys"],
-                    consumed_keys=status["consumed_keys"],
-                    max_key_count=status["max_key_count"],
-                    min_key_threshold=status["min_key_threshold"],
-                    key_generation_rate=status.get("key_generation_rate"),
-                    last_key_generation=status.get("last_key_generation"),
-                    last_updated=datetime.datetime.now(datetime.timezone.utc),
+                query = text(
+                    """
+                    INSERT INTO key_pool_status (total_keys, active_keys, expired_keys, consumed_keys, max_key_count, min_key_threshold, key_generation_rate, last_key_generation, last_updated)
+                    VALUES (:total_keys, :active_keys, :expired_keys, :consumed_keys, :max_key_count, :min_key_threshold, :key_generation_rate, :last_key_generation, :last_updated)
+                """
                 )
-                self.db_session.add(pool_status)
+                await self.db_session.execute(
+                    query,
+                    {
+                        "total_keys": status["total_keys"],
+                        "active_keys": status["active_keys"],
+                        "expired_keys": status["expired_keys"],
+                        "consumed_keys": status["consumed_keys"],
+                        "max_key_count": status["max_key_count"],
+                        "min_key_threshold": status["min_key_threshold"],
+                        "key_generation_rate": status.get("key_generation_rate"),
+                        "last_key_generation": status.get("last_key_generation"),
+                        "last_updated": datetime.datetime.now(datetime.timezone.utc),
+                    },
+                )
 
             await self.db_session.commit()
 
@@ -817,12 +847,26 @@ class KeyPoolService:
     async def _update_last_generation_timestamp(self) -> None:
         """Update last key generation timestamp"""
         try:
-            query = select(KeyPoolStatus).limit(1)
+            query = text("SELECT * FROM key_pool_status LIMIT 1")
             result = await self.db_session.execute(query)
             pool_status = result.scalar_one_or_none()
 
             if pool_status:
-                pool_status.last_key_generation = datetime.datetime.now(datetime.timezone.utc)  # type: ignore[assignment]
+                query = text(
+                    """
+                    UPDATE key_pool_status
+                    SET last_key_generation = :last_key_generation
+                    WHERE id = (SELECT id FROM key_pool_status LIMIT 1)
+                """
+                )
+                await self.db_session.execute(
+                    query,
+                    {
+                        "last_key_generation": datetime.datetime.now(
+                            datetime.timezone.utc
+                        ),
+                    },
+                )
                 await self.db_session.commit()
 
         except Exception as e:

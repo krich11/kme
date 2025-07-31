@@ -141,6 +141,9 @@ class Settings(BaseSettings):
     max_keys_per_request: int = Field(
         default=128, description="Maximum keys per request"
     )
+    max_key_count: int = Field(
+        default=100000, description="Maximum number of keys in pool"
+    )
     max_sae_id_count: int = Field(default=10, description="Maximum SAE ID count")
 
     # QKD Network Configuration

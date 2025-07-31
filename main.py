@@ -27,6 +27,7 @@ import datetime
 import os
 import sys
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import structlog
@@ -39,6 +40,9 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 # Import API routes
 from app.api.routes import api_router
+
+# Import database initialization
+from app.core.database import close_database, initialize_database
 
 # Import error handling
 from app.core.error_handling import error_handler
@@ -85,6 +89,48 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager"""
+    # Startup
+    logger.info("KME application starting up")
+
+    try:
+        # Initialize security infrastructure (synchronous function)
+        if not initialize_security_infrastructure():
+            logger.error("Security infrastructure initialization failed")
+            raise RuntimeError("Security infrastructure initialization failed")
+        logger.info("Security infrastructure initialized")
+
+        # Initialize performance monitoring (synchronous function)
+        get_performance_monitor()
+        logger.info("Performance monitoring initialized")
+
+        # Initialize database (async function)
+        if not await initialize_database():
+            logger.error("Database initialization failed")
+            raise RuntimeError("Database initialization failed")
+        logger.info("Database initialized")
+
+        logger.info("KME application startup completed successfully")
+    except Exception as e:
+        logger.error("Failed to initialize KME application", error=str(e))
+        raise
+
+    yield
+
+    # Shutdown
+    logger.info("KME application shutting down")
+
+    try:
+        # Cleanup resources
+        await close_database()
+        logger.info("KME application shutdown completed successfully")
+    except Exception as e:
+        logger.error("Error during KME application shutdown", error=str(e))
+
+
 # Create FastAPI application
 app = FastAPI(
     title="KME - Key Management Entity",
@@ -92,6 +138,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs" if os.getenv("DEBUG", "false").lower() == "true" else None,
     redoc_url="/redoc" if os.getenv("DEBUG", "false").lower() == "true" else None,
+    lifespan=lifespan,
 )
 
 # Configure CORS
@@ -110,7 +157,7 @@ app.add_middleware(
 )
 
 # Include API routes
-app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router)
 
 
 # Global exception handler
@@ -142,38 +189,6 @@ async def http_exception_handler(request, exc):
     )
 
     return error_response
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Application startup event"""
-    logger.info("KME application starting up")
-
-    try:
-        # Initialize security infrastructure
-        await initialize_security_infrastructure()
-        logger.info("Security infrastructure initialized")
-
-        # Initialize performance monitoring
-        await get_performance_monitor()
-        logger.info("Performance monitoring initialized")
-
-        logger.info("KME application startup completed successfully")
-    except Exception as e:
-        logger.error("Failed to initialize KME application", error=str(e))
-        raise
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Application shutdown event"""
-    logger.info("KME application shutting down")
-
-    try:
-        # Cleanup resources
-        logger.info("KME application shutdown completed successfully")
-    except Exception as e:
-        logger.error("Error during KME application shutdown", error=str(e))
 
 
 @app.get("/")

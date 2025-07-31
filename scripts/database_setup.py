@@ -420,7 +420,7 @@ class DatabaseManager:
                 VALUES ($1, $2, $3)
                 ON CONFLICT (sae_id) DO NOTHING
             """,
-                "SAE001",
+                "SAE001ABCDEFGHIJ",
                 "KME001",
                 json.dumps({"subject": "CN=SAE001", "issuer": "CN=CA"}),
             )
@@ -435,8 +435,8 @@ class DatabaseManager:
                 "550e8400-e29b-41d4-a716-446655440000",
                 b"sample_key_data_32_bytes_long",
                 256,
-                "SAE001",
-                "SAE002",
+                "SAE001ABCDEFGHIJ",
+                "SAE002ABCDEFGHIJ",
                 "KME001",
                 "KME002",
             )
