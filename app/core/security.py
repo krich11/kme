@@ -407,7 +407,8 @@ class CertificateManager:
                 if extension.oid.dotted_string in ["2.5.29.17", "2.5.29.19"]:
                     if expected_id in str(extension.value):
                         return True
-        except Exception:
+        except Exception:  # nosec B110
+            # This is intentional - we want to continue if certificate extension parsing fails
             pass
 
         return False

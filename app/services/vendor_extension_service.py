@@ -98,7 +98,7 @@ class VendorExtensionRequest(BaseModel):
 
     @field_validator("name")
     @classmethod
-    def validate_name(cls, v):
+    def validate_name(cls, v: str) -> str:
         """Validate extension name format"""
         if not re.match(r"^[a-zA-Z][a-zA-Z0-9_]*$", v):
             raise ValueError(
@@ -110,7 +110,7 @@ class VendorExtensionRequest(BaseModel):
 
     @field_validator("vendor")
     @classmethod
-    def validate_vendor(cls, v):
+    def validate_vendor(cls, v: str) -> str:
         """Validate vendor identifier"""
         if not re.match(r"^[a-zA-Z][a-zA-Z0-9_]*$", v):
             raise ValueError(
@@ -122,7 +122,7 @@ class VendorExtensionRequest(BaseModel):
 
     @field_validator("version")
     @classmethod
-    def validate_version(cls, v):
+    def validate_version(cls, v: str) -> str:
         """Validate version format"""
         if not re.match(r"^\d+\.\d+\.\d+$", v):
             raise ValueError("Version must be in format X.Y.Z")
@@ -648,7 +648,7 @@ Contact vendor {extension_def.vendor} for support and updates.
         except Exception:
             return "unknown"
 
-    def get_vendor_extensions(self, vendor: str) -> List[Dict[str, Any]]:
+    def get_vendor_extensions(self, vendor: str) -> list[dict[str, Any]]:
         """
         Get extensions for a specific vendor
 
@@ -674,7 +674,7 @@ Contact vendor {extension_def.vendor} for support and updates.
                 )
         return extensions
 
-    def get_extension_details(self, vendor: str, name: str) -> Optional[Dict[str, Any]]:
+    def get_extension_details(self, vendor: str, name: str) -> dict[str, Any] | None:
         """
         Get detailed information about an extension
 
@@ -743,7 +743,7 @@ Contact vendor {extension_def.vendor} for support and updates.
             )
             return False
 
-    def get_registry_statistics(self) -> Dict[str, Any]:
+    def get_registry_statistics(self) -> dict[str, Any]:
         """
         Get vendor extension registry statistics
 
