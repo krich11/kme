@@ -474,7 +474,7 @@ class CertificateManager:
                 cn = cn_raw.decode("utf-8") if isinstance(cn_raw, bytes) else cn_raw
                 # Look for SAE ID pattern (16 characters)
 
-                sae_match = re.search(r"[A-F0-9]{16}", cn)
+                sae_match = re.search(r"[A-Z0-9]{16}", cn)
                 if sae_match:
                     return sae_match.group(0)
             except IndexError:
@@ -489,7 +489,8 @@ class CertificateManager:
                 for name in san_obj:
                     name_str = str(name.value)
 
-                    sae_match = re.search(r"[A-F0-9]{16}", name_str)
+                    # Updated regex to match actual SAE ID format: 16 alphanumeric characters
+                    sae_match = re.search(r"[A-Z0-9]{16}", name_str)
                     if sae_match:
                         return sae_match.group(0)
             except x509.extensions.ExtensionNotFound:

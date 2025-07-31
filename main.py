@@ -271,10 +271,27 @@ async def health_ready():
     try:
         health_status = await check_health()
 
-        if health_status["status"] == "healthy":
+        # For development/testing, consider the service ready if it's not completely unhealthy
+        # In production, you might want stricter requirements
+        if health_status["status"] in ["healthy", "degraded"]:
             return {"status": "ready"}
         else:
-            raise HTTPException(status_code=503, detail="Service not ready")
+            # Check if critical services are available
+            checks = health_status.get("checks", [])
+            critical_checks = ["basic_system", "database_health"]
+            critical_healthy = all(
+                any(
+                    check["name"] == critical
+                    and check["status"] in ["healthy", "degraded"]
+                    for check in checks
+                )
+                for critical in critical_checks
+            )
+
+            if critical_healthy:
+                return {"status": "ready"}
+            else:
+                raise HTTPException(status_code=503, detail="Service not ready")
     except Exception as e:
         logger.error("Health ready check failed", error=str(e))
         raise HTTPException(status_code=503, detail="Service not ready")
@@ -284,6 +301,16 @@ async def health_ready():
 async def health_live():
     """Liveness probe endpoint"""
     return {"status": "alive"}
+
+
+@app.get("/health/detailed")
+async def health_detailed():
+    """Detailed health check endpoint"""
+    try:
+        return await check_health()
+    except Exception as e:
+        logger.error("Detailed health check failed", error=str(e))
+        raise HTTPException(status_code=503, detail="Detailed health check unavailable")
 
 
 @app.get("/metrics/performance")

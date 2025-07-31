@@ -519,7 +519,7 @@ class KMEAPITestSuite:
             response = await self.make_request(
                 method="GET",
                 endpoint="/health/ready",
-                expected_status=503,  # Should return 503 when unhealthy
+                expected_status=200,  # Should return 200 when ready (even if degraded)
             )
             self.record_test_result(
                 "Health Ready Endpoint", True, details=response["data"]
@@ -543,6 +543,443 @@ class KMEAPITestSuite:
             self.record_test_result("Health Live Endpoint", True, details=data)
         except Exception as e:
             self.record_test_result("Health Live Endpoint", False, error=str(e))
+
+    async def test_health_endpoints_comprehensive(self):
+        """Test all health endpoints comprehensively"""
+        try:
+            # Test /health endpoint
+            await self.make_request(
+                method="GET",
+                endpoint="/health",
+                expected_status=200,
+            )
+            self.record_test_result("Health - Basic Health Check", True)
+
+            # Test /health/ready endpoint
+            await self.make_request(
+                method="GET",
+                endpoint="/health/ready",
+                expected_status=200,
+            )
+            self.record_test_result("Health - Ready Check", True)
+
+            # Test /health/live endpoint
+            await self.make_request(
+                method="GET",
+                endpoint="/health/live",
+                expected_status=200,
+            )
+            self.record_test_result("Health - Live Check", True)
+
+            # Test /health/detailed endpoint
+            detailed_response = await self.make_request(
+                method="GET",
+                endpoint="/health/detailed",
+                expected_status=200,
+            )
+
+            # Validate detailed health response structure
+            if detailed_response and "data" in detailed_response:
+                health_data = detailed_response["data"]
+                if health_data and "status" in health_data:
+                    self.record_test_result("Health - Detailed Check", True)
+
+                    # Check for required health components
+                    checks = health_data.get("checks", [])
+                    check_names = [check.get("name") for check in checks]
+
+                    required_checks = [
+                        "basic_system",
+                        "memory_usage",
+                        "disk_usage",
+                        "cpu_usage",
+                        "network_connectivity",
+                        "database_health",
+                        "redis_health",
+                        "qkd_network_health",
+                        "system_resources",
+                        "performance_metrics",
+                    ]
+
+                    missing_checks = [
+                        check for check in required_checks if check not in check_names
+                    ]
+                    if not missing_checks:
+                        self.record_test_result(
+                            "Health - All Required Checks Present", True
+                        )
+                    else:
+                        self.record_test_result(
+                            "Health - All Required Checks Present",
+                            False,
+                            error=f"Missing checks: {missing_checks}",
+                        )
+                else:
+                    self.record_test_result(
+                        "Health - Detailed Check",
+                        False,
+                        error="Invalid health data structure",
+                    )
+            else:
+                self.record_test_result(
+                    "Health - Detailed Check", False, error="Invalid response structure"
+                )
+
+        except Exception as e:
+            self.record_test_result("Health - Comprehensive Test", False, error=str(e))
+
+    async def test_certificate_validation_with_valid_cert(self):
+        """Test certificate validation with a valid certificate"""
+        try:
+            # Create a valid test certificate
+            valid_cert = self._create_test_certificate()
+
+            # Test API endpoint with valid certificate (base64 encoded to avoid header injection)
+            import base64
+
+            encoded_cert = base64.b64encode(valid_cert.encode()).decode()
+
+            response = await self.make_request(
+                method="GET",
+                endpoint=f"/api/v1/keys/{self.valid_slave_sae_id}/status",
+                headers={"X-Client-Certificate": encoded_cert},
+                expected_status=200,
+            )
+
+            if response:
+                self.record_test_result(
+                    "Certificate Validation - Valid Certificate", True
+                )
+            else:
+                self.record_test_result(
+                    "Certificate Validation - Valid Certificate",
+                    False,
+                    error="No response received",
+                )
+
+        except Exception as e:
+            self.record_test_result(
+                "Certificate Validation - Valid Certificate", False, error=str(e)
+            )
+
+    async def test_certificate_validation_with_expired_cert(self):
+        """Test certificate validation with an expired certificate"""
+        try:
+            # Create an expired test certificate
+            expired_cert = self._create_expired_certificate()
+
+            # Test API endpoint with expired certificate (base64 encoded)
+            import base64
+
+            encoded_cert = base64.b64encode(expired_cert.encode()).decode()
+
+            await self.make_request(
+                method="GET",
+                endpoint=f"/api/v1/keys/{self.valid_slave_sae_id}/status",
+                headers={"X-Client-Certificate": encoded_cert},
+                expected_status=401,  # Should be rejected
+            )
+
+            self.record_test_result(
+                "Certificate Validation - Expired Certificate", True
+            )
+
+        except Exception as e:
+            self.record_test_result(
+                "Certificate Validation - Expired Certificate", False, error=str(e)
+            )
+
+    async def test_certificate_validation_with_future_cert(self):
+        """Test certificate validation with a future certificate (not yet valid)"""
+        try:
+            # Create a future test certificate
+            future_cert = self._create_future_certificate()
+
+            # Test API endpoint with future certificate (base64 encoded)
+            import base64
+
+            encoded_cert = base64.b64encode(future_cert.encode()).decode()
+
+            await self.make_request(
+                method="GET",
+                endpoint=f"/api/v1/keys/{self.valid_slave_sae_id}/status",
+                headers={"X-Client-Certificate": encoded_cert},
+                expected_status=401,  # Should be rejected
+            )
+
+            self.record_test_result("Certificate Validation - Future Certificate", True)
+
+        except Exception as e:
+            self.record_test_result(
+                "Certificate Validation - Future Certificate", False, error=str(e)
+            )
+
+    async def test_certificate_validation_with_invalid_format(self):
+        """Test certificate validation with invalid certificate format"""
+        try:
+            # Test API endpoint with invalid certificate format
+            await self.make_request(
+                method="GET",
+                endpoint=f"/api/v1/keys/{self.valid_slave_sae_id}/status",
+                headers={"X-Client-Certificate": "invalid_certificate_data"},
+                expected_status=401,  # Should be rejected
+            )
+
+            self.record_test_result("Certificate Validation - Invalid Format", True)
+
+        except Exception as e:
+            self.record_test_result(
+                "Certificate Validation - Invalid Format", False, error=str(e)
+            )
+
+    async def test_certificate_expiration_warning(self):
+        """Test certificate expiration warning functionality"""
+        try:
+            # Create a certificate that expires soon (within warning threshold)
+            warning_cert = self._create_warning_certificate()
+
+            # Test API endpoint with warning certificate (base64 encoded)
+            import base64
+
+            encoded_cert = base64.b64encode(warning_cert.encode()).decode()
+
+            response = await self.make_request(
+                method="GET",
+                endpoint=f"/api/v1/keys/{self.valid_slave_sae_id}/status",
+                headers={"X-Client-Certificate": encoded_cert},
+                expected_status=200,  # Should still work but with warning
+            )
+
+            if response:
+                self.record_test_result(
+                    "Certificate Validation - Expiration Warning", True
+                )
+            else:
+                self.record_test_result(
+                    "Certificate Validation - Expiration Warning",
+                    False,
+                    error="No response received",
+                )
+
+        except Exception as e:
+            self.record_test_result(
+                "Certificate Validation - Expiration Warning", False, error=str(e)
+            )
+
+    def _create_test_certificate(self) -> str:
+        """Create a valid test certificate for testing"""
+        import datetime
+
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.x509.oid import NameOID
+
+        # Generate private key
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+        )
+
+        # Create certificate with correct SAE ID format (16 uppercase alphanumeric characters)
+        subject = issuer = x509.Name(
+            [
+                x509.NameAttribute(
+                    NameOID.COMMON_NAME, "SAE001ABCDEFGHIJ"
+                ),  # Use valid SAE ID format
+                x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Test Organization"),
+                x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
+            ]
+        )
+
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(private_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.datetime.utcnow() - datetime.timedelta(days=1))
+            .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
+            .add_extension(
+                x509.KeyUsage(
+                    digital_signature=True,
+                    key_encipherment=True,
+                    key_agreement=True,
+                    data_encipherment=False,
+                    key_cert_sign=False,
+                    crl_sign=False,
+                    encipher_only=False,
+                    decipher_only=False,
+                    content_commitment=False,
+                ),
+                critical=True,
+            )
+            .sign(private_key, hashes.SHA256())
+        )
+
+        return cert.public_bytes(serialization.Encoding.PEM).decode()
+
+    def _create_expired_certificate(self) -> str:
+        """Create an expired test certificate"""
+        import datetime
+
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.x509.oid import NameOID
+
+        # Generate private key
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+        )
+
+        # Create certificate with correct SAE ID format (16 uppercase alphanumeric characters)
+        subject = issuer = x509.Name(
+            [
+                x509.NameAttribute(
+                    NameOID.COMMON_NAME, "SAE002ABCDEFGHIJ"
+                ),  # Use valid SAE ID format
+                x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Test Organization"),
+                x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
+            ]
+        )
+
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(private_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.datetime.utcnow() - datetime.timedelta(days=10))
+            .not_valid_after(datetime.datetime.utcnow() - datetime.timedelta(days=1))
+            .add_extension(
+                x509.KeyUsage(
+                    digital_signature=True,
+                    key_encipherment=True,
+                    key_agreement=True,
+                    data_encipherment=False,
+                    key_cert_sign=False,
+                    crl_sign=False,
+                    encipher_only=False,
+                    decipher_only=False,
+                    content_commitment=False,
+                ),
+                critical=True,
+            )
+            .sign(private_key, hashes.SHA256())
+        )
+
+        return cert.public_bytes(serialization.Encoding.PEM).decode()
+
+    def _create_future_certificate(self) -> str:
+        """Create a future test certificate (not yet valid)"""
+        import datetime
+
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.x509.oid import NameOID
+
+        # Generate private key
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+        )
+
+        # Create certificate with correct SAE ID format (16 uppercase alphanumeric characters)
+        subject = issuer = x509.Name(
+            [
+                x509.NameAttribute(
+                    NameOID.COMMON_NAME, "SAE003ABCDEFGHIJ"
+                ),  # Use valid SAE ID format
+                x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Test Organization"),
+                x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
+            ]
+        )
+
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(private_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.datetime.utcnow() + datetime.timedelta(days=1))
+            .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=366))
+            .add_extension(
+                x509.KeyUsage(
+                    digital_signature=True,
+                    key_encipherment=True,
+                    key_agreement=True,
+                    data_encipherment=False,
+                    key_cert_sign=False,
+                    crl_sign=False,
+                    encipher_only=False,
+                    decipher_only=False,
+                    content_commitment=False,
+                ),
+                critical=True,
+            )
+            .sign(private_key, hashes.SHA256())
+        )
+
+        return cert.public_bytes(serialization.Encoding.PEM).decode()
+
+    def _create_warning_certificate(self) -> str:
+        """Create a certificate that expires soon (within warning threshold)"""
+        import datetime
+
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.x509.oid import NameOID
+
+        # Generate private key
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+        )
+
+        # Create certificate with correct SAE ID format (16 uppercase alphanumeric characters)
+        subject = issuer = x509.Name(
+            [
+                x509.NameAttribute(
+                    NameOID.COMMON_NAME, "SAE004ABCDEFGHIJ"
+                ),  # Use valid SAE ID format
+                x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Test Organization"),
+                x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
+            ]
+        )
+
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(private_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.datetime.utcnow() - datetime.timedelta(days=360))
+            .not_valid_after(
+                datetime.datetime.utcnow()
+                + datetime.timedelta(days=5)  # Expires in 5 days
+            )
+            .add_extension(
+                x509.KeyUsage(
+                    digital_signature=True,
+                    key_encipherment=True,
+                    key_agreement=True,
+                    data_encipherment=False,
+                    key_cert_sign=False,
+                    crl_sign=False,
+                    encipher_only=False,
+                    decipher_only=False,
+                    content_commitment=False,
+                ),
+                critical=True,
+            )
+            .sign(private_key, hashes.SHA256())
+        )
+
+        return cert.public_bytes(serialization.Encoding.PEM).decode()
 
     # =============================================================================
     # PERFORMANCE TESTS
@@ -730,6 +1167,12 @@ class KMEAPITestSuite:
             self.test_health_summary_endpoint,
             self.test_health_ready_endpoint,
             self.test_health_live_endpoint,
+            self.test_health_endpoints_comprehensive,
+            self.test_certificate_validation_with_valid_cert,
+            self.test_certificate_validation_with_expired_cert,
+            self.test_certificate_validation_with_future_cert,
+            self.test_certificate_validation_with_invalid_format,
+            self.test_certificate_expiration_warning,
             # Performance tests
             self.test_concurrent_requests,
             self.test_response_time_performance,

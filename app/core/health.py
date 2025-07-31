@@ -307,28 +307,94 @@ class HealthMonitor:
         try:
             # Import here to avoid circular imports
             from .config import settings
+            from .database import database_manager
 
-            # For now, return a placeholder check
-            # TODO: Implement actual database connection check when database is set up
-            return HealthCheck(
-                name="database_health",
-                status=HealthStatus.HEALTHY,
-                message="Database health check placeholder - not yet implemented",
-                details={
-                    "database_url": settings.database_url.split("@")[0] + "@***"
-                    if "@" in settings.database_url
-                    else "***",
-                    "database_type": "postgresql",
-                    "connection_pool_size": settings.database_pool_size,
-                    "max_overflow": settings.database_max_overflow,
-                },
-            )
+            start_time = datetime.datetime.utcnow()
+
+            # Test database connection
+            async with database_manager.get_session_context() as db_session:
+                # Test basic connectivity with a simple query
+                from sqlalchemy import text
+
+                # Test 1: Basic connectivity
+                result = await db_session.execute(text("SELECT 1 as test"))
+                row = result.fetchone()
+                if not row or row[0] != 1:
+                    raise Exception("Database connectivity test failed")
+
+                # Test 2: Check database version
+                result = await db_session.execute(text("SELECT version()"))
+                version_row = result.fetchone()
+                db_version = version_row[0] if version_row else "unknown"
+
+                # Test 3: Check key tables exist
+                result = await db_session.execute(
+                    text(
+                        """
+                        SELECT table_name
+                        FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                        AND table_name IN ('sae_entities', 'keys', 'key_requests')
+                    """
+                    )
+                )
+                tables = [row[0] for row in result.fetchall()]
+
+                # Test 4: Check connection pool status
+                pool_status = {
+                    "pool_size": database_manager.engine.pool.size(),
+                    "checked_in": database_manager.engine.pool.checkedin(),
+                    "checked_out": database_manager.engine.pool.checkedout(),
+                    "overflow": database_manager.engine.pool.overflow(),
+                }
+
+                end_time = datetime.datetime.utcnow()
+                response_time = (
+                    end_time - start_time
+                ).total_seconds() * 1000  # milliseconds
+
+                # Determine health status based on response time and table availability
+                if response_time > 1000:  # More than 1 second
+                    status = HealthStatus.DEGRADED
+                    message = f"Database response time is slow ({response_time:.2f}ms)"
+                elif len(tables) < 3:  # Missing some expected tables
+                    status = HealthStatus.DEGRADED
+                    message = f"Database schema incomplete - found {len(tables)}/3 expected tables"
+                else:
+                    status = HealthStatus.HEALTHY
+                    message = "Database connectivity and schema are healthy"
+
+                return HealthCheck(
+                    name="database_health",
+                    status=status,
+                    message=message,
+                    details={
+                        "database_url": settings.database_url.split("@")[0] + "@***"
+                        if "@" in settings.database_url
+                        else "***",
+                        "database_type": "postgresql",
+                        "database_version": db_version,
+                        "response_time_ms": round(response_time, 2),
+                        "connection_pool_size": settings.database_pool_size,
+                        "max_overflow": settings.database_max_overflow,
+                        "pool_status": pool_status,
+                        "tables_found": tables,
+                        "expected_tables": ["sae_entities", "keys", "key_requests"],
+                        "tables_count": len(tables),
+                    },
+                )
+
         except Exception as e:
+            logger.error(f"Database health check failed: {str(e)}")
             return HealthCheck(
                 name="database_health",
                 status=HealthStatus.UNHEALTHY,
                 message=f"Database health check failed: {str(e)}",
-                details={"error": str(e)},
+                details={
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "database_url": "***" if "settings" in locals() else "unknown",
+                },
             )
 
     async def _check_redis_health(self) -> HealthCheck:
@@ -337,26 +403,139 @@ class HealthMonitor:
             # Import here to avoid circular imports
             from .config import settings
 
-            # For now, return a placeholder check
-            # TODO: Implement actual Redis connection check when Redis is set up
-            return HealthCheck(
-                name="redis_health",
-                status=HealthStatus.HEALTHY,
-                message="Redis health check placeholder - not yet implemented",
-                details={
-                    "redis_url": settings.redis_url.split("@")[0] + "@***"
-                    if "@" in settings.redis_url
-                    else "***",
-                    "redis_type": "redis",
-                    "connection_pool_size": settings.redis_pool_size,
-                },
-            )
+            start_time = datetime.datetime.utcnow()
+
+            # Try to import redis and test connection
+            try:
+                import redis.asyncio as redis
+            except ImportError:
+                # Redis not available, return degraded status
+                return HealthCheck(
+                    name="redis_health",
+                    status=HealthStatus.DEGRADED,
+                    message="Redis client not available - redis package not installed",
+                    details={
+                        "redis_url": settings.redis_url.split("@")[0] + "@***"
+                        if "@" in settings.redis_url
+                        else "***",
+                        "redis_type": "redis",
+                        "connection_pool_size": settings.redis_pool_size,
+                        "note": "Install redis package for full Redis health monitoring",
+                    },
+                )
+
+            # Parse Redis URL
+            redis_url = settings.redis_url
+            if redis_url.startswith("redis://"):
+                # Basic Redis connection test
+                try:
+                    # Create Redis client
+                    redis_client = redis.from_url(
+                        redis_url,
+                        max_connections=settings.redis_pool_size,
+                        decode_responses=True,
+                        socket_connect_timeout=5,
+                        socket_timeout=5,
+                    )
+
+                    # Test 1: Basic connectivity (PING)
+                    ping_result = await redis_client.ping()
+                    if not ping_result:
+                        raise Exception("Redis PING failed")
+
+                    # Test 2: Basic operations
+                    test_key = "kme_health_check_test"
+                    test_value = "health_check_value"
+
+                    # Set a test value
+                    await redis_client.set(
+                        test_key, test_value, ex=60
+                    )  # Expire in 60 seconds
+
+                    # Get the test value
+                    retrieved_value = await redis_client.get(test_key)
+                    if retrieved_value != test_value:
+                        raise Exception("Redis GET/SET operations failed")
+
+                    # Delete the test value
+                    await redis_client.delete(test_key)
+
+                    # Test 3: Check Redis info
+                    info = await redis_client.info()
+                    redis_version = info.get("redis_version", "unknown")
+                    connected_clients = info.get("connected_clients", 0)
+                    used_memory = info.get("used_memory_human", "unknown")
+                    uptime_seconds = info.get("uptime_in_seconds", 0)
+
+                    # Test 4: Check Redis memory usage
+                    memory_info = await redis_client.info("memory")
+                    memory_usage = memory_info.get("used_memory_human", "unknown")
+                    memory_peak = memory_info.get("used_memory_peak_human", "unknown")
+
+                    end_time = datetime.datetime.utcnow()
+                    response_time = (
+                        end_time - start_time
+                    ).total_seconds() * 1000  # milliseconds
+
+                    # Close Redis connection
+                    await redis_client.close()
+
+                    # Determine health status based on response time and operations
+                    if response_time > 500:  # More than 500ms
+                        status = HealthStatus.DEGRADED
+                        message = f"Redis response time is slow ({response_time:.2f}ms)"
+                    else:
+                        status = HealthStatus.HEALTHY
+                        message = "Redis connectivity and operations are healthy"
+
+                    return HealthCheck(
+                        name="redis_health",
+                        status=status,
+                        message=message,
+                        details={
+                            "redis_url": redis_url.split("@")[0] + "@***"
+                            if "@" in redis_url
+                            else "***",
+                            "redis_type": "redis",
+                            "redis_version": redis_version,
+                            "response_time_ms": round(response_time, 2),
+                            "connection_pool_size": settings.redis_pool_size,
+                            "connected_clients": connected_clients,
+                            "uptime_seconds": uptime_seconds,
+                            "memory_usage": memory_usage,
+                            "memory_peak": memory_peak,
+                            "operations_tested": ["ping", "set", "get", "delete"],
+                        },
+                    )
+
+                except Exception as redis_error:
+                    raise Exception(f"Redis connection failed: {str(redis_error)}")
+
+            else:
+                # Redis URL not configured or invalid
+                return HealthCheck(
+                    name="redis_health",
+                    status=HealthStatus.DEGRADED,
+                    message="Redis URL not configured or invalid",
+                    details={
+                        "redis_url": "not_configured",
+                        "redis_type": "redis",
+                        "connection_pool_size": settings.redis_pool_size,
+                        "note": "Configure REDIS_URL environment variable for Redis health monitoring",
+                    },
+                )
+
         except Exception as e:
+            logger.error(f"Redis health check failed: {str(e)}")
             return HealthCheck(
                 name="redis_health",
                 status=HealthStatus.UNHEALTHY,
                 message=f"Redis health check failed: {str(e)}",
-                details={"error": str(e)},
+                details={
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "redis_url": "***" if "settings" in locals() else "unknown",
+                },
             )
 
     async def _check_qkd_network_health(self) -> HealthCheck:
@@ -365,25 +544,132 @@ class HealthMonitor:
             # Import here to avoid circular imports
             from .config import settings
 
-            # For now, return a placeholder check
-            # TODO: Implement actual QKD network health check when QKD network is set up
-            return HealthCheck(
-                name="qkd_network_health",
-                status=HealthStatus.HEALTHY,
-                message="QKD network health check placeholder - not yet implemented",
-                details={
-                    "qkd_links": settings.qkd_links,
-                    "key_generation_rate": settings.qkd_key_generation_rate,
-                    "link_quality": "unknown",
-                    "network_status": "placeholder",
-                },
-            )
+            start_time = datetime.datetime.utcnow()
+
+            # Test QKD key generation service
+            try:
+                from ..services.key_generation_service import get_key_generator
+
+                key_generator = get_key_generator()
+                generator_type = key_generator.__class__.__name__
+
+                # Test 1: Get QKD system status
+                system_status = await key_generator.get_system_status()
+
+                # Test 2: Test key generation capability
+                try:
+                    # Try to generate a small test key
+                    test_keys = await key_generator.generate_keys(number=1, size=64)
+                    key_generation_working = (
+                        len(test_keys) == 1 and len(test_keys[0]) >= 8
+                    )
+                except Exception as key_gen_error:
+                    key_generation_working = False
+                    key_gen_error_msg = str(key_gen_error)
+
+                # Test 3: Check QKD network connectivity
+                qkd_connected = system_status.get("qkd_connected", False)
+                qkd_network_url = system_status.get("qkd_network_url", "unknown")
+
+                # Test 4: Get QKD metrics
+                try:
+                    generation_metrics = await key_generator.get_generation_metrics()
+                    key_generation_rate = generation_metrics.get(
+                        "key_generation_rate", 0
+                    )
+                    last_generation_time = generation_metrics.get(
+                        "last_generation_time"
+                    )
+                    total_keys_generated = generation_metrics.get(
+                        "total_keys_generated", 0
+                    )
+                except Exception:
+                    key_generation_rate = 0
+                    last_generation_time = None
+                    total_keys_generated = 0
+
+                end_time = datetime.datetime.utcnow()
+                response_time = (
+                    end_time - start_time
+                ).total_seconds() * 1000  # milliseconds
+
+                # Determine health status based on QKD connectivity and key generation
+                if not qkd_connected and generator_type == "QKDKeyGenerator":
+                    status = HealthStatus.UNHEALTHY
+                    message = "QKD network is not connected"
+                elif not key_generation_working:
+                    status = HealthStatus.DEGRADED
+                    message = "QKD key generation is not working"
+                elif response_time > 2000:  # More than 2 seconds
+                    status = HealthStatus.DEGRADED
+                    message = (
+                        f"QKD network response time is slow ({response_time:.2f}ms)"
+                    )
+                elif generator_type == "MockKeyGenerator":
+                    status = HealthStatus.DEGRADED
+                    message = (
+                        "Using mock QKD generator - not connected to real QKD network"
+                    )
+                else:
+                    status = HealthStatus.HEALTHY
+                    message = "QKD network connectivity and key generation are healthy"
+
+                return HealthCheck(
+                    name="qkd_network_health",
+                    status=status,
+                    message=message,
+                    details={
+                        "qkd_links": settings.qkd_links,
+                        "key_generation_rate": key_generation_rate,
+                        "generator_type": generator_type,
+                        "qkd_connected": qkd_connected,
+                        "qkd_network_url": qkd_network_url,
+                        "key_generation_working": key_generation_working,
+                        "response_time_ms": round(response_time, 2),
+                        "total_keys_generated": total_keys_generated,
+                        "last_generation_time": last_generation_time.isoformat()
+                        if last_generation_time
+                        else None,
+                        "system_status": system_status,
+                        "key_gen_error": key_gen_error_msg
+                        if not key_generation_working
+                        else None,
+                        "note": "Mock generator indicates no real QKD hardware connected"
+                        if generator_type == "MockKeyGenerator"
+                        else None,
+                    },
+                )
+
+            except ImportError:
+                # QKD service not available
+                return HealthCheck(
+                    name="qkd_network_health",
+                    status=HealthStatus.DEGRADED,
+                    message="QKD key generation service not available",
+                    details={
+                        "qkd_links": settings.qkd_links,
+                        "key_generation_rate": settings.qkd_key_generation_rate,
+                        "generator_type": "unknown",
+                        "qkd_connected": False,
+                        "qkd_network_url": "unknown",
+                        "note": "QKD key generation service not properly configured",
+                    },
+                )
+
         except Exception as e:
+            logger.error(f"QKD network health check failed: {str(e)}")
             return HealthCheck(
                 name="qkd_network_health",
                 status=HealthStatus.UNHEALTHY,
                 message=f"QKD network health check failed: {str(e)}",
-                details={"error": str(e)},
+                details={
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "qkd_links": settings.qkd_links if "settings" in locals() else [],
+                    "key_generation_rate": settings.qkd_key_generation_rate
+                    if "settings" in locals()
+                    else 0,
+                },
             )
 
     async def _check_system_resources(self) -> HealthCheck:

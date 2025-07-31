@@ -296,3 +296,13 @@ class KeyGenerationFactory:
     def get_current_mode() -> str:
         """Get current key generation mode"""
         return os.getenv("KEY_GENERATION_MODE", "mock").lower()
+
+
+def get_key_generator() -> KeyGeneratorInterface:
+    """
+    Get the current key generator instance
+
+    Returns:
+        KeyGeneratorInterface: The configured key generator
+    """
+    return KeyGenerationFactory.create_generator()

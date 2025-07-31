@@ -420,6 +420,21 @@ R2+ZBLi3ZVkAaBGyLA4RWhJsEcHLd8z7RoPB2mmYMzDNUN7qHZR26ttP4Whpx1YG
 STZlE4FchQq4naXnXQxj1Zype6RkHz9Sw/viKl0rBrm2tKqAFOraYzg9P97WS9jr
 o5jSLtYy9ITU5ohVRXXiYp/fXaKVQZRzCFw=
 -----END CERTIFICATE-----"""
+
+            # Try to decode as base64 first (for test certificates)
+            try:
+                import base64
+
+                decoded_cert = base64.b64decode(cert_header)
+                # Check if it looks like a PEM certificate
+                if b"-----BEGIN CERTIFICATE-----" in decoded_cert:
+                    logger.debug("Successfully decoded base64 encoded certificate")
+                    return decoded_cert
+            except Exception:
+                # If base64 decoding fails, try as plain text
+                pass
+
+            # If not base64, try as plain text
             return cert_header.encode()
 
         # Try to get certificate from query parameter (for testing)
