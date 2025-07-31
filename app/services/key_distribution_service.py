@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from app.models.etsi_models import Key, KeyContainer, KeyRequest
+from app.models.etsi_models import Error, ErrorDetail, Key, KeyContainer, KeyRequest
 from app.services.key_generation_service import KeyGenerationFactory
 from app.services.key_pool_service import KeyPoolService
 from app.services.key_storage_service import KeyStorageService
@@ -33,6 +33,18 @@ class KeyRequestProcessor:
 
     def __init__(self):
         self.logger = logger.bind(service="KeyRequestProcessor")
+
+    def validate_sae_id(self, sae_id: str) -> bool:
+        """
+        Validate SAE ID format according to ETSI specification
+
+        Args:
+            sae_id: SAE ID to validate
+
+        Returns:
+            True if valid, False otherwise
+        """
+        return len(sae_id) == 16
 
     async def validate_request(self, request: KeyRequest) -> dict[str, Any]:
         """
@@ -75,6 +87,21 @@ class KeyRequestProcessor:
         # Validate key count is reasonable
         if request.number and request.number > 1000:
             validation_result["warnings"].append("Large key count requested")
+
+        # Validate additional slave SAE IDs if present
+        if request.additional_slave_SAE_IDs:
+            for sae_id in request.additional_slave_SAE_IDs:
+                if not self.validate_sae_id(sae_id):
+                    validation_result["valid"] = False
+                    validation_result["errors"].append(
+                        f"Invalid SAE ID format: {sae_id} (must be 16 characters)"
+                    )
+
+        # Process extension parameters
+        extension_result = await self.process_extension_parameters(request)
+        if not extension_result["valid"]:
+            validation_result["valid"] = False
+            validation_result["errors"].extend(extension_result["errors"])
 
         self.logger.info(
             "Key request validation completed",
@@ -177,6 +204,55 @@ class KeyRequestProcessor:
         )
 
         return selected_keys
+
+    async def process_extension_parameters(self, request: KeyRequest) -> dict[str, Any]:
+        """
+        Process extension parameters according to ETSI specification
+
+        Args:
+            request: KeyRequest containing extension parameters
+
+        Returns:
+            Dict containing processing result
+        """
+        result: dict[str, Any] = {
+            "valid": True,
+            "errors": [],
+            "processed_mandatory": [],
+            "processed_optional": [],
+        }
+
+        # Process mandatory extensions (KME shall handle or return error)
+        if request.extension_mandatory:
+            for ext in request.extension_mandatory:
+                try:
+                    # For now, we'll accept all mandatory extensions
+                    # In a real implementation, specific extensions would be validated
+                    result["processed_mandatory"].append(ext)
+                    self.logger.info("Processed mandatory extension", extension=ext)
+                except Exception as e:
+                    result["valid"] = False
+                    result["errors"].append(
+                        f"Failed to process mandatory extension {ext}: {str(e)}"
+                    )
+
+        # Process optional extensions (KME may ignore)
+        if request.extension_optional:
+            for ext in request.extension_optional:
+                try:
+                    # For now, we'll process all optional extensions
+                    # In a real implementation, specific extensions would be handled
+                    result["processed_optional"].append(ext)
+                    self.logger.info("Processed optional extension", extension=ext)
+                except Exception as e:
+                    # Optional extensions can be ignored, so we just log the warning
+                    self.logger.warning(
+                        "Failed to process optional extension",
+                        extension=ext,
+                        error=str(e),
+                    )
+
+        return result
 
 
 class KeyDistributionOptimizer:
@@ -329,6 +405,24 @@ class KeyDistributionService:
         self.logger = logger.bind(service="KeyDistributionService")
         self.logger.info("Key distribution service initialized")
 
+    def create_etsi_error_response(
+        self, message: str, details: list[dict] = None
+    ) -> Error:
+        """
+        Create ETSI-compliant error response
+
+        Args:
+            message: Error message
+            details: Optional error details
+
+        Returns:
+            ETSI Error object
+        """
+        return Error(
+            message=message,
+            details=[ErrorDetail(detail=d) for d in details] if details else None,
+        )
+
     async def distribute_keys_to_sae(self, request: KeyRequest) -> dict[str, Any]:
         """
         Distribute keys to a single SAE
@@ -352,10 +446,13 @@ class KeyDistributionService:
             # Step 1: Validate request
             validation_result = await self.request_processor.validate_request(request)
             if not validation_result["valid"]:
+                error_details = [{"validation_errors": validation_result["errors"]}]
+                etsi_error = self.create_etsi_error_response(
+                    "Request validation failed", error_details
+                )
                 return {
                     "success": False,
-                    "error": "Request validation failed",
-                    "validation_errors": validation_result["errors"],
+                    "etsi_error": etsi_error,
                     "request_id": request.request_id,
                 }
 
@@ -388,9 +485,12 @@ class KeyDistributionService:
             elif strategy == "network_routing":
                 result = await self._execute_network_routing(request)
             else:
+                etsi_error = self.create_etsi_error_response(
+                    f"Unknown distribution strategy: {strategy}"
+                )
                 result = {
                     "success": False,
-                    "error": f"Unknown distribution strategy: {strategy}",
+                    "etsi_error": etsi_error,
                     "request_id": request.request_id,
                 }
 
@@ -420,9 +520,12 @@ class KeyDistributionService:
                 request_id=request.request_id,
                 error=str(e),
             )
+            etsi_error = self.create_etsi_error_response(
+                f"Key distribution failed: {str(e)}"
+            )
             return {
                 "success": False,
-                "error": str(e),
+                "etsi_error": etsi_error,
                 "request_id": request.request_id,
                 "processing_time": (
                     datetime.datetime.utcnow() - start_time
@@ -442,9 +545,12 @@ class KeyDistributionService:
             available_keys_count = pool_status.get("active_keys", 0)
 
             if available_keys_count < key_count:
+                etsi_error = self.create_etsi_error_response(
+                    f"Insufficient keys in pool. Available: {available_keys_count}, Required: {key_count}"
+                )
                 return {
                     "success": False,
-                    "error": f"Insufficient keys in pool. Available: {available_keys_count}, Required: {key_count}",
+                    "etsi_error": etsi_error,
                     "request_id": request.request_id,
                 }
 
@@ -479,9 +585,12 @@ class KeyDistributionService:
             self.logger.error(
                 "Direct delivery failed", request_id=request.request_id, error=str(e)
             )
+            etsi_error = self.create_etsi_error_response(
+                f"Direct delivery failed: {str(e)}"
+            )
             return {
                 "success": False,
-                "error": str(e),
+                "etsi_error": etsi_error,
                 "request_id": request.request_id,
             }
 
@@ -530,8 +639,6 @@ class KeyDistributionService:
             # Create key container
             key_container = KeyContainer(
                 keys=stored_keys,
-                key_count=len(stored_keys),
-                key_size=request.key_size,
             )
 
             return {
@@ -546,9 +653,12 @@ class KeyDistributionService:
             self.logger.error(
                 "Key generation failed", request_id=request.request_id, error=str(e)
             )
+            etsi_error = self.create_etsi_error_response(
+                f"Key generation failed: {str(e)}"
+            )
             return {
                 "success": False,
-                "error": str(e),
+                "etsi_error": etsi_error,
                 "request_id": request.request_id,
             }
 
@@ -564,9 +674,12 @@ class KeyDistributionService:
             )
 
             if not link_result["success"]:
+                etsi_error = self.create_etsi_error_response(
+                    "Failed to establish QKD link"
+                )
                 return {
                     "success": False,
-                    "error": "Failed to establish QKD link",
+                    "etsi_error": etsi_error,
                     "request_id": request.request_id,
                 }
 
@@ -581,9 +694,12 @@ class KeyDistributionService:
             )
 
             if not exchange_result["success"]:
+                etsi_error = self.create_etsi_error_response(
+                    "Failed to perform key exchange"
+                )
                 return {
                     "success": False,
-                    "error": "Failed to perform key exchange",
+                    "etsi_error": etsi_error,
                     "request_id": request.request_id,
                 }
 
@@ -616,8 +732,6 @@ class KeyDistributionService:
             # Create key container
             key_container = KeyContainer(
                 keys=stored_keys,
-                key_count=len(stored_keys),
-                key_size=request.key_size,
             )
 
             return {
@@ -635,9 +749,12 @@ class KeyDistributionService:
             self.logger.error(
                 "Network routing failed", request_id=request.request_id, error=str(e)
             )
+            etsi_error = self.create_etsi_error_response(
+                f"Network routing failed: {str(e)}"
+            )
             return {
                 "success": False,
-                "error": str(e),
+                "etsi_error": etsi_error,
                 "request_id": request.request_id,
             }
 
@@ -673,9 +790,12 @@ class KeyDistributionService:
                 self.logger.error(
                     "Multi-SAE request failed", request_id=request_id, error=str(e)
                 )
+                etsi_error = self.create_etsi_error_response(
+                    f"Multi-SAE request failed: {str(e)}"
+                )
                 results[request_id] = {
                     "success": False,
-                    "error": str(e),
+                    "etsi_error": etsi_error,
                     "request_id": request_id,
                 }
 
