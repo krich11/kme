@@ -31,7 +31,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import (
     ARRAY,
     JSON,
@@ -44,7 +44,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
@@ -78,8 +78,8 @@ class KMEEntity(BaseModel):
             raise ValueError("Port must be between 1 and 65535")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "kme_id": "AAAABBBBCCCCDDDD",
                 "hostname": "kme1.example.com",
@@ -91,6 +91,7 @@ class KMEEntity(BaseModel):
                 },
             }
         }
+    )
 
 
 class SAEEntity(BaseModel):
@@ -127,8 +128,8 @@ class SAEEntity(BaseModel):
             raise ValueError(f"Status must be one of: {valid_statuses}")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "sae_id": "IIIIJJJJKKKKLLLL",
                 "kme_id": "AAAABBBBCCCCDDDD",
@@ -140,6 +141,7 @@ class SAEEntity(BaseModel):
                 "status": "active",
             }
         }
+    )
 
 
 class KeyRecord(BaseModel):
@@ -208,8 +210,8 @@ class KeyRecord(BaseModel):
                     raise ValueError("SAE ID must be exactly 16 characters")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "key_id": "550e8400-e29b-41d4-a716-446655440000",
                 "key_data": b"sample_key_data_32_bytes_long",
@@ -221,6 +223,7 @@ class KeyRecord(BaseModel):
                 "status": "active",
             }
         }
+    )
 
 
 class KeyRequestRecord(BaseModel):
@@ -291,8 +294,8 @@ class KeyRequestRecord(BaseModel):
             raise ValueError(f"Status must be one of: {valid_statuses}")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "request_id": "12345678-1234-1234-1234-123456789abc",
                 "master_sae_id": "IIIIJJJJKKKKLLLL",
@@ -302,6 +305,7 @@ class KeyRequestRecord(BaseModel):
                 "status": "pending",
             }
         }
+    )
 
 
 class KeyDistributionEvent(BaseModel):
@@ -342,8 +346,8 @@ class KeyDistributionEvent(BaseModel):
             raise ValueError("Key size must be positive")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "event_type": "key_distribution_success",
                 "master_sae_id": "IIIIJJJJKKKKLLLL",
@@ -353,6 +357,7 @@ class KeyDistributionEvent(BaseModel):
                 "success": True,
             }
         }
+    )
 
 
 class SecurityEventRecord(BaseModel):
@@ -417,8 +422,8 @@ class SecurityEventRecord(BaseModel):
                 raise ValueError("key_id must be a valid UUID")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "event_type": "sae_authentication_success",
                 "severity": "low",
@@ -428,6 +433,7 @@ class SecurityEventRecord(BaseModel):
                 "etsi_compliance": True,
             }
         }
+    )
 
 
 class PerformanceMetric(BaseModel):
@@ -450,8 +456,8 @@ class PerformanceMetric(BaseModel):
             raise ValueError(f"Metric type must be one of: {valid_types}")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "metric_name": "api_response_time",
                 "metric_value": 150.5,
@@ -460,6 +466,7 @@ class PerformanceMetric(BaseModel):
                 "labels": {"endpoint": "/api/v1/keys/status"},
             }
         }
+    )
 
 
 class HealthCheck(BaseModel):
@@ -481,8 +488,8 @@ class HealthCheck(BaseModel):
             raise ValueError(f"Status must be one of: {valid_statuses}")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "check_name": "database_health",
                 "status": "healthy",
@@ -490,6 +497,7 @@ class HealthCheck(BaseModel):
                 "details": {"response_time_ms": 5.2},
             }
         }
+    )
 
 
 class AlertRecord(BaseModel):
@@ -538,8 +546,8 @@ class AlertRecord(BaseModel):
             raise ValueError(f"Alert type must be one of: {valid_types}")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "alert_id": "alert_123",
                 "alert_type": "performance",
@@ -550,3 +558,4 @@ class AlertRecord(BaseModel):
                 "details": {"cpu_percent": 85.2},
             }
         }
+    )

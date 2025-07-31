@@ -33,7 +33,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Status(BaseModel):
@@ -134,8 +134,8 @@ class Status(BaseModel):
 
         return values
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "source_KME_ID": "AAAABBBBCCCCDDDD",
                 "target_KME_ID": "EEEEFFFFGGGGHHHH",
@@ -153,6 +153,7 @@ class Status(BaseModel):
                 "key_generation_rate": 1000.0,
             }
         }
+    )
 
 
 class KeyRequest(BaseModel):
@@ -233,8 +234,8 @@ class KeyRequest(BaseModel):
             raise ValueError(f"Priority must be one of: {valid_priorities}")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "number": 3,
                 "size": 1024,
@@ -248,6 +249,7 @@ class KeyRequest(BaseModel):
                 "route_preference": "direct",
             }
         }
+    )
 
 
 class Key(BaseModel):
@@ -307,8 +309,8 @@ class Key(BaseModel):
             raise ValueError("Key size must be positive")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "key_ID": "bc490419-7d60-487f-adc1-4ddcc177c139",
                 "key": "wHHVxRwDJs3/bXd38GHP3oe4svTuRpZS0yCC7x4Ly+s=",
@@ -317,6 +319,7 @@ class Key(BaseModel):
                 "expires_at": "2025-07-28T18:30:00Z",
             }
         }
+    )
 
 
 class KeyContainer(BaseModel):
@@ -368,8 +371,8 @@ class KeyContainer(BaseModel):
                 raise ValueError("All keys in container must have the same size")
         return values
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "keys": [
                     {
@@ -385,6 +388,7 @@ class KeyContainer(BaseModel):
                 "created_at": "2025-07-28T17:30:00Z",
             }
         }
+    )
 
 
 class KeyID(BaseModel):
@@ -418,14 +422,15 @@ class KeyID(BaseModel):
             raise ValueError("key_ID must be a valid UUID")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "key_ID": "bc490419-7d60-487f-adc1-4ddcc177c139",
                 "requested_at": "2025-07-28T17:30:00Z",
                 "priority": "high",
             }
         }
+    )
 
 
 class KeyIDs(BaseModel):
@@ -457,8 +462,8 @@ class KeyIDs(BaseModel):
             raise ValueError("Key IDs array cannot be empty")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "key_IDs": [
                     {"key_ID": "bc490419-7d60-487f-adc1-4ddcc177c139"},
@@ -468,6 +473,7 @@ class KeyIDs(BaseModel):
                 "master_sae_id": "IIIIJJJJKKKKLLLL",
             }
         }
+    )
 
 
 class ErrorDetail(BaseModel):
@@ -480,14 +486,15 @@ class ErrorDetail(BaseModel):
     # Error detail can be any name/value pair
     detail: dict[str, Any] = Field(..., description="Error detail as name/value pair")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "detail": {
                     "extension_mandatory_unsupported": "abc_route_type is not supported"
                 }
             }
         }
+    )
 
 
 class Error(BaseModel):
@@ -525,8 +532,8 @@ class Error(BaseModel):
             raise ValueError(f"Severity must be one of: {valid_severities}")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "message": "not all extension_mandatory parameters are supported",
                 "details": [
@@ -538,3 +545,4 @@ class Error(BaseModel):
                 "severity": "error",
             }
         }
+    )

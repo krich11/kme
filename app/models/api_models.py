@@ -28,7 +28,7 @@ Progress: 60% (6/12 tasks completed)
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .etsi_models import Error, KeyContainer, Status
 
@@ -45,8 +45,8 @@ class APIResponse(BaseModel):
     request_id: str | None = Field(None, description="Request identifier")
     version: str = Field(default="1.0.0", description="API version")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "success": True,
                 "message": "Operation completed successfully",
@@ -56,6 +56,7 @@ class APIResponse(BaseModel):
                 "version": "1.0.0",
             }
         }
+    )
 
 
 class HealthResponse(BaseModel):
@@ -96,8 +97,8 @@ class HealthResponse(BaseModel):
                 raise ValueError(f"Summary must contain '{field}' field")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "status": "healthy",
                 "timestamp": "2025-07-28T17:30:00Z",
@@ -118,6 +119,7 @@ class HealthResponse(BaseModel):
                 },
             }
         }
+    )
 
 
 class MetricsResponse(BaseModel):
@@ -131,8 +133,8 @@ class MetricsResponse(BaseModel):
         default_factory=dict, description="Metrics metadata"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "timestamp": "2025-07-28T17:30:00Z",
                 "metrics": {
@@ -146,6 +148,7 @@ class MetricsResponse(BaseModel):
                 "metadata": {"collection_interval": 60, "retention_period": 86400},
             }
         }
+    )
 
 
 class ErrorResponse(BaseModel):
@@ -161,8 +164,8 @@ class ErrorResponse(BaseModel):
     request_id: str | None = Field(None, description="Request identifier")
     trace_id: str | None = Field(None, description="Error trace identifier")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "success": False,
                 "error": {
@@ -175,6 +178,7 @@ class ErrorResponse(BaseModel):
                 "trace_id": "trace_456",
             }
         }
+    )
 
 
 class StatusResponse(BaseModel):
@@ -186,8 +190,8 @@ class StatusResponse(BaseModel):
     )
     request_id: str | None = Field(None, description="Request identifier")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "status": {
                     "source_KME_ID": "AAAABBBBCCCCDDDD",
@@ -206,6 +210,7 @@ class StatusResponse(BaseModel):
                 "request_id": "req_123",
             }
         }
+    )
 
 
 class KeyResponse(BaseModel):
@@ -220,8 +225,8 @@ class KeyResponse(BaseModel):
         None, description="Request processing time in milliseconds"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "keys": {
                     "keys": [
@@ -236,6 +241,7 @@ class KeyResponse(BaseModel):
                 "processing_time_ms": 150.5,
             }
         }
+    )
 
 
 class SystemInfoResponse(BaseModel):
@@ -254,8 +260,8 @@ class SystemInfoResponse(BaseModel):
         default_factory=datetime.utcnow, description="Response timestamp"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "kme_id": "AAAABBBBCCCCDDDD",
                 "version": "1.0.0",
@@ -280,6 +286,7 @@ class SystemInfoResponse(BaseModel):
                 "timestamp": "2025-07-28T17:30:00Z",
             }
         }
+    )
 
 
 class ConfigurationResponse(BaseModel):
@@ -299,8 +306,8 @@ class ConfigurationResponse(BaseModel):
         default_factory=datetime.utcnow, description="Response timestamp"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        schema_extra={
             "example": {
                 "kme_configuration": {
                     "kme_id": "AAAABBBBCCCCDDDD",
@@ -326,3 +333,4 @@ class ConfigurationResponse(BaseModel):
                 "timestamp": "2025-07-28T17:30:00Z",
             }
         }
+    )

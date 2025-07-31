@@ -27,13 +27,33 @@ class TestKeyStorageService:
         session = AsyncMock(spec=AsyncSession)
         session.commit = AsyncMock()
         session.rollback = AsyncMock()
+
+        # Create a mock result object that properly handles async operations
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none = MagicMock()
+
+        # Create a mock scalars result that properly handles async operations
+        mock_scalars_result = MagicMock()
+        mock_scalars_result.all = AsyncMock(return_value=[])
+        mock_result.scalars = MagicMock(return_value=mock_scalars_result)
+
+        # Configure the execute method to return the mock result
+        session.execute = AsyncMock(return_value=mock_result)
+
         return session
 
     @pytest.fixture
     def key_storage_service(self, mock_db_session):
         """Create a KeyStorageService instance with mock dependencies"""
+        # Generate a proper Fernet key for testing
+        import base64
+        import secrets
+
+        test_key_material = secrets.token_bytes(32)
+        test_key_b64 = base64.urlsafe_b64encode(test_key_material).decode("utf-8")
+
         # Mock the environment variable for master key
-        os.environ["KME_MASTER_KEY"] = "test_master_key_for_testing_purposes_only_32"
+        os.environ["KME_MASTER_KEY"] = test_key_b64
 
         service = KeyStorageService(mock_db_session)
         return service
@@ -44,8 +64,8 @@ class TestKeyStorageService:
         return {
             "key_id": str(uuid.uuid4()),
             "key_data": b"test_key_data_32_bytes_long_for_testing",
-            "master_sae_id": "MASTERSAE123456",
-            "slave_sae_id": "SLAVESAE123456",
+            "master_sae_id": "MASTERSAE1234567",
+            "slave_sae_id": "SLAVESAE12345678",
             "key_size": 256,
             "expires_at": datetime.datetime.utcnow() + datetime.timedelta(hours=24),
             "metadata": {"test": "metadata"},
@@ -70,7 +90,7 @@ class TestKeyStorageService:
             slave_sae_id=sample_key_data["slave_sae_id"],
             key_size=sample_key_data["key_size"],
             expires_at=sample_key_data["expires_at"],
-            metadata=sample_key_data["metadata"],
+            key_metadata=sample_key_data["metadata"],
         )
 
         assert result is True
@@ -84,8 +104,8 @@ class TestKeyStorageService:
             await key_storage_service.store_key(
                 key_id="invalid-uuid",
                 key_data=b"test_data",
-                master_sae_id="MASTERSAE123456",
-                slave_sae_id="SLAVESAE123456",
+                master_sae_id="MASTERSAE1234567",
+                slave_sae_id="SLAVESAE12345678",
                 key_size=256,
             )
 
@@ -94,8 +114,8 @@ class TestKeyStorageService:
             await key_storage_service.store_key(
                 key_id=str(uuid.uuid4()),
                 key_data=b"",
-                master_sae_id="MASTERSAE123456",
-                slave_sae_id="SLAVESAE123456",
+                master_sae_id="MASTERSAE1234567",
+                slave_sae_id="SLAVESAE12345678",
                 key_size=256,
             )
 
@@ -107,7 +127,7 @@ class TestKeyStorageService:
                 key_id=str(uuid.uuid4()),
                 key_data=b"test_data",
                 master_sae_id="TOOSHORT",
-                slave_sae_id="SLAVESAE123456",
+                slave_sae_id="SLAVESAE12345678",
                 key_size=256,
             )
 
@@ -118,7 +138,7 @@ class TestKeyStorageService:
             await key_storage_service.store_key(
                 key_id=str(uuid.uuid4()),
                 key_data=b"test_data",
-                master_sae_id="MASTERSAE123456",
+                master_sae_id="MASTERSAE1234567",
                 slave_sae_id="TOOSHORT",
                 key_size=256,
             )
@@ -133,7 +153,12 @@ class TestKeyStorageService:
         mock_key_model.encrypted_key_data = key_storage_service._fernet.encrypt(
             sample_key_data["key_data"]
         )
-        mock_key_model.key_hash = "test_hash"
+        # Calculate the correct hash for the key data
+        import hashlib
+
+        mock_key_model.key_hash = hashlib.sha256(
+            sample_key_data["key_data"]
+        ).hexdigest()
         mock_key_model.master_sae_id = sample_key_data["master_sae_id"]
         mock_key_model.slave_sae_id = sample_key_data["slave_sae_id"]
         mock_key_model.expires_at = sample_key_data["expires_at"]
@@ -161,8 +186,8 @@ class TestKeyStorageService:
 
         result = await key_storage_service.retrieve_key(
             key_id=str(uuid.uuid4()),
-            requesting_sae_id="MASTERSAE123456",
-            master_sae_id="MASTERSAE123456",
+            requesting_sae_id="MASTERSAE1234567",
+            master_sae_id="MASTERSAE1234567",
         )
 
         assert result is None
@@ -199,8 +224,8 @@ class TestKeyStorageService:
         # Create a mock key model
         mock_key_model = MagicMock()
         mock_key_model.key_id = sample_key_data["key_id"]
-        mock_key_model.master_sae_id = "DIFFERENTSAE123"
-        mock_key_model.slave_sae_id = "SLAVESAE123456"
+        mock_key_model.master_sae_id = "DIFFERENTSAE1234"
+        mock_key_model.slave_sae_id = "SLAVESAE12345678"
         mock_key_model.expires_at = sample_key_data["expires_at"]
         mock_key_model.is_active = True
 
@@ -211,7 +236,7 @@ class TestKeyStorageService:
 
         result = await key_storage_service.retrieve_key(
             key_id=sample_key_data["key_id"],
-            requesting_sae_id="UNAUTHORIZED123",
+            requesting_sae_id="UNAUTHORIZED1234",
             master_sae_id=sample_key_data["master_sae_id"],
         )
 
@@ -252,13 +277,13 @@ class TestKeyStorageService:
         """Test key access authorization logic"""
         # Create a mock key model
         mock_key_model = MagicMock()
-        mock_key_model.master_sae_id = "MASTERSAE123456"
-        mock_key_model.slave_sae_id = "SLAVESAE123456"
+        mock_key_model.master_sae_id = "MASTERSAE1234567"
+        mock_key_model.slave_sae_id = "SLAVESAE12345678"
 
         # Test master SAE access (should be authorized)
         assert (
             key_storage_service._is_authorized_to_access_key(
-                mock_key_model, "MASTERSAE123456", "MASTERSAE123456"
+                mock_key_model, "MASTERSAE1234567", "MASTERSAE1234567"
             )
             is True
         )
@@ -266,7 +291,7 @@ class TestKeyStorageService:
         # Test slave SAE access (should be authorized)
         assert (
             key_storage_service._is_authorized_to_access_key(
-                mock_key_model, "SLAVESAE123456", "MASTERSAE123456"
+                mock_key_model, "SLAVESAE12345678", "MASTERSAE1234567"
             )
             is True
         )
@@ -274,7 +299,7 @@ class TestKeyStorageService:
         # Test unauthorized SAE access (should not be authorized)
         assert (
             key_storage_service._is_authorized_to_access_key(
-                mock_key_model, "UNAUTHORIZED123", "MASTERSAE123456"
+                mock_key_model, "UNAUTHORIZED1234", "MASTERSAE1234567"
             )
             is False
         )

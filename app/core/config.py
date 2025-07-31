@@ -69,7 +69,7 @@ Usage:
     current_settings = get_settings()
 """
 
-from pydantic import Field, validator
+from pydantic import ConfigDict, Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -196,28 +196,28 @@ class Settings(BaseSettings):
     min_tls_version: str = Field(default="TLSv1.2", description="Minimum TLS version")
     max_tls_version: str = Field(default="TLSv1.3", description="Maximum TLS version")
 
-    @validator("kme_id")
+    @field_validator("kme_id")
     def validate_kme_id(cls, v):
         """Validate KME ID format"""
         if not v or len(v) != 16:
             raise ValueError("KME_ID must be exactly 16 characters")
         return v
 
-    @validator("kme_port")
+    @field_validator("kme_port")
     def validate_port(cls, v):
         """Validate port number"""
         if not 1 <= v <= 65535:
             raise ValueError("Port must be between 1 and 65535")
         return v
 
-    @validator("default_key_size", "max_key_size", "min_key_size")
+    @field_validator("default_key_size", "max_key_size", "min_key_size")
     def validate_key_sizes(cls, v):
         """Validate key sizes"""
         if v < 64 or v > 8192:
             raise ValueError("Key size must be between 64 and 8192 bits")
         return v
 
-    @validator("tls_version")
+    @field_validator("tls_version")
     def validate_tls_version(cls, v):
         """Validate TLS version"""
         allowed_versions = ["1.2", "1.3"]
@@ -225,7 +225,7 @@ class Settings(BaseSettings):
             raise ValueError(f"TLS version must be one of: {allowed_versions}")
         return v
 
-    @validator("log_level")
+    @field_validator("log_level")
     def validate_log_level(cls, v):
         """Validate log level"""
         allowed_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -233,13 +233,12 @@ class Settings(BaseSettings):
             raise ValueError(f"Log level must be one of: {allowed_levels}")
         return v.upper()
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        extra = (
-            "ignore"  # Allow extra environment variables (like DB_HOST, DB_PORT, etc.)
-        )
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",  # Allow extra environment variables (like DB_HOST, DB_PORT, etc.)
+    )
 
 
 # Global settings instance
