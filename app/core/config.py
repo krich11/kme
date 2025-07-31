@@ -202,6 +202,17 @@ class Settings(BaseSettings):
     min_tls_version: str = Field(default="TLSv1.2", description="Minimum TLS version")
     max_tls_version: str = Field(default="TLSv1.3", description="Maximum TLS version")
 
+    # Certificate Expiration Warning Configuration
+    certificate_warning_days: int = Field(
+        default=30, description="Days before expiration to start warning"
+    )
+    certificate_critical_days: int = Field(
+        default=7, description="Days before expiration for critical warning"
+    )
+    certificate_expiration_check_enabled: bool = Field(
+        default=True, description="Enable certificate expiration checking"
+    )
+
     @field_validator("kme_id")
     def validate_kme_id(cls, v):
         """Validate KME ID format"""

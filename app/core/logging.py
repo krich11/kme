@@ -383,6 +383,61 @@ class SecurityLogger:
             security_event=security_event,
         )
 
+    def log_certificate_expiration_warning(
+        self,
+        subject_id: str,
+        days_until_expiry: int,
+        expiration_date: str,
+        certificate_type: str,
+        details: dict[str, Any] | None = None,
+    ):
+        """Log certificate expiration warning event"""
+        from app.core.config import get_settings
+
+        settings = get_settings()
+
+        # Create security event
+        security_event = create_security_event(
+            event_type=SecurityEventType.CERTIFICATE_EXPIRATION_WARNING,
+            user_id=subject_id,
+            details={
+                "certificate_type": certificate_type,
+                "days_until_expiry": days_until_expiry,
+                "expiration_date": expiration_date,
+                "warning_level": "critical"
+                if days_until_expiry <= settings.certificate_critical_days
+                else "warning",
+                "details": details or {},
+                "etsi_compliance": True,
+            },
+        )
+
+        # Determine log level based on days until expiry
+        if days_until_expiry <= settings.certificate_critical_days:
+            log_level = "warning"
+            severity = "high"
+        elif days_until_expiry <= settings.certificate_warning_days:
+            log_level = "info"
+            severity = "medium"
+        else:
+            log_level = "info"
+            severity = "low"
+
+        log_method = getattr(self.logger, log_level)
+        log_method(
+            "Certificate expiration warning",
+            subject_id=subject_id,
+            days_until_expiry=days_until_expiry,
+            expiration_date=expiration_date,
+            certificate_type=certificate_type,
+            warning_level=severity,
+            details=details or {},
+            category="security",
+            severity=severity,
+            etsi_compliance=True,
+            security_event=security_event,
+        )
+
 
 class AuditLogger:
     """Audit trail logging"""

@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 import cryptography
+import structlog
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -48,8 +49,13 @@ from cryptography.x509.extensions import (
 )
 from cryptography.x509.oid import NameOID
 
-from .config import settings
-from .logging import logger, security_logger
+from app.core.config import get_settings
+from app.core.logging import security_logger
+
+logger = structlog.get_logger()
+
+# Get settings for certificate validation
+settings = get_settings()
 
 
 class SecurityLevel(Enum):
@@ -253,9 +259,50 @@ class CertificateManager:
             )
             serial_number = str(cert.serial_number)
 
-            # Check validity period
+            # Enhanced certificate expiration validation
             now = datetime.datetime.utcnow()
-            is_valid = cert.not_valid_before <= now <= cert.not_valid_after
+            not_before = cert.not_valid_before
+            not_after = cert.not_valid_after
+
+            # Check if certificate is currently valid
+            is_valid = not_before <= now <= not_after
+
+            # Calculate days until expiration
+            days_until_expiry = (not_after - now).days
+
+            # Enhanced expiration validation with warnings
+            validation_errors = []
+            expiration_warning = None
+
+            if now < not_before:
+                validation_errors.append(
+                    f"Certificate not yet valid (valid from {not_before.isoformat()})"
+                )
+                is_valid = False
+            elif now > not_after:
+                validation_errors.append(
+                    f"Certificate expired on {not_after.isoformat()}"
+                )
+                is_valid = False
+            elif days_until_expiry <= 0:
+                validation_errors.append("Certificate expires today")
+                is_valid = False
+            elif days_until_expiry <= settings.certificate_critical_days:
+                expiration_warning = f"Certificate expires in {days_until_expiry} days"
+                logger.warning(
+                    "Certificate expiration warning",
+                    subject=subject,
+                    days_until_expiry=days_until_expiry,
+                    expiration_date=not_after.isoformat(),
+                )
+            elif days_until_expiry <= settings.certificate_warning_days:
+                expiration_warning = f"Certificate expires in {days_until_expiry} days"
+                logger.info(
+                    "Certificate expiration notice",
+                    subject=subject,
+                    days_until_expiry=days_until_expiry,
+                    expiration_date=not_after.isoformat(),
+                )
 
             # Extract key usage
             key_usage = []
@@ -301,20 +348,19 @@ class CertificateManager:
             certificate_type = self._determine_certificate_type(cert, subject)
 
             # Validate against expected ID if provided
-            validation_errors = []
             if expected_id and not self._validate_certificate_id(cert, expected_id):
                 validation_errors.append(
                     f"Certificate ID mismatch: expected {expected_id}"
                 )
                 is_valid = False
 
-            # Create certificate info
+            # Create certificate info with enhanced expiration data
             cert_info = CertificateInfo(
                 subject=subject,
                 issuer=issuer,
                 serial_number=serial_number,
-                not_before=cert.not_valid_before,
-                not_after=cert.not_valid_after,
+                not_before=not_before,
+                not_after=not_after,
                 key_usage=key_usage,
                 extended_key_usage=extended_key_usage,
                 subject_alt_names=subject_alt_names,
@@ -326,7 +372,7 @@ class CertificateManager:
             # Cache certificate info
             self.certificate_cache[serial_number] = cert_info
 
-            # Log validation result
+            # Log validation result with enhanced expiration information
             security_logger.log_certificate_validation(
                 certificate_type=certificate_type.value,
                 subject_id=subject,
@@ -335,26 +381,27 @@ class CertificateManager:
                     "issuer": issuer,
                     "serial_number": serial_number,
                     "validation_errors": validation_errors,
+                    "days_until_expiry": days_until_expiry,
+                    "expiration_warning": expiration_warning,
+                    "not_before": not_before.isoformat(),
+                    "not_after": not_after.isoformat(),
                 },
             )
+
+            # Log expiration warning if applicable
+            if expiration_warning:
+                security_logger.log_certificate_expiration_warning(
+                    subject_id=subject,
+                    days_until_expiry=days_until_expiry,
+                    expiration_date=not_after.isoformat(),
+                    certificate_type=certificate_type.value,
+                )
 
             return cert_info
 
         except Exception as e:
-            logger.error(f"Certificate validation failed: {e}")
-            return CertificateInfo(
-                subject="unknown",
-                issuer="unknown",
-                serial_number="unknown",
-                not_before=datetime.datetime.utcnow(),
-                not_after=datetime.datetime.utcnow(),
-                key_usage=[],
-                extended_key_usage=[],
-                subject_alt_names=[],
-                certificate_type=CertificateType.SAE,
-                is_valid=False,
-                validation_errors=[str(e)],
-            )
+            logger.error(f"Certificate validation error: {e}")
+            raise
 
     def _determine_certificate_type(
         self, cert: x509.Certificate, subject: str
