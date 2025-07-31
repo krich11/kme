@@ -145,15 +145,16 @@ class SAEClient:
             raise
 
     async def sae_a_request_keys(self) -> dict[str, Any]:
-        """SAE A requests keys for encryption"""
-        print("🔑 Phase 1: SAE A requesting keys for encryption...")
+        """SAE A (Master SAE) requests keys for encryption"""
+        print("🔑 Phase 1: SAE A (Master SAE) requesting keys for encryption...")
 
-        # Request 2 keys of 256 bits each
+        # ETSI QKD 014 compliant key request format
         key_request = {
-            "key_size": 256,
-            "number_of_keys": 2,
-            "key_ID_extension": None,
-            "key_extension": None,
+            "number": 2,                    # Number of keys requested
+            "size": 256,                    # Key size in bits
+            "additional_slave_SAE_IDs": [self.sae_b_id],  # Include SAE B as slave
+            "extension_mandatory": [],      # Mandatory extensions
+            "extension_optional": [],       # Optional extensions
         }
 
         response = await self.make_request(
@@ -179,16 +180,15 @@ class SAEClient:
             raise Exception(f"SAE A key request failed: {response}")
 
     async def sae_b_retrieve_keys(self, key_ids: list[str]) -> dict[str, Any]:
-        """SAE B retrieves keys using key IDs"""
-        print(f"🔑 Phase 2: SAE B retrieving keys using key IDs: {key_ids}")
+        """SAE B (Slave SAE) retrieves keys using key IDs"""
+        print(f"🔑 Phase 2: SAE B (Slave SAE) retrieving keys using key IDs: {key_ids}")
 
-        # Format key IDs as objects with key_ID field
+        # ETSI QKD 014 compliant key IDs request format
         key_ids_objects = [{"key_ID": key_id} for key_id in key_ids]
 
         key_ids_request = {
-            "key_IDs": key_ids_objects,
-            "key_ID_extension": None,
-            "key_extension": None,
+            "key_IDs": key_ids_objects,     # Array of key ID objects
+            "key_IDs_extension": None,      # Key IDs extension (optional)
         }
 
         response = await self.make_request(
@@ -211,22 +211,28 @@ class SAEClient:
     def compare_keys(
         self, sae_a_keys: list[dict], sae_b_keys: list[dict]
     ) -> dict[str, Any]:
-        """Compare keys between SAE A and SAE B"""
-        print("🔍 Phase 3: Comparing keys between SAE A and SAE B...")
+        """Compare keys between SAE A (Master) and SAE B (Slave) for ETSI compliance"""
+        print("🔍 Phase 3: Comparing keys between SAE A (Master) and SAE B (Slave)...")
 
         comparison = {
             "key_count_match": len(sae_a_keys) == len(sae_b_keys),
             "key_ids_match": [],
             "key_values_match": [],
+            "etsi_compliance": [],
             "details": [],
         }
 
         for i, (sae_a_key, sae_b_key) in enumerate(zip(sae_a_keys, sae_b_keys)):
+            # Basic key matching
             key_id_match = sae_a_key["key_ID"] == sae_b_key["key_ID"]
             key_value_match = sae_a_key["key"] == sae_b_key["key"]
+            
+            # ETSI compliance checks
+            etsi_compliant = self._validate_etsi_key_compliance(sae_a_key, sae_b_key)
 
             comparison["key_ids_match"].append(key_id_match)
             comparison["key_values_match"].append(key_value_match)
+            comparison["etsi_compliance"].append(etsi_compliant)
 
             comparison["details"].append(
                 {
@@ -234,12 +240,45 @@ class SAEClient:
                     "key_id": sae_a_key["key_ID"],
                     "key_id_match": key_id_match,
                     "key_value_match": key_value_match,
-                    "sae_a_key_size": sae_a_key["key_size"],
-                    "sae_b_key_size": sae_b_key["key_size"],
+                    "etsi_compliant": etsi_compliant,
+                    "sae_a_key_size": sae_a_key.get("key_size"),
+                    "sae_b_key_size": sae_b_key.get("key_size"),
                 }
             )
 
         return comparison
+
+    def _validate_etsi_key_compliance(self, key_a: dict, key_b: dict) -> bool:
+        """Validate ETSI QKD 014 compliance for key data"""
+        try:
+            # Check required ETSI fields
+            required_fields = ["key_ID", "key"]
+            for field in required_fields:
+                if field not in key_a or field not in key_b:
+                    return False
+            
+            # Validate UUID format for key_ID
+            try:
+                uuid.UUID(key_a["key_ID"])
+                uuid.UUID(key_b["key_ID"])
+            except ValueError:
+                return False
+            
+            # Validate Base64 encoding for key data
+            try:
+                base64.b64decode(key_a["key"])
+                base64.b64decode(key_b["key"])
+            except Exception:
+                return False
+            
+            # Check that keys are identical (Master and Slave should have same keys)
+            if key_a["key_ID"] != key_b["key_ID"] or key_a["key"] != key_b["key"]:
+                return False
+                
+            return True
+            
+        except Exception:
+            return False
 
     async def run_test_workflow(self):
         """Run the complete SAE test workflow"""
@@ -283,55 +322,55 @@ class SAEClient:
             print(
                 f"Key Values Match: {'✅' if all(comparison['key_values_match']) else '❌'}"
             )
+            print(f"ETSI Compliance: {'✅' if all(comparison['etsi_compliance']) else '❌'}")
             print()
 
             print("🔍 DETAILED COMPARISON:")
             for detail in comparison["details"]:
                 status = (
-                    "✅" if detail["key_id_match"] and detail["key_value_match"] else "❌"
+                    "✅" if detail["key_id_match"] and detail["key_value_match"] and detail["etsi_compliant"] else "❌"
                 )
                 print(f"  Key {detail['key_index']+1}: {status}")
                 print(f"    ID: {detail['key_id'][:8]}...")
                 print(f"    ID Match: {'✅' if detail['key_id_match'] else '❌'}")
                 print(f"    Value Match: {'✅' if detail['key_value_match'] else '❌'}")
+                print(f"    ETSI Compliant: {'✅' if detail['etsi_compliant'] else '❌'}")
                 print(f"    Size: {detail['sae_a_key_size']} bits")
                 print()
 
-            # Overall success
+            # Overall success (including ETSI compliance)
             all_match = (
                 comparison["key_count_match"]
                 and all(comparison["key_ids_match"])
                 and all(comparison["key_values_match"])
+                and all(comparison["etsi_compliance"])
             )
 
             print("🎯 OVERALL RESULT:")
             print("=" * 50)
             if all_match:
-                print("✅ SUCCESS: All keys match between SAE A and SAE B!")
+                print("✅ SUCCESS: All keys match and ETSI QKD 014 compliance verified!")
                 print("   The ETSI QKD key exchange workflow is working correctly.")
+                print("   - Master SAE (SAE A) successfully requested keys")
+                print("   - Slave SAE (SAE B) successfully retrieved keys")
+                print("   - All keys are ETSI QKD 014 compliant")
+                print("   - UUID format, Base64 encoding, and data structures verified")
             else:
-                print(
-                    "⚠️  EXPECTED BEHAVIOR: Key values don't match in mock implementation"
-                )
-                print("   This is expected because:")
-                print(
-                    "   - enc_keys endpoint generates: test_key_{index}_data_32_bytes_long"
-                )
-                print(
-                    "   - dec_keys endpoint generates: test_key_{key_id}_data_32_bytes_long"
-                )
-                print(
-                    "   - In production, both endpoints would retrieve the same stored keys"
-                )
-                print(
-                    "   - The key IDs match correctly, proving the workflow functions properly"
-                )
+                print("❌ FAILURE: ETSI QKD 014 compliance issues detected!")
+                print("   Issues found:")
+                if not comparison["key_count_match"]:
+                    print("   - Key count mismatch between Master and Slave SAEs")
+                if not all(comparison["key_ids_match"]):
+                    print("   - Key ID mismatch between Master and Slave SAEs")
+                if not all(comparison["key_values_match"]):
+                    print("   - Key value mismatch between Master and Slave SAEs")
+                if not all(comparison["etsi_compliance"]):
+                    print("   - ETSI QKD 014 format compliance issues")
                 print()
-                print("✅ WORKFLOW SUCCESS: Key exchange workflow is working correctly!")
-                print("   - SAE A can request keys and receive key IDs")
-                print("   - SAE B can retrieve keys using the key IDs")
-                print("   - Key IDs match between both operations")
-                print("   - API endpoints are functioning as expected")
+                print("   Expected ETSI QKD 014 behavior:")
+                print("   - Master SAE requests keys for encryption")
+                print("   - Slave SAE retrieves identical keys using key IDs")
+                print("   - Both SAEs can use the same keys for encryption/decryption")
 
             return {
                 "success": all_match,
