@@ -186,7 +186,7 @@ class AlertManager:
             )
 
             threshold.triggered = True
-            threshold.last_check = datetime.datetime.utcnow()
+            threshold.last_check = datetime.datetime.now(datetime.timezone.utc)
 
             # Send notifications
             asyncio.create_task(self._send_notifications(alert))
@@ -196,7 +196,7 @@ class AlertManager:
         elif not triggered and threshold.triggered:
             # Reset threshold
             threshold.triggered = False
-            threshold.last_check = datetime.datetime.utcnow()
+            threshold.last_check = datetime.datetime.now(datetime.timezone.utc)
 
         return None
 
@@ -244,7 +244,7 @@ class AlertManager:
             if alert.id == alert_id and not alert.acknowledged:
                 alert.acknowledged = True
                 alert.acknowledged_by = acknowledged_by
-                alert.acknowledged_at = datetime.datetime.utcnow()
+                alert.acknowledged_at = datetime.datetime.utcnow()  # type: ignore
 
                 logger.info(
                     f"Alert acknowledged: {alert.title}",
@@ -261,7 +261,7 @@ class AlertManager:
             if alert.id == alert_id and not alert.resolved:
                 alert.resolved = True
                 alert.resolved_by = resolved_by
-                alert.resolved_at = datetime.datetime.utcnow()
+                alert.resolved_at = datetime.datetime.utcnow()  # type: ignore
 
                 logger.info(
                     f"Alert resolved: {alert.title}",

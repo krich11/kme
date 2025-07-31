@@ -90,9 +90,11 @@ class StatusService:
         target_kme_id = os.getenv("TARGET_KME_ID", "EEEEFFFFGGGGHHHH")
 
         # Use provided master_sae_id or default
-        actual_master_sae_id = master_sae_id or os.getenv(
-            "MASTER_SAE_ID", "IIIIJJJJKKKKLLLL"
-        )
+        actual_master_sae_id = (
+            master_sae_id
+            or os.getenv("MASTER_SAE_ID", "IIIIJJJJKKKKLLLL")
+            or "IIIIJJJJKKKKLLLL"
+        )  # Fallback to ensure it's never None
 
         # Get key capabilities from configuration
         key_size = int(os.getenv("DEFAULT_KEY_SIZE", "352"))

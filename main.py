@@ -29,16 +29,10 @@ import sys
 import uuid
 from pathlib import Path
 
-# Add the project root to Python path
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root))
-
-# Load environment variables
-from dotenv import load_dotenv
-
-load_dotenv()
-
 import structlog
+
+# Load environment variables module
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -62,6 +56,13 @@ from app.core.security import initialize_security_infrastructure
 # from app.core.config import settings
 # from app.core.logging import setup_logging
 # from app.core.middleware import AuthMiddleware
+
+# Add the project root to Python path
+project_root = Path(__file__).parent
+sys.path.insert(0, str(project_root))
+
+# Load environment variables
+load_dotenv()
 
 # Initialize structured logging
 structlog.configure(

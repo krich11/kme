@@ -31,7 +31,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import (
     ARRAY,
     JSON,
@@ -62,14 +62,16 @@ class KMEEntity(BaseModel):
     created_at: datetime | None = Field(None, description="Creation timestamp")
     updated_at: datetime | None = Field(None, description="Last update timestamp")
 
-    @validator("kme_id")
+    @field_validator("kme_id")
+    @classmethod
     def validate_kme_id(cls, v):
         """Validate KME ID length"""
         if len(v) != 16:
             raise ValueError("KME ID must be exactly 16 characters")
         return v
 
-    @validator("port")
+    @field_validator("port")
+    @classmethod
     def validate_port(cls, v):
         """Validate port number"""
         if not (1 <= v <= 65535):
@@ -108,14 +110,16 @@ class SAEEntity(BaseModel):
     created_at: datetime | None = Field(None, description="Creation timestamp")
     updated_at: datetime | None = Field(None, description="Last update timestamp")
 
-    @validator("sae_id", "kme_id")
+    @field_validator("sae_id", "kme_id")
+    @classmethod
     def validate_id_length(cls, v):
         """Validate ID length"""
         if len(v) != 16:
             raise ValueError("ID must be exactly 16 characters")
         return v
 
-    @validator("status")
+    @field_validator("status")
+    @classmethod
     def validate_status(cls, v):
         """Validate status value"""
         valid_statuses = ["active", "inactive", "suspended", "expired"]
@@ -157,7 +161,8 @@ class KeyRecord(BaseModel):
     )
     key_metadata: dict[str, Any] | None = Field(None, description="Key metadata")
 
-    @validator("key_id")
+    @field_validator("key_id")
+    @classmethod
     def validate_key_id(cls, v):
         """Validate key ID is a valid UUID"""
         try:
@@ -166,7 +171,8 @@ class KeyRecord(BaseModel):
             raise ValueError("key_id must be a valid UUID")
         return v
 
-    @validator("key_size")
+    @field_validator("key_size")
+    @classmethod
     def validate_key_size(cls, v):
         """Validate key size"""
         if v <= 0:
@@ -175,14 +181,16 @@ class KeyRecord(BaseModel):
             raise ValueError("Key size cannot exceed 8192 bits")
         return v
 
-    @validator("master_sae_id", "slave_sae_id", "source_kme_id", "target_kme_id")
+    @field_validator("master_sae_id", "slave_sae_id", "source_kme_id", "target_kme_id")
+    @classmethod
     def validate_id_length(cls, v):
         """Validate ID length"""
         if len(v) != 16:
             raise ValueError("ID must be exactly 16 characters")
         return v
 
-    @validator("status")
+    @field_validator("status")
+    @classmethod
     def validate_status(cls, v):
         """Validate status value"""
         valid_statuses = ["active", "expired", "consumed", "revoked"]
@@ -190,7 +198,8 @@ class KeyRecord(BaseModel):
             raise ValueError(f"Status must be one of: {valid_statuses}")
         return v
 
-    @validator("additional_slave_sae_ids")
+    @field_validator("additional_slave_sae_ids")
+    @classmethod
     def validate_additional_sae_ids(cls, v):
         """Validate additional SAE IDs"""
         if v is not None:
@@ -237,7 +246,8 @@ class KeyRequestRecord(BaseModel):
     completed_at: datetime | None = Field(None, description="Completion timestamp")
     error_message: str | None = Field(None, description="Error message if failed")
 
-    @validator("request_id")
+    @field_validator("request_id")
+    @classmethod
     def validate_request_id(cls, v):
         """Validate request ID is a valid UUID"""
         try:
@@ -246,21 +256,24 @@ class KeyRequestRecord(BaseModel):
             raise ValueError("request_id must be a valid UUID")
         return v
 
-    @validator("master_sae_id", "slave_sae_id")
+    @field_validator("master_sae_id", "slave_sae_id")
+    @classmethod
     def validate_id_length(cls, v):
         """Validate ID length"""
         if len(v) != 16:
             raise ValueError("ID must be exactly 16 characters")
         return v
 
-    @validator("number_of_keys")
+    @field_validator("number_of_keys")
+    @classmethod
     def validate_number_of_keys(cls, v):
         """Validate number of keys"""
         if v <= 0:
             raise ValueError("Number of keys must be positive")
         return v
 
-    @validator("key_size")
+    @field_validator("key_size")
+    @classmethod
     def validate_key_size(cls, v):
         """Validate key size"""
         if v <= 0:
@@ -269,7 +282,8 @@ class KeyRequestRecord(BaseModel):
             raise ValueError("Key size must be a multiple of 8")
         return v
 
-    @validator("status")
+    @field_validator("status")
+    @classmethod
     def validate_status(cls, v):
         """Validate status value"""
         valid_statuses = ["pending", "processing", "completed", "failed", "cancelled"]
@@ -304,21 +318,24 @@ class KeyDistributionEvent(BaseModel):
     event_details: dict[str, Any] | None = Field(None, description="Event details")
     created_at: datetime | None = Field(None, description="Creation timestamp")
 
-    @validator("master_sae_id", "slave_sae_id")
+    @field_validator("master_sae_id", "slave_sae_id")
+    @classmethod
     def validate_id_length(cls, v):
         """Validate ID length"""
         if len(v) != 16:
             raise ValueError("ID must be exactly 16 characters")
         return v
 
-    @validator("key_count")
+    @field_validator("key_count")
+    @classmethod
     def validate_key_count(cls, v):
         """Validate key count"""
         if v <= 0:
             raise ValueError("Key count must be positive")
         return v
 
-    @validator("key_size")
+    @field_validator("key_size")
+    @classmethod
     def validate_key_size(cls, v):
         """Validate key size"""
         if v <= 0:
@@ -357,7 +374,8 @@ class SecurityEventRecord(BaseModel):
     )
     created_at: datetime | None = Field(None, description="Creation timestamp")
 
-    @validator("severity")
+    @field_validator("severity")
+    @classmethod
     def validate_severity(cls, v):
         """Validate severity value"""
         valid_severities = ["low", "medium", "high", "critical"]
@@ -365,7 +383,8 @@ class SecurityEventRecord(BaseModel):
             raise ValueError(f"Severity must be one of: {valid_severities}")
         return v
 
-    @validator("category")
+    @field_validator("category")
+    @classmethod
     def validate_category(cls, v):
         """Validate category value"""
         valid_categories = [
@@ -379,14 +398,16 @@ class SecurityEventRecord(BaseModel):
             raise ValueError(f"Category must be one of: {valid_categories}")
         return v
 
-    @validator("sae_id", "kme_id")
+    @field_validator("sae_id", "kme_id")
+    @classmethod
     def validate_id_length(cls, v):
         """Validate ID length"""
         if v is not None and len(v) != 16:
             raise ValueError("ID must be exactly 16 characters")
         return v
 
-    @validator("key_id")
+    @field_validator("key_id")
+    @classmethod
     def validate_key_id(cls, v):
         """Validate key ID is a valid UUID"""
         if v is not None:
@@ -420,7 +441,8 @@ class PerformanceMetric(BaseModel):
     labels: dict[str, Any] | None = Field(None, description="Metric labels")
     timestamp: datetime | None = Field(None, description="Timestamp")
 
-    @validator("metric_type")
+    @field_validator("metric_type")
+    @classmethod
     def validate_metric_type(cls, v):
         """Validate metric type"""
         valid_types = ["counter", "gauge", "histogram", "summary"]
@@ -450,7 +472,8 @@ class HealthCheck(BaseModel):
     details: dict[str, Any] | None = Field(None, description="Check details")
     timestamp: datetime | None = Field(None, description="Timestamp")
 
-    @validator("status")
+    @field_validator("status")
+    @classmethod
     def validate_status(cls, v):
         """Validate status value"""
         valid_statuses = ["healthy", "degraded", "unhealthy", "unknown"]
@@ -490,7 +513,8 @@ class AlertRecord(BaseModel):
     resolved_at: datetime | None = Field(None, description="Resolution timestamp")
     created_at: datetime | None = Field(None, description="Creation timestamp")
 
-    @validator("severity")
+    @field_validator("severity")
+    @classmethod
     def validate_severity(cls, v):
         """Validate severity value"""
         valid_severities = ["info", "warning", "error", "critical"]
@@ -498,7 +522,8 @@ class AlertRecord(BaseModel):
             raise ValueError(f"Severity must be one of: {valid_severities}")
         return v
 
-    @validator("alert_type")
+    @field_validator("alert_type")
+    @classmethod
     def validate_alert_type(cls, v):
         """Validate alert type"""
         valid_types = [

@@ -30,12 +30,12 @@ from typing import Any, Dict, List
 import pytest
 from httpx import AsyncClient
 
+from app.models.etsi_models import KeyIDs, KeyRequest, Status
+from main import app
+
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
-
-from app.models.etsi_models import KeyIDs, KeyRequest, Status
-from main import app
 
 
 class TestAPIEndpoints:
@@ -272,7 +272,7 @@ class TestAPIEndpoints:
         self, client: AsyncClient, valid_master_sae_id: str
     ):
         """Test Get Key with Key IDs with empty key IDs list"""
-        empty_request = {"key_IDs": []}
+        empty_request: dict[str, Any] = {"key_IDs": []}
 
         response = await client.post(
             f"/api/v1/keys/{valid_master_sae_id}/dec_keys", json=empty_request

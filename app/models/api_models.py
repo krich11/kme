@@ -28,7 +28,7 @@ Progress: 60% (6/12 tasks completed)
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from .etsi_models import Error, KeyContainer, Status
 
@@ -72,7 +72,8 @@ class HealthResponse(BaseModel):
     )
     summary: dict[str, int] = Field(..., description="Health check summary")
 
-    @validator("status")
+    @field_validator("status")
+    @classmethod
     def validate_status(cls, v):
         """Validate status value"""
         valid_statuses = ["healthy", "degraded", "unhealthy", "unknown"]
@@ -80,7 +81,8 @@ class HealthResponse(BaseModel):
             raise ValueError(f"Status must be one of: {valid_statuses}")
         return v
 
-    @validator("summary")
+    @field_validator("summary")
+    @classmethod
     def validate_summary(cls, v):
         """Validate summary contains required fields"""
         required_fields = [

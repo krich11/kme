@@ -37,16 +37,13 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
 from app.core.alerts import AlertManager, AlertSeverity, AlertType
 
 # Import KME modules
 from app.core.config import Settings
 from app.core.database import get_database_info
-from app.core.health import HealthCheck, HealthMonitor, HealthStatus
+from app.core.health import HealthCheck as CoreHealthCheck
+from app.core.health import HealthMonitor, HealthStatus
 from app.core.logging import audit_logger, logger, performance_logger, security_logger
 from app.core.performance import PerformanceMonitor
 from app.core.security import (
@@ -77,9 +74,9 @@ from app.models.api_models import (
     StatusResponse,
     SystemInfoResponse,
 )
+from app.models.database_models import AlertRecord
+from app.models.database_models import HealthCheck as DBHealthCheck
 from app.models.database_models import (
-    AlertRecord,
-    HealthCheck,
     KeyDistributionEvent,
     KeyRecord,
     KeyRequestRecord,
@@ -121,6 +118,10 @@ from app.utils.security_utils import (
     validate_sae_id,
     validate_tls_version,
 )
+
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 
 class Phase1ComprehensiveTestSuite:

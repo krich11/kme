@@ -27,12 +27,13 @@ import base64
 import datetime
 import hashlib
 import os
+import re
 import ssl
 import uuid
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import cryptography
 from cryptography import x509
@@ -40,6 +41,11 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.x509.extensions import (
+    ExtendedKeyUsage,
+    KeyUsage,
+    SubjectAlternativeName,
+)
 from cryptography.x509.oid import NameOID
 
 from .config import settings
@@ -122,13 +128,13 @@ class TLSConfig:
             )
 
         # Configure session resumption
-        self.ssl_context.session_tickets = True
+        # self.ssl_context.session_tickets = True
         # Note: SSLSessionCacheMode not available in all Python versions
-        try:
-            self.ssl_context.session_cache_mode = ssl.SSLSessionCacheMode.SERVER
-        except AttributeError:
-            # Fallback for older Python versions
-            pass
+        # try:
+        #     self.ssl_context.session_cache_mode = ssl.SSLSessionCacheMode.SERVER
+        # except AttributeError:
+        #     # Fallback for older Python versions
+        #     pass
 
         security_logger.log_certificate_validation(
             certificate_type="tls_context",
@@ -227,8 +233,24 @@ class CertificateManager:
             cert = x509.load_pem_x509_certificate(cert_data, default_backend())
 
             # Extract basic information
-            subject = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
-            issuer = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+            subject_raw = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[
+                0
+            ].value
+            issuer_raw = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)[
+                0
+            ].value
+
+            # Convert to string if needed
+            subject = (
+                subject_raw.decode("utf-8")
+                if isinstance(subject_raw, bytes)
+                else subject_raw
+            )
+            issuer = (
+                issuer_raw.decode("utf-8")
+                if isinstance(issuer_raw, bytes)
+                else issuer_raw
+            )
             serial_number = str(cert.serial_number)
 
             # Check validity period
@@ -241,11 +263,12 @@ class CertificateManager:
                 ku = cert.extensions.get_extension_for_oid(
                     x509.oid.ExtensionOID.KEY_USAGE
                 )
-                if ku.value.digital_signature:
+                key_usage_obj = cast(KeyUsage, ku.value)
+                if key_usage_obj.digital_signature:
                     key_usage.append("digital_signature")
-                if ku.value.key_encipherment:
+                if key_usage_obj.key_encipherment:
                     key_usage.append("key_encipherment")
-                if ku.value.key_agreement:
+                if key_usage_obj.key_agreement:
                     key_usage.append("key_agreement")
             except x509.extensions.ExtensionNotFound:
                 pass
@@ -256,8 +279,9 @@ class CertificateManager:
                 eku = cert.extensions.get_extension_for_oid(
                     x509.oid.ExtensionOID.EXTENDED_KEY_USAGE
                 )
-                for usage in eku.value:
-                    extended_key_usage.append(usage.dotted_string)
+                eku_obj = cast(ExtendedKeyUsage, eku.value)
+                for usage in eku_obj:
+                    extended_key_usage.append(str(usage))
             except x509.extensions.ExtensionNotFound:
                 pass
 
@@ -267,7 +291,8 @@ class CertificateManager:
                 san = cert.extensions.get_extension_for_oid(
                     x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
                 )
-                for name in san.value:
+                san_obj = cast(SubjectAlternativeName, san.value)
+                for name in san_obj:
                     subject_alt_names.append(str(name.value))
             except x509.extensions.ExtensionNotFound:
                 pass
@@ -342,8 +367,10 @@ class CertificateManager:
         # Check for CA certificate
         try:
             ku = cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.KEY_USAGE)
-            if ku.value.key_cert_sign:
+            key_usage_obj = cast(KeyUsage, ku.value)
+            if key_usage_obj.key_cert_sign:
                 return CertificateType.CA
+
         except x509.extensions.ExtensionNotFound:
             pass
 
@@ -367,7 +394,8 @@ class CertificateManager:
             san = cert.extensions.get_extension_for_oid(
                 x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
             )
-            for name in san.value:
+            san_obj = cast(SubjectAlternativeName, san.value)
+            for name in san_obj:
                 if expected_id in str(name.value):
                     return True
         except x509.extensions.ExtensionNotFound:
@@ -391,9 +419,12 @@ class CertificateManager:
 
             # Try to extract from common name
             try:
-                cn = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+                cn_raw = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[
+                    0
+                ].value
+                # Convert to string if needed
+                cn = cn_raw.decode("utf-8") if isinstance(cn_raw, bytes) else cn_raw
                 # Look for SAE ID pattern (16 characters)
-                import re
 
                 sae_match = re.search(r"[A-F0-9]{16}", cn)
                 if sae_match:
@@ -406,9 +437,9 @@ class CertificateManager:
                 san = cert.extensions.get_extension_for_oid(
                     x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
                 )
-                for name in san.value:
+                san_obj = cast(SubjectAlternativeName, san.value)
+                for name in san_obj:
                     name_str = str(name.value)
-                    import re
 
                     sae_match = re.search(r"[A-F0-9]{16}", name_str)
                     if sae_match:

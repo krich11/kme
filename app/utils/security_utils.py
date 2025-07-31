@@ -93,12 +93,12 @@ def generate_secure_key_id() -> str:
 
 def generate_sae_id() -> str:
     """Generate SAE ID (16 character hex string)"""
-    return hashlib.md5(str(uuid.uuid4()).encode()).hexdigest().upper()[:16]
+    return hashlib.sha256(str(uuid.uuid4()).encode()).hexdigest().upper()[:16]
 
 
 def generate_kme_id() -> str:
     """Generate KME ID (16 character hex string)"""
-    return hashlib.md5(str(uuid.uuid4()).encode()).hexdigest().upper()[:16]
+    return hashlib.sha256(str(uuid.uuid4()).encode()).hexdigest().upper()[:16]
 
 
 def encode_key_base64(key_data: bytes) -> str:
@@ -279,10 +279,10 @@ def sanitize_log_data(data: Any) -> Any:
 
 def log_security_event(
     event_type: str,
-    user_id: str = None,
-    resource: str = None,
+    user_id: str | None = None,
+    resource: str | None = None,
     success: bool = True,
-    details: dict[str, Any] = None,
+    details: dict[str, Any] | None = None,
 ):
     """Log security event with sanitization"""
     # Sanitize details for logging

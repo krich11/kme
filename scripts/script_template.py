@@ -31,14 +31,8 @@ from typing import Any, Dict, Optional
 
 import structlog
 
-# Add the project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
-# Load environment variables
+# Load environment variables module
 from dotenv import load_dotenv
-
-load_dotenv()
 
 # Configure structured logging
 structlog.configure(
@@ -60,6 +54,13 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
+
+# Add the project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+# Load environment variables
+load_dotenv()
 
 
 class ScriptTemplate:

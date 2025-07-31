@@ -33,7 +33,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class Status(BaseModel):
@@ -89,14 +89,16 @@ class Status(BaseModel):
         None, description="Certificate expiration date"
     )
 
-    @validator("source_KME_ID", "target_KME_ID", "master_SAE_ID", "slave_SAE_ID")
+    @field_validator("source_KME_ID", "target_KME_ID", "master_SAE_ID", "slave_SAE_ID")
+    @classmethod
     def validate_id_length(cls, v):
         """Validate ID length (ETSI spec doesn't specify exact length, but we use 16 chars)"""
         if len(v) != 16:
             raise ValueError("ID must be exactly 16 characters")
         return v
 
-    @validator("key_size", "max_key_size", "min_key_size")
+    @field_validator("key_size", "max_key_size", "min_key_size")
+    @classmethod
     def validate_key_sizes(cls, v):
         """Validate key sizes are positive and reasonable"""
         if v <= 0:
@@ -105,14 +107,16 @@ class Status(BaseModel):
             raise ValueError("Key size cannot exceed 8192 bits")
         return v
 
-    @validator("stored_key_count", "max_key_count", "max_key_per_request")
+    @field_validator("stored_key_count", "max_key_count", "max_key_per_request")
+    @classmethod
     def validate_counts(cls, v):
         """Validate counts are non-negative"""
         if v < 0:
             raise ValueError("Count must be non-negative")
         return v
 
-    @root_validator(skip_on_failure=True)
+    @model_validator(mode="before")
+    @classmethod
     def validate_key_size_consistency(cls, values):
         """Validate key size consistency"""
         min_size = values.get("min_key_size")
@@ -191,14 +195,16 @@ class KeyRequest(BaseModel):
         None, description="Route preference (direct, indirect, any)"
     )
 
-    @validator("number")
+    @field_validator("number")
+    @classmethod
     def validate_number(cls, v):
         """Validate number of keys requested"""
         if v is not None and v <= 0:
             raise ValueError("Number of keys must be positive")
         return v
 
-    @validator("size")
+    @field_validator("size")
+    @classmethod
     def validate_size(cls, v):
         """Validate key size"""
         if v is not None:
@@ -208,7 +214,8 @@ class KeyRequest(BaseModel):
                 raise ValueError("Key size must be a multiple of 8")
         return v
 
-    @validator("additional_slave_SAE_IDs")
+    @field_validator("additional_slave_SAE_IDs")
+    @classmethod
     def validate_additional_sae_ids(cls, v):
         """Validate additional SAE IDs"""
         if v is not None:
@@ -217,7 +224,8 @@ class KeyRequest(BaseModel):
                     raise ValueError("SAE ID must be exactly 16 characters")
         return v
 
-    @validator("priority")
+    @field_validator("priority")
+    @classmethod
     def validate_priority(cls, v):
         """Validate priority value"""
         valid_priorities = ["low", "normal", "high", "critical"]
@@ -271,7 +279,8 @@ class Key(BaseModel):
         None, description="Additional key metadata"
     )
 
-    @validator("key_ID")
+    @field_validator("key_ID")
+    @classmethod
     def validate_key_id(cls, v):
         """Validate key ID is a valid UUID"""
         try:
@@ -280,7 +289,8 @@ class Key(BaseModel):
             raise ValueError("key_ID must be a valid UUID")
         return v
 
-    @validator("key")
+    @field_validator("key")
+    @classmethod
     def validate_key_data(cls, v):
         """Validate key data is valid base64"""
         try:
@@ -289,7 +299,8 @@ class Key(BaseModel):
             raise ValueError("key must be valid base64 encoded data")
         return v
 
-    @validator("key_size")
+    @field_validator("key_size")
+    @classmethod
     def validate_key_size(cls, v):
         """Validate key size"""
         if v is not None and v <= 0:
@@ -337,14 +348,16 @@ class KeyContainer(BaseModel):
         None, description="Total size of all keys in bits"
     )
 
-    @validator("keys")
+    @field_validator("keys")
+    @classmethod
     def validate_keys(cls, v):
         """Validate keys array is not empty"""
         if not v:
             raise ValueError("Keys array cannot be empty")
         return v
 
-    @root_validator(skip_on_failure=True)
+    @model_validator(mode="before")
+    @classmethod
     def validate_container_consistency(cls, values):
         """Validate container consistency"""
         keys = values.get("keys", [])
@@ -395,7 +408,8 @@ class KeyID(BaseModel):
     )
     priority: str | None = Field(None, description="Request priority")
 
-    @validator("key_ID")
+    @field_validator("key_ID")
+    @classmethod
     def validate_key_id(cls, v):
         """Validate key ID is a valid UUID"""
         try:
@@ -435,7 +449,8 @@ class KeyIDs(BaseModel):
     requested_at: datetime | None = Field(None, description="Request timestamp")
     timeout_seconds: int | None = Field(None, description="Request timeout")
 
-    @validator("key_IDs")
+    @field_validator("key_IDs")
+    @classmethod
     def validate_key_ids(cls, v):
         """Validate key IDs array is not empty"""
         if not v:
@@ -501,7 +516,8 @@ class Error(BaseModel):
         default="error", description="Error severity (info, warning, error, critical)"
     )
 
-    @validator("severity")
+    @field_validator("severity")
+    @classmethod
     def validate_severity(cls, v):
         """Validate severity value"""
         valid_severities = ["info", "warning", "error", "critical"]

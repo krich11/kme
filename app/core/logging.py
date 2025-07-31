@@ -108,7 +108,10 @@ class LoggingConfig:
             cache_logger_on_first_use=True,
         )
 
-        self.logger.info("Log level updated", level=level, numeric_level=numeric_level)
+        if self.logger is not None:
+            self.logger.info(
+                "Log level updated", level=level, numeric_level=numeric_level
+            )
 
     def add_log_filter(self, filter_func):
         """Add custom log filter"""
@@ -116,10 +119,13 @@ class LoggingConfig:
         logging.getLogger().addFilter(filter_func)
         self.logger.info("Custom log filter added")
 
-    def get_logger(self, name: str = None) -> structlog.BoundLogger:
+    def get_logger(self, name: str | None = None) -> structlog.BoundLogger:
         """Get structured logger"""
         if name:
             return structlog.get_logger(name)
+        if self.logger is None:
+            # Fallback to creating a new logger if self.logger is somehow None
+            return structlog.get_logger(__name__)
         return self.logger
 
     def setup_file_logging(self, log_file: str, log_level: str = "INFO"):
@@ -134,9 +140,10 @@ class LoggingConfig:
         # Add file handler to root logger
         logging.getLogger().addHandler(file_handler)
 
-        self.logger.info(
-            f"File logging configured", log_file=log_file, log_level=log_level
-        )
+        if self.logger is not None:
+            self.logger.info(
+                f"File logging configured", log_file=log_file, log_level=log_level
+            )
 
     def setup_console_logging(self, log_level: str = "INFO"):
         """Setup console logging"""
@@ -147,7 +154,8 @@ class LoggingConfig:
         # Add console handler to root logger
         logging.getLogger().addHandler(console_handler)
 
-        self.logger.info(f"Console logging configured", log_level=log_level)
+        if self.logger is not None:
+            self.logger.info(f"Console logging configured", log_level=log_level)
 
 
 class SecurityLogger:

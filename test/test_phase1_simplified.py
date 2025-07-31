@@ -32,10 +32,6 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
 # Import KME modules
 from app.core.config import Settings
 from app.core.logging import audit_logger, logger, performance_logger, security_logger
@@ -85,6 +81,10 @@ from app.utils.security_utils import (
     validate_kme_id,
     validate_sae_id,
 )
+
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 
 class Phase1SimplifiedTestSuite:

@@ -1,0 +1,144 @@
+# Cursor Rules for KME Project (ETSI QKD 014 V1.1.1)
+
+## Project Context
+This is a Python-based Key Management Entity (KME) project implementing ETSI GS QKD 014 V1.1.1 specifications. We are currently in Phase 3: Key Management (Weeks 9-12).
+
+## Current Status
+- Phase 1: ✅ Complete (Authentication & Authorization)
+- Phase 2: ✅ Complete (Key Exchange Protocols)
+- Phase 3: 🔄 In Progress (Key Management - Weeks 9-12)
+- Phase 4: ⏳ Not Started (Monitoring & Logging)
+- Phase 5: ⏳ Not Started (Integration & Testing)
+
+## Phase 3 Objectives (Current Focus)
+- Week 9: Key Storage Engine (60% complete)
+- Week 10: Key Pool Management (50% complete)
+- Week 11: QKD Network Interface (Not started)
+- Week 12: Key Distribution Logic (Not started)
+
+## Code Style & Standards
+- Follow PEP 8 style guidelines
+- Use type hints for all function parameters and return values
+- Use docstrings for all classes, methods, and functions
+- Prefer f-strings over .format() or % formatting
+- Use meaningful variable and function names
+- Keep functions under 50 lines when possible
+- Use async/await for database operations and API calls
+
+## Project Structure
+- All Python files should be in the `app/` directory
+- Tests should be in the `test/` directory
+- Use relative imports within the project
+- Follow the existing module structure (models, services, api, etc.)
+
+## Dependencies
+- Use the virtual environment in `venv/`
+- All dependencies should be listed in `requirements.txt`
+- Use async libraries (asyncio, aiohttp, asyncpg) for I/O operations
+- Use Pydantic for data validation and serialization
+- Use SQLAlchemy for database operations
+
+## Testing
+- Write unit tests for all new functionality
+- Use pytest and pytest-asyncio for testing
+- Mock external dependencies (database, APIs)
+- Test both success and error cases
+- Use descriptive test names that explain what is being tested
+
+## Database
+- Use PostgreSQL (not SQLite)
+- All database models should inherit from SQLAlchemy Base
+- Use async database sessions
+- Include proper error handling for database operations
+- Use migrations for schema changes
+
+## Security
+- Never hardcode sensitive information (API keys, passwords)
+- Use environment variables for configuration
+- Validate all input data
+- Use proper encryption for sensitive data
+- Follow the principle of least privilege
+
+## Documentation
+- Update README.md for new features
+- Include usage examples in docstrings
+- Document API endpoints with proper examples
+- Keep documentation in sync with code changes
+
+## Git Workflow
+- Use descriptive commit messages
+- Create feature branches for new development
+- Test changes before committing
+- Update requirements.txt when adding dependencies
+
+## Performance
+- Use async operations for I/O-bound tasks
+- Implement proper connection pooling
+- Cache frequently accessed data
+- Monitor and log performance metrics
+
+## Error Handling
+- Use proper exception handling
+- Log errors with appropriate levels
+- Provide meaningful error messages
+- Implement graceful degradation
+
+## API Design
+- Follow RESTful principles
+- Use proper HTTP status codes
+- Implement proper request/response validation
+- Include error handling for all endpoints
+- Use consistent response formats
+
+## Logging
+- Use structured logging
+- Include context in log messages
+- Use appropriate log levels
+- Don't log sensitive information
+
+## Environment
+- Always activate the virtual environment before running commands
+- Use environment variables for configuration
+- Keep development and production configurations separate
+- Document required environment variables
+
+## Commands
+- Always use `source venv/bin/activate` before running Python commands
+- Use `python -m pytest` for running tests
+- Use `python -m black` for code formatting
+- Use `python -m flake8` for linting
+
+## Terminal Management
+- Always start a new terminal session for each command
+- Never reuse previous terminal sessions
+- Always activate the virtual environment in each new session
+- Use `source venv/bin/activate` before any Python operations
+
+## Current Implementation Status
+### Key Storage Service (60% complete)
+- ✅ Basic encryption/decryption with Fernet
+- ✅ Database integration with PostgreSQL
+- ✅ Key storage and retrieval
+- ✅ Authorization checks
+- ⏳ Key lifecycle management
+- ⏳ Expired key cleanup
+
+### Key Pool Service (50% complete)
+- ✅ Pool status monitoring
+- ✅ Key availability checks
+- ✅ Basic replenishment logic
+- ⏳ Automatic key generation
+- ⏳ QKD network integration
+
+### Key Service (Core orchestration)
+- ✅ Basic service structure
+- ⏳ Integration with storage and pool services
+- ⏳ Key distribution logic
+- ⏳ QKD network interface
+
+## Next Steps
+1. Complete Key Storage Service implementation
+2. Finish Key Pool Service with automatic replenishment
+3. Implement QKD Network Interface
+4. Develop Key Distribution Logic
+5. Comprehensive testing of Phase 3 components
