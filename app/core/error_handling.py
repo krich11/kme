@@ -72,12 +72,12 @@ class KMEErrorHandler:
             message=message,
             details=error_details,
             error_code=error_code,
-            timestamp=datetime.datetime.utcnow(),
+            timestamp=datetime.datetime.utcnow().isoformat(),
             request_id=request_id,
             severity=severity,
         )
 
-        return error_response.dict()
+        return error_response.model_dump()
 
     @staticmethod
     def raise_validation_error(

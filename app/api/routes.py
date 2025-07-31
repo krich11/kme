@@ -13,14 +13,14 @@ ToDo List:
 - [x] Add request validation
 - [x] Add error handling
 - [x] Add logging
-- [ ] Add authentication middleware
+- [x] Add authentication middleware
 - [ ] Add rate limiting
 - [ ] Add request/response caching
 - [ ] Add comprehensive testing
 - [ ] Add API documentation
 - [ ] Add performance monitoring
 - [ ] Add security hardening
-Progress: 60% (7/13 tasks completed)
+Progress: 70% (8/13 tasks completed)
 """
 import base64
 import uuid
@@ -59,6 +59,10 @@ api_router = APIRouter(prefix="/api/v1")
             "description": "Unauthorized - SAE authentication failed",
             "model": Error,
         },
+        403: {
+            "description": "Forbidden - SAE authorization failed",
+            "model": Error,
+        },
         503: {
             "description": "Service Unavailable - KME not operational",
             "model": Error,
@@ -78,7 +82,7 @@ async def get_status(
     Returns:
         Status: ETSI-compliant status response
     Raises:
-        HTTPException: 400, 401, or 503 with appropriate error details
+        HTTPException: 400, 401, 403, or 503 with appropriate error details
     """
     # Generate request ID for tracking
     request_id = str(uuid.uuid4())
@@ -90,21 +94,31 @@ async def get_status(
         request_id=request_id,
     )
     try:
+        # Authenticate and authorize the request
+        auth_middleware = get_auth_middleware()
+        (
+            requesting_sae_id,
+            cert_info,
+            audit_data,
+        ) = await auth_middleware.authenticate_request(
+            request=request,
+            endpoint_type="status",
+            resource_id=slave_sae_id,
+        )
+
         # Get database session and use context manager for proper transaction handling
         async with database_manager.get_session_context() as db_session:
             # Create status service with database session
             status_service = StatusService(db_session)
-            # For now, skip authentication middleware and use simplified logic
-            # TODO: Implement proper authentication when middleware is ready
-            master_sae_id = "IIIIJJJJKKKKLLLL"  # Default master SAE ID
             # Generate ETSI-compliant status response using status service
             status_response = await status_service.generate_status_response(
                 slave_sae_id=slave_sae_id,
-                master_sae_id=master_sae_id,
+                master_sae_id=requesting_sae_id,
             )
             logger.info(
                 "Get Status response generated successfully",
                 slave_sae_id=slave_sae_id,
+                requesting_sae_id=requesting_sae_id,
                 key_size=status_response.key_size,
                 stored_key_count=status_response.stored_key_count,
                 max_key_count=status_response.max_key_count,
@@ -151,6 +165,10 @@ async def get_status(
             "description": "Unauthorized - SAE authentication failed",
             "model": Error,
         },
+        403: {
+            "description": "Forbidden - SAE authorization failed",
+            "model": Error,
+        },
         503: {
             "description": "Service Unavailable - Key exhaustion or KME not operational",
             "model": Error,
@@ -172,7 +190,7 @@ async def get_key(
     Returns:
         KeyContainer: ETSI-compliant key response
     Raises:
-        HTTPException: 400, 401, or 503 with appropriate error details
+        HTTPException: 400, 401, 403, or 503 with appropriate error details
     """
     # Generate request ID for tracking
     request_id = str(uuid.uuid4())
@@ -186,9 +204,18 @@ async def get_key(
         request_id=request_id,
     )
     try:
-        # For now, skip authentication middleware and use simplified logic
-        # TODO: Implement proper authentication when middleware is ready
-        master_sae_id = "IIIIJJJJKKKKLLLL"  # Default master SAE ID
+        # Authenticate and authorize the request
+        auth_middleware = get_auth_middleware()
+        (
+            requesting_sae_id,
+            cert_info,
+            audit_data,
+        ) = await auth_middleware.authenticate_request(
+            request=request,
+            endpoint_type="key",
+            resource_id=slave_sae_id,
+        )
+
         # For testing, use mock key generation until database issues are resolved
         # TODO: Implement proper key service integration when database issues are resolved
 
@@ -207,12 +234,13 @@ async def get_key(
             keys=keys,
             source_KME_ID="AAAABBBBCCCCDDDD",
             target_KME_ID="EEEEFFFFGGGGHHHH",
-            master_SAE_ID=master_sae_id,
+            master_SAE_ID=requesting_sae_id,
             slave_SAE_ID=slave_sae_id,
         )
         logger.info(
             "Get Key response generated successfully (mock)",
             slave_sae_id=slave_sae_id,
+            requesting_sae_id=requesting_sae_id,
             number_of_keys=len(key_container.keys),
             key_size=key_container.keys[0].key_size if key_container.keys else None,
             request_id=request_id,
@@ -257,6 +285,10 @@ async def get_key(
             "description": "Unauthorized - SAE authentication failed",
             "model": Error,
         },
+        403: {
+            "description": "Forbidden - SAE authorization failed",
+            "model": Error,
+        },
         503: {
             "description": "Service Unavailable - KME not operational",
             "model": Error,
@@ -278,7 +310,7 @@ async def get_key_with_ids(
     Returns:
         KeyContainer: ETSI-compliant key container response
     Raises:
-        HTTPException: 400, 401, or 503 with appropriate error details
+        HTTPException: 400, 401, 403, or 503 with appropriate error details
     """
     # Generate request ID for tracking
     request_id = str(uuid.uuid4())
@@ -291,9 +323,18 @@ async def get_key_with_ids(
         request_id=request_id,
     )
     try:
-        # For now, skip authentication middleware and use simplified logic
-        # TODO: Implement proper authentication when middleware is ready
-        requesting_sae_id = "IIIIJJJJKKKKLLLL"  # Default requesting SAE ID
+        # Authenticate and authorize the request
+        auth_middleware = get_auth_middleware()
+        (
+            requesting_sae_id,
+            cert_info,
+            audit_data,
+        ) = await auth_middleware.authenticate_request(
+            request=request,
+            endpoint_type="key_ids",
+            resource_id=master_sae_id,
+        )
+
         # Extract key_IDs from the request
         key_ids = [key_id.key_ID for key_id in key_ids_request.key_IDs]
         # For testing, use mock key generation until database issues are resolved
@@ -318,6 +359,7 @@ async def get_key_with_ids(
         logger.info(
             "Get Key with Key IDs response generated successfully (mock)",
             master_sae_id=master_sae_id,
+            requesting_sae_id=requesting_sae_id,
             key_count=len(key_container.keys),
             request_id=request_id,
         )

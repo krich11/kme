@@ -31,12 +31,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import structlog
-
-# Load environment variables module
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
 
 # Import API routes
 from app.api.routes import api_router
@@ -178,7 +177,10 @@ async def http_exception_handler(request, exc):
 
     # If the exception already has a standardized error response, return it as-is
     if isinstance(exc.detail, dict) and "message" in exc.detail:
-        return exc.detail
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=exc.detail,
+        )
 
     # Otherwise, create a standardized error response
     error_response = error_handler.create_error_response(
@@ -188,7 +190,10 @@ async def http_exception_handler(request, exc):
         request_id=request_id,
     )
 
-    return error_response
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=error_response,
+    )
 
 
 @app.get("/")
@@ -291,8 +296,32 @@ async def get_database_metrics():
     }
 
 
+@app.get("/debug-ssl")
+async def debug_ssl(request: Request):
+    """Debug endpoint to inspect SSL information in request scope"""
+    debug_info = {
+        "has_scope": hasattr(request, "scope"),
+        "scope_keys": list(request.scope.keys()) if hasattr(request, "scope") else [],
+        "ssl_info": request.scope.get("ssl") if hasattr(request, "scope") else None,
+        "headers": dict(request.headers),
+        "client": str(request.client) if request.client else None,
+    }
+    return debug_info
+
+
 if __name__ == "__main__":
     import uvicorn
+
+    # TLS configuration for mutual authentication
+    ssl_keyfile = "test_certs/kme_key.pem"
+    ssl_certfile = "test_certs/kme_cert.pem"
+
+    # Check if certificates exist
+    if not (os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile)):
+        print("Warning: TLS certificates not found. Starting without TLS...")
+        print("To enable TLS, run: cd test_certs && python generate_test_certs.py")
+        ssl_keyfile = None
+        ssl_certfile = None
 
     uvicorn.run(
         "main:app",
@@ -300,4 +329,6 @@ if __name__ == "__main__":
         port=8000,
         reload=True,
         log_level="info",
+        ssl_keyfile=ssl_keyfile,
+        ssl_certfile=ssl_certfile,
     )
