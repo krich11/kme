@@ -203,6 +203,20 @@ async def http_exception_handler(request, exc):
             },
         )
 
+    # For service unavailable errors (503), return a simple error response
+    if exc.status_code == 503:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "message": exc.detail
+                if isinstance(exc.detail, str)
+                else "Service unavailable",
+                "error_code": "SERVICE_UNAVAILABLE",
+                "request_id": request_id,
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            },
+        )
+
     # If the exception already has a standardized error response, return it as-is
     if isinstance(exc.detail, dict) and "message" in exc.detail:
         return JSONResponse(

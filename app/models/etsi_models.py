@@ -415,10 +415,10 @@ class Error(BaseModel):
     error_code: str | None = Field(
         None, description="Error code for programmatic handling"
     )
-    timestamp: datetime | None = Field(None, description="Error timestamp")
+    timestamp: str | None = Field(None, description="Error timestamp (ISO format)")
     request_id: str | None = Field(None, description="Request ID that caused the error")
     severity: str | None = Field(
-        default="error", description="Error severity (info, warning, error, critical)"
+        default="error", description="Error severity (error, warning, info)"
     )
 
     @field_validator("severity")
