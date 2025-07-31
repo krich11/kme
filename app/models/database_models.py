@@ -79,7 +79,6 @@ class KMEEntity(BaseModel):
         return v
 
 
-
 class SAEEntity(BaseModel):
     """SAE entity database model"""
 
@@ -113,7 +112,6 @@ class SAEEntity(BaseModel):
         if v not in valid_statuses:
             raise ValueError(f"Status must be one of: {valid_statuses}")
         return v
-
 
 
 class KeyRecord(BaseModel):
@@ -181,7 +179,6 @@ class KeyRecord(BaseModel):
                 if len(sae_id) != 16:
                     raise ValueError("SAE ID must be exactly 16 characters")
         return v
-
 
 
 class KeyRequestRecord(BaseModel):
@@ -253,7 +250,6 @@ class KeyRequestRecord(BaseModel):
         return v
 
 
-
 class KeyDistributionEvent(BaseModel):
     """Key distribution event database model"""
 
@@ -291,7 +287,6 @@ class KeyDistributionEvent(BaseModel):
         if v <= 0:
             raise ValueError("Key size must be positive")
         return v
-
 
 
 class SecurityEventRecord(BaseModel):
@@ -357,7 +352,6 @@ class SecurityEventRecord(BaseModel):
         return v
 
 
-
 class PerformanceMetric(BaseModel):
     """Performance metric database model"""
 
@@ -379,7 +373,6 @@ class PerformanceMetric(BaseModel):
         return v
 
 
-
 class HealthCheck(BaseModel):
     """Health check database model"""
 
@@ -398,7 +391,6 @@ class HealthCheck(BaseModel):
         if v not in valid_statuses:
             raise ValueError(f"Status must be one of: {valid_statuses}")
         return v
-
 
 
 class AlertRecord(BaseModel):
@@ -446,4 +438,3 @@ class AlertRecord(BaseModel):
         if v not in valid_types:
             raise ValueError(f"Alert type must be one of: {valid_types}")
         return v
-

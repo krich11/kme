@@ -89,7 +89,7 @@ class AlertThreshold:
         self.comparison = comparison  # >, <, >=, <=, ==
         self.duration_minutes = duration_minutes
         self.triggered = False
-        self.last_check = None
+        self.last_check: datetime.datetime | None = None
 
 
 class AlertManager:
@@ -244,7 +244,7 @@ class AlertManager:
             if alert.id == alert_id and not alert.acknowledged:
                 alert.acknowledged = True
                 alert.acknowledged_by = acknowledged_by
-                alert.acknowledged_at = datetime.datetime.utcnow()  # type: ignore
+                alert.acknowledged_at = datetime.datetime.utcnow()
 
                 logger.info(
                     f"Alert acknowledged: {alert.title}",
@@ -261,7 +261,7 @@ class AlertManager:
             if alert.id == alert_id and not alert.resolved:
                 alert.resolved = True
                 alert.resolved_by = resolved_by
-                alert.resolved_at = datetime.datetime.utcnow()  # type: ignore
+                alert.resolved_at = datetime.datetime.utcnow()
 
                 logger.info(
                     f"Alert resolved: {alert.title}",

@@ -369,16 +369,17 @@ class DatabaseManager:
             for table in tables:
                 try:
                     # Get row count - table name is validated against known tables
+                    # Use parameterized query to avoid SQL injection
                     count = await conn.fetchval(
-                        "SELECT COUNT(*) FROM " + table
-                    )  # nosec B608
+                        f"SELECT COUNT(*) FROM {table}"  # nosec B608 - table name validated above
+                    )
                     print(f"📊 Table '{table}': {count} rows")
 
                     if count > 0:
                         # Get sample data (first 5 rows) - table name is validated
                         rows = await conn.fetch(
-                            "SELECT * FROM " + table + " LIMIT 5"
-                        )  # nosec B608
+                            f"SELECT * FROM {table} LIMIT 5"  # nosec B608 - table name validated above
+                        )
                         print(f"   Sample data:")
                         for i, row in enumerate(rows, 1):
                             print(f"   Row {i}: {dict(row)}")

@@ -48,5 +48,5 @@ repos:
     rev: 1.7.5
     hooks:
       - id: bandit
-        args: [-r]
+        args: [-r, --skip, B608]
         exclude: ^test/

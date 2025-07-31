@@ -27,16 +27,17 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict
 
 import pytest
-import structlog
+
+from app.core.logging import get_logger
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 class TestRunner:
@@ -44,13 +45,13 @@ class TestRunner:
 
     def __init__(self, run_linter: bool = False, run_bandit: bool = False):
         self.project_root = Path(__file__).parent.parent
-        self.test_results = {}
-        self.start_time = None
-        self.end_time = None
+        self.test_results: dict[str, dict[str, Any]] = {}
+        self.start_time: datetime | None = None
+        self.end_time: datetime | None = None
         self.run_linter = run_linter
         self.run_bandit = run_bandit
 
-    def run_phase1_tests(self) -> dict[str, any]:
+    def run_phase1_tests(self) -> dict[str, Any]:
         """Run Phase 1 test suite"""
         logger.info("Starting Phase 1 test suite")
 
@@ -95,7 +96,7 @@ class TestRunner:
                 "tests_run": len(existing_tests),
             }
 
-    def run_phase2_tests(self) -> dict[str, any]:
+    def run_phase2_tests(self) -> dict[str, Any]:
         """Run Phase 2 test suite"""
         logger.info("Starting Phase 2 test suite")
 
@@ -147,24 +148,19 @@ class TestRunner:
                 "tests_run": len(existing_tests),
             }
 
-    def run_linter_checks(self) -> dict[str, any]:
+    def run_linter_checks(self) -> dict[str, Any]:
         """Run linter checks"""
         if not self.run_linter:
-            logger.info("Skipping linter checks (use --linter to enable)")
-            return {"status": "skipped", "reason": "Not requested"}
+            return {"status": "skipped", "reason": "Linter checks disabled"}
 
         logger.info("Starting linter checks")
 
         try:
             # Run flake8
-            flake8_result = os.system(
-                "python -m flake8 app/ main.py --extend-ignore=E203,W503"
-            )
+            flake8_result = pytest.main(["--flake8", "--tb=no"])
 
             # Run mypy
-            mypy_result = os.system(
-                "python -m mypy app/ main.py --ignore-missing-imports"
-            )
+            mypy_result = pytest.main(["--mypy", "--tb=no"])
 
             return {
                 "status": "passed"
@@ -178,23 +174,19 @@ class TestRunner:
             logger.error("Linter checks failed", error=str(e))
             return {"status": "error", "error": str(e)}
 
-    def run_security_checks(self) -> dict[str, any]:
+    def run_security_checks(self) -> dict[str, Any]:
         """Run security checks"""
         if not self.run_bandit:
-            logger.info("Skipping security checks (use --bandit to enable)")
-            return {"status": "skipped", "reason": "Not requested"}
+            return {"status": "skipped", "reason": "Security checks disabled"}
 
         logger.info("Starting security checks")
 
         try:
             # Run bandit
-            bandit_result = os.system(
-                "python -m bandit -r app/ -f json -o bandit-report.json"
-            )
+            bandit_result = pytest.main(["--bandit", "--tb=no"])
 
             return {
-                "status": "completed",
-                "bandit": "completed",
+                "status": "completed" if bandit_result == 0 else "failed",
                 "report_file": "bandit-report.json",
             }
 
@@ -208,12 +200,19 @@ class TestRunner:
         report.append("=" * 80)
         report.append("KME PROJECT TEST REPORT")
         report.append("=" * 80)
-        report.append(f"Test Run Time: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+        if self.start_time is not None:
+            report.append(
+                f"Test Run Time: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}"
+            )
 
         # Calculate duration
-        duration = self.end_time - self.start_time
-        duration_seconds = duration.total_seconds()
-        report.append(f"Duration: {duration_seconds:.2f} seconds")
+        if self.start_time is not None and self.end_time is not None:
+            duration = self.end_time - self.start_time
+            duration_seconds = duration.total_seconds()
+            report.append(f"Duration: {duration_seconds:.2f} seconds")
+        else:
+            report.append("Duration: Unknown")
         report.append("")
 
         # Phase 1 Results

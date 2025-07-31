@@ -33,7 +33,7 @@ from typing import Any, Dict
 
 class MyModel(BaseModel):
     # ... fields ...
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {...}
@@ -143,4 +143,4 @@ After implementing all fixes:
 - app/services/vendor_extension_service.py (Type annotations)
 
 ### Low Priority
-- Various files with missing type annotations (notes only) 
+- Various files with missing type annotations (notes only)

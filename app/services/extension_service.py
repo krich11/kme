@@ -460,11 +460,19 @@ class ExtensionService:
                 # Use default validation for unknown extensions
                 for param_name, param_value in data.items():
                     validation_result = self._validate_parameter(
-                        param_name, param_value, ext_def or ExtensionDefinition(
-                            name="default", version="1.0", type=ExtensionType.OPTIONAL,
-                            description="Default extension", handler=lambda x: x,
-                            required_parameters=[], optional_parameters=[], security_level="low"
-                        )
+                        param_name,
+                        param_value,
+                        ext_def
+                        or ExtensionDefinition(
+                            name="default",
+                            version="1.0",
+                            type=ExtensionType.OPTIONAL,
+                            description="Default extension",
+                            handler=lambda x: x,
+                            required_parameters=[],
+                            optional_parameters=[],
+                            security_level="low",
+                        ),
                     )
                     if not validation_result["valid"]:
                         return validation_result

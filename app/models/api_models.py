@@ -46,7 +46,6 @@ class APIResponse(BaseModel):
     version: str = Field(default="1.0.0", description="API version")
 
 
-
 class HealthResponse(BaseModel):
     """Health check response model"""
 
@@ -86,7 +85,6 @@ class HealthResponse(BaseModel):
         return v
 
 
-
 class MetricsResponse(BaseModel):
     """Metrics response model"""
 
@@ -97,7 +95,6 @@ class MetricsResponse(BaseModel):
     metadata: dict[str, Any] = Field(
         default_factory=dict, description="Metrics metadata"
     )
-
 
 
 class ErrorResponse(BaseModel):
@@ -114,7 +111,6 @@ class ErrorResponse(BaseModel):
     trace_id: str | None = Field(None, description="Error trace identifier")
 
 
-
 class StatusResponse(BaseModel):
     """Status response model (ETSI QKD 014 compliant)"""
 
@@ -123,7 +119,6 @@ class StatusResponse(BaseModel):
         default_factory=datetime.utcnow, description="Response timestamp"
     )
     request_id: str | None = Field(None, description="Request identifier")
-
 
 
 class KeyResponse(BaseModel):
@@ -137,7 +132,6 @@ class KeyResponse(BaseModel):
     processing_time_ms: float | None = Field(
         None, description="Request processing time in milliseconds"
     )
-
 
 
 class SystemInfoResponse(BaseModel):
@@ -157,7 +151,6 @@ class SystemInfoResponse(BaseModel):
     )
 
 
-
 class ConfigurationResponse(BaseModel):
     """Configuration response model"""
 
@@ -174,4 +167,3 @@ class ConfigurationResponse(BaseModel):
     timestamp: datetime = Field(
         default_factory=datetime.utcnow, description="Response timestamp"
     )
-
