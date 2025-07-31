@@ -447,17 +447,21 @@ class SAEAuthorization:
 
 
 class ExtensionProcessor:
-    """Basic extension processing for Week 5.5"""
+    """Enhanced extension processing using comprehensive extension service"""
 
     def __init__(self):
         """Initialize extension processor"""
         self.logger = structlog.get_logger()
+        # Import the comprehensive extension service
+        from app.services.extension_service import extension_service
+
+        self.extension_service = extension_service
 
     async def process_mandatory_extensions(
         self, extensions: list[dict[str, Any]] | None
     ) -> dict[str, Any]:
         """
-        Process mandatory extension parameters
+        Process mandatory extension parameters using comprehensive extension service
 
         Args:
             extensions: List of mandatory extensions
@@ -466,42 +470,7 @@ class ExtensionProcessor:
             Dict[str, Any]: Extension responses
         """
         try:
-            if not extensions:
-                return {}
-
-            self.logger.info(
-                "Processing mandatory extensions",
-                count=len(extensions),
-            )
-
-            extension_responses = {}
-
-            for ext in extensions:
-                ext_type = ext.get("type", "unknown")
-                ext_data = ext.get("data", {})
-
-                self.logger.info(
-                    "Processing mandatory extension",
-                    type=ext_type,
-                    data=ext_data,
-                )
-
-                # Basic extension processing for Week 5.5
-                # In a real implementation, this would handle specific extension types
-                extension_responses[f"mandatory_{ext_type}"] = {
-                    "processed": True,
-                    "type": ext_type,
-                    "timestamp": datetime.datetime.utcnow().isoformat(),
-                    "data": ext_data,
-                }
-
-            self.logger.info(
-                "Mandatory extensions processed successfully",
-                count=len(extension_responses),
-            )
-
-            return extension_responses
-
+            return await self.extension_service.process_mandatory_extensions(extensions)
         except Exception as e:
             self.logger.error("Mandatory extension processing error", error=str(e))
             raise ValueError(f"Mandatory extension processing error: {str(e)}")
@@ -510,7 +479,7 @@ class ExtensionProcessor:
         self, extensions: list[dict[str, Any]] | None
     ) -> dict[str, Any]:
         """
-        Process optional extension parameters
+        Process optional extension parameters using comprehensive extension service
 
         Args:
             extensions: List of optional extensions
@@ -519,45 +488,10 @@ class ExtensionProcessor:
             Dict[str, Any]: Extension responses
         """
         try:
-            if not extensions:
-                return {}
-
-            self.logger.info(
-                "Processing optional extensions",
-                count=len(extensions),
-            )
-
-            extension_responses = {}
-
-            for ext in extensions:
-                ext_type = ext.get("type", "unknown")
-                ext_data = ext.get("data", {})
-
-                self.logger.info(
-                    "Processing optional extension",
-                    type=ext_type,
-                    data=ext_data,
-                )
-
-                # Basic optional extension processing for Week 5.5
-                # Optional extensions can be ignored if not supported
-                extension_responses[f"optional_{ext_type}"] = {
-                    "processed": False,  # Optional extensions are not processed in basic implementation
-                    "type": ext_type,
-                    "timestamp": datetime.datetime.utcnow().isoformat(),
-                    "ignored": True,
-                }
-
-            self.logger.info(
-                "Optional extensions processed successfully",
-                count=len(extension_responses),
-            )
-
-            return extension_responses
-
+            return await self.extension_service.process_optional_extensions(extensions)
         except Exception as e:
             self.logger.error("Optional extension processing error", error=str(e))
-            # Optional extensions can fail without affecting the main operation
+            # For optional extensions, return empty dict instead of raising
             return {}
 
 
