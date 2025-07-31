@@ -33,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authentication import get_extension_processor
 from app.models.etsi_models import Key, KeyContainer, KeyRequest
+from app.services.key_distribution_service import KeyDistributionService
 from app.services.key_generation_service import KeyGenerationFactory
 from app.services.key_pool_service import KeyPoolService
 from app.services.key_storage_service import KeyStorageService
@@ -61,6 +62,7 @@ class KeyService:
         self.key_pool_service = KeyPoolService(db_session, self.key_storage_service)
         self.key_generator = KeyGenerationFactory.create_generator()
         self.qkd_network_service = QKDNetworkService()
+        self.key_distribution_service = KeyDistributionService(db_session)
         self._current_requesting_sae_id: str | None = None
         self._current_master_sae_id: str | None = None
         self.logger.info("Key service initialized")
@@ -944,6 +946,157 @@ class KeyService:
                 "error": str(e),
                 "hop_sequence": hop_sequence,
             }
+
+    async def distribute_keys_to_sae(self, request: KeyRequest) -> dict[str, Any]:
+        """
+        Distribute keys to a single SAE using Week 12 distribution logic
+
+        Args:
+            request: KeyRequest containing distribution parameters
+
+        Returns:
+            Dict containing distribution result
+        """
+        self.logger.info(
+            "Distributing keys to SAE using Week 12 logic",
+            request_id=request.request_id,
+            key_count=request.number or 1,
+            key_size=request.size,
+        )
+
+        try:
+            result = await self.key_distribution_service.distribute_keys_to_sae(request)
+            return result
+
+        except Exception as e:
+            self.logger.error(
+                "Key distribution failed",
+                request_id=request.request_id,
+                error=str(e),
+            )
+            return {
+                "success": False,
+                "error": str(e),
+                "request_id": request.request_id,
+            }
+
+    async def handle_multi_sae_distribution(
+        self, requests: list[KeyRequest]
+    ) -> dict[str, Any]:
+        """
+        Handle multiple SAE key distribution requests
+
+        Args:
+            requests: List of key requests to process
+
+        Returns:
+            Dict containing results for all requests
+        """
+        self.logger.info(
+            "Handling multi-SAE distribution",
+            request_count=len(requests),
+        )
+
+        try:
+            result = await self.key_distribution_service.handle_multi_sae_distribution(
+                requests
+            )
+            return result
+
+        except Exception as e:
+            self.logger.error(
+                "Multi-SAE distribution failed",
+                error=str(e),
+            )
+            return {
+                "success": False,
+                "error": str(e),
+                "total_requests": len(requests),
+                "success_count": 0,
+            }
+
+    async def get_distribution_metrics(self) -> dict[str, Any]:
+        """
+        Get key distribution performance metrics
+
+        Returns:
+            Dict containing comprehensive distribution metrics
+        """
+        self.logger.info("Getting distribution metrics")
+
+        try:
+            result = await self.key_distribution_service.get_distribution_metrics()
+            return result
+
+        except Exception as e:
+            self.logger.error("Failed to get distribution metrics", error=str(e))
+            return {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            }
+
+    async def validate_key_request(self, request: KeyRequest) -> dict[str, Any]:
+        """
+        Validate a key request using Week 12 validation logic
+
+        Args:
+            request: KeyRequest to validate
+
+        Returns:
+            Dict containing validation result
+        """
+        self.logger.info("Validating key request", request_id=request.request_id)
+
+        try:
+            result = (
+                await self.key_distribution_service.request_processor.validate_request(
+                    request
+                )
+            )
+            return result
+
+        except Exception as e:
+            self.logger.error(
+                "Key request validation failed",
+                request_id=request.request_id,
+                error=str(e),
+            )
+            return {
+                "valid": False,
+                "errors": [str(e)],
+                "warnings": [],
+                "request_id": request.request_id,
+            }
+
+    async def get_distribution_strategy(self, request: KeyRequest) -> str:
+        """
+        Determine the best distribution strategy for a request
+
+        Args:
+            request: KeyRequest to analyze
+
+        Returns:
+            Strategy string: 'direct_delivery', 'network_routing', 'key_generation'
+        """
+        self.logger.info(
+            "Determining distribution strategy", request_id=request.request_id
+        )
+
+        try:
+            pool_status = await self.key_pool_service.get_pool_status()
+            strategy = await self.key_distribution_service.request_processor.determine_distribution_strategy(
+                request, pool_status
+            )
+            return strategy
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to determine distribution strategy",
+                request_id=request.request_id,
+                error=str(e),
+            )
+            return "key_generation"  # Default fallback strategy
 
 
 # Global service instance - will be initialized with proper db_session when needed
