@@ -135,7 +135,6 @@ class Status(BaseModel):
         return values
 
 
-
 class KeyRequest(BaseModel):
     """
     Key request data format - ETSI GS QKD 014 V1.1.1 Section 6.2
@@ -215,7 +214,6 @@ class KeyRequest(BaseModel):
         return v
 
 
-
 class Key(BaseModel):
     """
     Key data format - ETSI GS QKD 014 V1.1.1 Section 6.3
@@ -274,7 +272,6 @@ class Key(BaseModel):
         return v
 
 
-
 class KeyContainer(BaseModel):
     """
     Key container data format - ETSI GS QKD 014 V1.1.1 Section 6.3
@@ -325,7 +322,6 @@ class KeyContainer(BaseModel):
         return values
 
 
-
 class KeyID(BaseModel):
     """
     Key ID data format - ETSI GS QKD 014 V1.1.1 Section 6.4
@@ -358,7 +354,6 @@ class KeyID(BaseModel):
         return v
 
 
-
 class KeyIDs(BaseModel):
     """
     Key IDs data format - ETSI GS QKD 014 V1.1.1 Section 6.4
@@ -389,7 +384,6 @@ class KeyIDs(BaseModel):
         return v
 
 
-
 class ErrorDetail(BaseModel):
     """
     Error detail data format - ETSI GS QKD 014 V1.1.1 Section 6.5
@@ -399,7 +393,6 @@ class ErrorDetail(BaseModel):
 
     # Error detail can be any name/value pair
     detail: dict[str, Any] = Field(..., description="Error detail as name/value pair")
-
 
 
 class Error(BaseModel):
@@ -436,4 +429,3 @@ class Error(BaseModel):
         if v not in valid_severities:
             raise ValueError(f"Severity must be one of: {valid_severities}")
         return v
-
