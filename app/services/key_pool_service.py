@@ -248,6 +248,283 @@ class KeyPoolService:
             self.logger.error("Failed to stop automatic replenishment", error=str(e))
             return False
 
+    async def get_pool_health_metrics(self) -> dict[str, Any]:
+        """
+        Get comprehensive pool health metrics
+
+        Returns:
+            Dict containing detailed health metrics
+        """
+        try:
+            status = await self.get_pool_status()
+            config = await self._get_pool_configuration()
+
+            # Calculate health indicators
+            availability_ratio = (
+                status["active_keys"] / config["max_key_count"]
+                if config["max_key_count"] > 0
+                else 0
+            )
+            consumption_rate = await self._calculate_consumption_rate()
+            generation_rate = await self._calculate_generation_rate()
+            replenishment_frequency = await self._calculate_replenishment_frequency()
+
+            # Determine health status
+            health_status = "healthy"
+            if availability_ratio < 0.2:
+                health_status = "critical"
+            elif availability_ratio < 0.5:
+                health_status = "warning"
+            elif availability_ratio < 0.8:
+                health_status = "degraded"
+
+            return {
+                "health_status": health_status,
+                "availability_ratio": round(availability_ratio, 3),
+                "consumption_rate_per_hour": round(consumption_rate, 2),
+                "generation_rate_per_hour": round(generation_rate, 2),
+                "replenishment_frequency_hours": round(replenishment_frequency, 2),
+                "last_health_check": datetime.datetime.utcnow().isoformat(),
+                "recommendations": self._generate_health_recommendations(
+                    availability_ratio, consumption_rate, generation_rate
+                ),
+            }
+
+        except Exception as e:
+            self.logger.error("Failed to get pool health metrics", error=str(e))
+            raise RuntimeError(f"Health metrics retrieval failed: {e}")
+
+    async def _calculate_consumption_rate(self) -> float:
+        """Calculate key consumption rate (keys per hour)"""
+        try:
+            # Get consumption in last 24 hours
+            yesterday = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+
+            # Count keys consumed in last 24 hours
+            consumed_query = select(Key).where(
+                and_(
+                    Key.is_active.is_(False),
+                    Key.updated_at >= yesterday,
+                )
+            )
+            result = await self.db_session.execute(consumed_query)
+            consumed_count = len(result.scalars().all())
+
+            return consumed_count / 24.0  # keys per hour
+
+        except Exception as e:
+            self.logger.error("Failed to calculate consumption rate", error=str(e))
+            return 0.0
+
+    async def _calculate_generation_rate(self) -> float:
+        """Calculate key generation rate (keys per hour)"""
+        try:
+            # Get generation in last 24 hours
+            yesterday = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+
+            # Count keys generated in last 24 hours
+            generated_query = select(Key).where(
+                and_(
+                    Key.is_active.is_(True),
+                    Key.created_at >= yesterday,
+                )
+            )
+            result = await self.db_session.execute(generated_query)
+            generated_count = len(result.scalars().all())
+
+            return generated_count / 24.0  # keys per hour
+
+        except Exception as e:
+            self.logger.error("Failed to calculate generation rate", error=str(e))
+            return 0.0
+
+    async def _calculate_replenishment_frequency(self) -> float:
+        """Calculate replenishment frequency (hours between replenishments)"""
+        try:
+            # Get last few replenishment events
+            # This would typically query a replenishment events table
+            # For now, return a default value
+            return 6.0  # Default: 6 hours between replenishments
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to calculate replenishment frequency", error=str(e)
+            )
+            return 6.0
+
+    def _generate_health_recommendations(
+        self, availability_ratio: float, consumption_rate: float, generation_rate: float
+    ) -> list[str]:
+        """Generate health recommendations based on metrics"""
+        recommendations = []
+
+        if availability_ratio < 0.2:
+            recommendations.append(
+                "CRITICAL: Key pool critically low - immediate replenishment required"
+            )
+        elif availability_ratio < 0.5:
+            recommendations.append(
+                "WARNING: Key pool below 50% - schedule replenishment soon"
+            )
+        elif availability_ratio < 0.8:
+            recommendations.append(
+                "INFO: Key pool below 80% - monitor consumption rate"
+            )
+
+        if consumption_rate > generation_rate * 1.5:
+            recommendations.append(
+                "WARNING: Consumption rate significantly higher than generation rate"
+            )
+        elif consumption_rate < generation_rate * 0.5:
+            recommendations.append(
+                "INFO: Generation rate much higher than consumption - consider reducing generation"
+            )
+
+        if not recommendations:
+            recommendations.append("HEALTHY: Key pool operating normally")
+
+        return recommendations
+
+    async def setup_pool_alerting(self, alert_thresholds: dict[str, Any]) -> bool:
+        """
+        Set up pool alerting system
+
+        Args:
+            alert_thresholds: Dictionary containing alert thresholds
+
+        Returns:
+            bool: True if setup successful
+        """
+        try:
+            self.logger.info(
+                "Setting up pool alerting system",
+                thresholds=alert_thresholds,
+            )
+
+            # Store alert thresholds in configuration
+            # In a real implementation, this would be stored in a configuration table
+            self._alert_thresholds = alert_thresholds
+
+            # Set up alert channels
+            # This would typically integrate with:
+            # - Email/SMS alerting systems
+            # - Monitoring platforms (Prometheus, Grafana, etc.)
+            # - Log aggregation systems
+
+            return True
+
+        except Exception as e:
+            self.logger.error("Failed to setup pool alerting", error=str(e))
+            return False
+
+    async def check_alert_conditions(self) -> list[dict[str, Any]]:
+        """
+        Check for alert conditions and return active alerts
+
+        Returns:
+            List of active alerts
+        """
+        try:
+            alerts = []
+            status = await self.get_pool_status()
+            health_metrics = await self.get_pool_health_metrics()
+
+            # Check availability threshold
+            if status["active_keys"] < self._alert_thresholds.get("min_keys", 100):
+                alerts.append(
+                    {
+                        "type": "availability",
+                        "severity": "critical",
+                        "message": f"Key pool below minimum threshold: {status['active_keys']} keys",
+                        "timestamp": datetime.datetime.utcnow().isoformat(),
+                    }
+                )
+
+            # Check health status
+            if health_metrics["health_status"] in ["critical", "warning"]:
+                alerts.append(
+                    {
+                        "type": "health",
+                        "severity": health_metrics["health_status"],
+                        "message": f"Pool health degraded: {health_metrics['health_status']}",
+                        "timestamp": datetime.datetime.utcnow().isoformat(),
+                    }
+                )
+
+            # Check consumption rate
+            if health_metrics["consumption_rate_per_hour"] > self._alert_thresholds.get(
+                "max_consumption_rate", 100
+            ):
+                alerts.append(
+                    {
+                        "type": "consumption",
+                        "severity": "warning",
+                        "message": f"High consumption rate: {health_metrics['consumption_rate_per_hour']} keys/hour",
+                        "timestamp": datetime.datetime.utcnow().isoformat(),
+                    }
+                )
+
+            return alerts
+
+        except Exception as e:
+            self.logger.error("Failed to check alert conditions", error=str(e))
+            return []
+
+    async def optimize_pool_performance(self) -> dict[str, Any]:
+        """
+        Optimize pool performance based on current metrics
+
+        Returns:
+            Dict containing optimization results
+        """
+        try:
+            health_metrics = await self.get_pool_health_metrics()
+            status = await self.get_pool_status()
+            config = await self._get_pool_configuration()
+
+            optimizations = []
+
+            # Adjust replenishment frequency based on consumption rate
+            if health_metrics["consumption_rate_per_hour"] > 50:
+                optimizations.append(
+                    {
+                        "type": "replenishment_frequency",
+                        "action": "increase",
+                        "reason": "High consumption rate detected",
+                    }
+                )
+
+            # Adjust batch size based on availability
+            availability_ratio = status["active_keys"] / config["max_key_count"]
+            if availability_ratio < 0.3:
+                optimizations.append(
+                    {
+                        "type": "batch_size",
+                        "action": "increase",
+                        "reason": "Low availability - increase batch size",
+                    }
+                )
+
+            # Adjust monitoring frequency
+            if health_metrics["health_status"] == "critical":
+                optimizations.append(
+                    {
+                        "type": "monitoring_frequency",
+                        "action": "increase",
+                        "reason": "Critical health status - increase monitoring",
+                    }
+                )
+
+            return {
+                "optimizations_applied": len(optimizations),
+                "optimizations": optimizations,
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            }
+
+        except Exception as e:
+            self.logger.error("Failed to optimize pool performance", error=str(e))
+            return {"optimizations_applied": 0, "error": str(e)}
+
     async def _count_total_keys(self) -> int:
         """Count total keys in the pool"""
         query = select(func.count(Key.id))

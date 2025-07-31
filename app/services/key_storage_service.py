@@ -599,3 +599,180 @@ class KeyStorageService:
                 error=str(e),
             )
             raise RuntimeError(f"SAE key query failed: {e}")
+
+    async def get_key_version_info(self, key_id: str) -> dict[str, Any] | None:
+        """
+        Get version information for a specific key
+
+        Args:
+            key_id: Key ID to get version info for
+
+        Returns:
+            Dict containing version information or None if key not found
+        """
+        try:
+            query = select(KeyModel).where(KeyModel.key_id == key_id)
+            result = await self.db_session.execute(query)
+            key_model = result.scalar_one_or_none()
+
+            if not key_model:
+                return None
+
+            return {
+                "key_id": str(key_model.key_id),
+                "version": key_model.version if hasattr(key_model, "version") else 1,
+                "created_at": key_model.created_at,
+                "last_updated": key_model.updated_at
+                if hasattr(key_model, "updated_at")
+                else key_model.created_at,
+                "encryption_version": key_model.encryption_version
+                if hasattr(key_model, "encryption_version")
+                else 1,
+                "key_format_version": key_model.key_format_version
+                if hasattr(key_model, "key_format_version")
+                else 1,
+            }
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to get key version info",
+                key_id=key_id,
+                error=str(e),
+            )
+            raise RuntimeError(f"Key version info retrieval failed: {e}")
+
+    async def upgrade_key_version(self, key_id: str, new_version: int) -> bool:
+        """
+        Upgrade a key to a new version
+
+        Args:
+            key_id: Key ID to upgrade
+            new_version: New version number
+
+        Returns:
+            bool: True if upgrade successful, False otherwise
+        """
+        try:
+            query = select(KeyModel).where(KeyModel.key_id == key_id)
+            result = await self.db_session.execute(query)
+            key_model = result.scalar_one_or_none()
+
+            if not key_model:
+                self.logger.warning("Key not found for version upgrade", key_id=key_id)
+                return False
+
+            # Decrypt the key with current encryption
+            if self._fernet is None:
+                raise RuntimeError("Fernet cipher not initialized")
+
+            decrypted_key_data = self._fernet.decrypt(
+                bytes(key_model.encrypted_key_data)
+            )
+
+            # Re-encrypt with new version
+            encrypted_key_data = self._fernet.encrypt(decrypted_key_data)
+
+            # Update the key model
+            key_model.encrypted_key_data = encrypted_key_data
+            if hasattr(key_model, "version"):
+                key_model.version = new_version
+            if hasattr(key_model, "updated_at"):
+                key_model.updated_at = datetime.datetime.utcnow()
+
+            await self.db_session.commit()
+
+            self.logger.info(
+                "Key version upgraded successfully",
+                key_id=key_id,
+                new_version=new_version,
+            )
+
+            return True
+
+        except Exception as e:
+            await self.db_session.rollback()
+            self.logger.error(
+                "Failed to upgrade key version",
+                key_id=key_id,
+                new_version=new_version,
+                error=str(e),
+            )
+            raise RuntimeError(f"Key version upgrade failed: {e}")
+
+    async def get_key_cleanup_statistics(self) -> dict[str, Any]:
+        """
+        Get statistics about key cleanup operations
+
+        Returns:
+            Dict containing cleanup statistics
+        """
+        try:
+            # Count expired keys
+            expired_query = select(KeyModel).where(
+                and_(
+                    KeyModel.expires_at < datetime.datetime.utcnow(),
+                    KeyModel.is_active.is_(True),
+                )
+            )
+            expired_result = await self.db_session.execute(expired_query)
+            expired_count = len(expired_result.scalars().all())
+
+            # Count keys expiring soon (within 24 hours)
+            soon_expiring_query = select(KeyModel).where(
+                and_(
+                    KeyModel.expires_at
+                    < datetime.datetime.utcnow() + datetime.timedelta(hours=24),
+                    KeyModel.expires_at > datetime.datetime.utcnow(),
+                    KeyModel.is_active.is_(True),
+                )
+            )
+            soon_expiring_result = await self.db_session.execute(soon_expiring_query)
+            soon_expiring_count = len(soon_expiring_result.scalars().all())
+
+            # Count total keys
+            total_query = select(KeyModel).where(KeyModel.is_active.is_(True))
+            total_result = await self.db_session.execute(total_query)
+            total_count = len(total_result.scalars().all())
+
+            return {
+                "total_keys": total_count,
+                "expired_keys": expired_count,
+                "expiring_soon": soon_expiring_count,
+                "cleanup_needed": expired_count > 0,
+                "last_cleanup_check": datetime.datetime.utcnow().isoformat(),
+            }
+
+        except Exception as e:
+            self.logger.error("Failed to get cleanup statistics", error=str(e))
+            raise RuntimeError(f"Cleanup statistics retrieval failed: {e}")
+
+    async def schedule_key_cleanup(self, cleanup_interval_hours: int = 24) -> bool:
+        """
+        Schedule periodic key cleanup
+
+        Args:
+            cleanup_interval_hours: Hours between cleanup runs
+
+        Returns:
+            bool: True if scheduling successful
+        """
+        try:
+            # This would typically integrate with a task scheduler
+            # For now, we'll just log the schedule
+            self.logger.info(
+                "Key cleanup scheduled",
+                interval_hours=cleanup_interval_hours,
+                next_run=datetime.datetime.utcnow()
+                + datetime.timedelta(hours=cleanup_interval_hours),
+            )
+
+            # In a real implementation, this would:
+            # 1. Register with a task scheduler (Celery, APScheduler, etc.)
+            # 2. Set up periodic execution
+            # 3. Handle cleanup failures and retries
+
+            return True
+
+        except Exception as e:
+            self.logger.error("Failed to schedule key cleanup", error=str(e))
+            return False

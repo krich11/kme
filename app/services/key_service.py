@@ -33,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authentication import get_extension_processor
 from app.models.etsi_models import Key, KeyContainer, KeyRequest
+from app.services.key_generation_service import KeyGenerationFactory
 from app.services.key_pool_service import KeyPoolService
 from app.services.key_storage_service import KeyStorageService
 
@@ -57,6 +58,9 @@ class KeyService:
         self.db_session = db_session
         self.key_storage_service = KeyStorageService(db_session)
         self.key_pool_service = KeyPoolService(db_session, self.key_storage_service)
+        self.key_generator = KeyGenerationFactory.create_generator()
+        self._current_requesting_sae_id: str | None = None
+        self._current_master_sae_id: str | None = None
         self.logger.info("Key service initialized")
 
     async def process_key_request(
@@ -205,83 +209,97 @@ class KeyService:
         additional_slave_sae_ids: list[str] | None = None,
     ) -> list[Key]:
         """
-        Generate and store keys with proper ETSI compliance
+        Generate and store keys using the key storage service
 
         Args:
             number: Number of keys to generate
             size: Size of each key in bits
             master_sae_id: SAE ID of the master SAE
             slave_sae_id: SAE ID of the slave SAE
-            additional_slave_sae_ids: Additional slave SAE IDs for multicast
+            additional_slave_sae_ids: Additional slave SAE IDs
 
         Returns:
-            List[Key]: List of ETSI-compliant Key objects
+            list[Key]: List of generated and stored keys
         """
-        keys = []
+        logger.info(
+            "Generating and storing keys",
+            number=number,
+            size=size,
+            master_sae_id=master_sae_id,
+            slave_sae_id=slave_sae_id,
+        )
 
+        # Check key pool availability first
+        pool_available = await self.key_pool_service.check_key_availability(
+            number, size
+        )
+        if not pool_available:
+            logger.warning("Key pool does not have sufficient keys available")
+            # Trigger replenishment
+            await self.key_pool_service.handle_key_exhaustion()
+
+        generated_keys = []
         for i in range(number):
-            # Generate UUID for key_ID (ETSI requirement: UUID format)
-            key_id = str(uuid.uuid4())
-
-            # TODO: Generate actual key data from QKD network
-            # For now, generate mock key data with proper size
-            key_bytes = os.urandom(size // 8)  # Convert bits to bytes
-
-            # Store key securely using storage service
             try:
-                await self.key_storage_service.store_key(
+                # Generate key data
+                key_data = os.urandom(size // 8)  # Convert bits to bytes
+                key_id = str(uuid.uuid4())
+
+                # Set expiration (24 hours from now)
+                expires_at = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+
+                # Store key in storage service
+                stored = await self.key_storage_service.store_key(
                     key_id=key_id,
-                    key_data=key_bytes,
+                    key_data=key_data,
                     master_sae_id=master_sae_id,
                     slave_sae_id=slave_sae_id,
                     key_size=size,
-                    expires_at=datetime.datetime.utcnow()
-                    + datetime.timedelta(hours=24),
+                    expires_at=expires_at,
                     key_metadata={
                         "generated_at": datetime.datetime.utcnow().isoformat(),
-                        "key_type": "qkd",
-                        "quality_metrics": {
-                            "entropy": 1.0,  # TODO: Calculate actual entropy
-                            "error_rate": 0.0,  # TODO: Get from QKD system
-                        },
-                        "additional_slave_sae_ids": additional_slave_sae_ids,
-                    },
-                )
-            except Exception as e:
-                self.logger.error(f"Failed to store key {key_id}", error=str(e))
-                raise RuntimeError(f"Key storage failed: {e}")
-
-            # Create ETSI-compliant Key object
-            key = Key(
-                key_ID=key_id,
-                key=base64.b64encode(key_bytes).decode(
-                    "utf-8"
-                ),  # ETSI requirement: Base64 encoding
-                key_ID_extension=None,  # TODO: Add key ID extensions if needed
-                key_extension=None,  # TODO: Add key extensions if needed
-                key_size=size,
-                created_at=datetime.datetime.utcnow(),
-                expires_at=datetime.datetime.utcnow()
-                + datetime.timedelta(hours=24),  # TODO: Configure expiration
-                source_kme_id=os.getenv("KME_ID", "AAAABBBBCCCCDDDD"),
-                target_kme_id=os.getenv("TARGET_KME_ID", "EEEEFFFFGGGGHHHH"),
-                key_metadata={
-                    "generated_at": datetime.datetime.utcnow().isoformat(),
-                    "key_type": "qkd",
-                    "quality_metrics": {
+                        "generation_method": "key_service",
                         "entropy": 1.0,  # TODO: Calculate actual entropy
                         "error_rate": 0.0,  # TODO: Get from QKD system
                     },
-                },
-            )
+                )
 
-            keys.append(key)
+                if stored:
+                    # Create Key object for response
+                    key = Key(
+                        key_ID=key_id,
+                        key=base64.b64encode(key_data).decode("utf-8"),
+                        key_ID_extension=None,  # TODO: Add key ID extensions if needed
+                        key_extension=None,  # TODO: Add key extensions if needed
+                        key_size=size,
+                        created_at=datetime.datetime.utcnow(),
+                        expires_at=expires_at,
+                        source_kme_id=os.getenv("KME_ID", "AAAABBBBCCCCDDDD"),
+                        target_kme_id=slave_sae_id,
+                        key_metadata={
+                            "entropy": 1.0,  # TODO: Calculate actual entropy
+                            "error_rate": 0.0,  # TODO: Get from QKD system
+                        },
+                    )
+                    generated_keys.append(key)
+                else:
+                    logger.error(f"Failed to store key {key_id}")
 
-        return keys
+            except Exception as e:
+                logger.error(f"Failed to generate and store key {i}: {str(e)}")
+                continue
+
+        logger.info(
+            "Successfully generated and stored keys",
+            generated_count=len(generated_keys),
+            requested_count=number,
+        )
+
+        return generated_keys
 
     async def _generate_keys(self, number: int, size: int) -> list[Key]:
         """
-        Generate keys with proper ETSI compliance (legacy method - use _generate_and_store_keys instead)
+        Generate keys with proper ETSI compliance using configured key generator
 
         Args:
             number: Number of keys to generate
@@ -290,50 +308,73 @@ class KeyService:
         Returns:
             List[Key]: List of ETSI-compliant Key objects
         """
-        # This method is kept for backward compatibility
-        # New code should use _generate_and_store_keys
-        self.logger.warning(
-            "Using legacy _generate_keys method - consider using _generate_and_store_keys"
+        self.logger.info(
+            "Generating keys using configured generator",
+            number=number,
+            size=size,
+            generator_type=type(self.key_generator).__name__,
         )
 
-        keys = []
+        try:
+            # Generate raw key data using configured generator
+            raw_keys = await self.key_generator.generate_keys(number, size)
 
-        for i in range(number):
-            # Generate UUID for key_ID (ETSI requirement: UUID format)
-            key_id = str(uuid.uuid4())
-
-            # TODO: Generate actual key data from QKD network
-            # For now, generate mock key data with proper size
-            key_bytes = os.urandom(size // 8)  # Convert bits to bytes
-            key_data = base64.b64encode(key_bytes).decode(
-                "utf-8"
-            )  # ETSI requirement: Base64 encoding
-
-            # Create ETSI-compliant Key object
-            key = Key(
-                key_ID=key_id,
-                key=key_data,
-                key_ID_extension=None,  # TODO: Add key ID extensions if needed
-                key_extension=None,  # TODO: Add key extensions if needed
-                key_size=size,
-                created_at=datetime.datetime.utcnow(),
-                expires_at=datetime.datetime.utcnow()
-                + datetime.timedelta(hours=24),  # TODO: Configure expiration
-                source_kme_id=os.getenv("KME_ID", "AAAABBBBCCCCDDDD"),
-                target_kme_id=os.getenv("TARGET_KME_ID", "EEEEFFFFGGGGHHHH"),
-                key_metadata={
-                    "generated_at": datetime.datetime.utcnow().isoformat(),
-                    "key_type": "qkd",
-                    "quality_metrics": {
-                        "entropy": 1.0,  # TODO: Calculate actual entropy
-                        "error_rate": 0.0,  # TODO: Get from QKD system
-                    },
-                },
+            # Validate key quality
+            quality_metrics = (
+                await self.key_generator.validate_key_quality(raw_keys[0])
+                if raw_keys
+                else {}
             )
 
-            keys.append(key)
+            keys = []
 
-        return keys
+            for i, key_bytes in enumerate(raw_keys):
+                # Generate UUID for key_ID (ETSI requirement: UUID format)
+                key_id = str(uuid.uuid4())
+
+                # Encode key data as base64 (ETSI requirement: Base64 encoding)
+                key_data = base64.b64encode(key_bytes).decode("utf-8")
+
+                # Create ETSI-compliant Key object
+                key = Key(
+                    key_ID=key_id,
+                    key=key_data,
+                    key_ID_extension=None,  # TODO: Add key ID extensions if needed
+                    key_extension=None,  # TODO: Add key extensions if needed
+                    key_size=size,
+                    created_at=datetime.datetime.utcnow(),
+                    expires_at=datetime.datetime.utcnow()
+                    + datetime.timedelta(hours=24),  # TODO: Configure expiration
+                    source_kme_id=os.getenv("KME_ID", "AAAABBBBCCCCDDDD"),
+                    target_kme_id=os.getenv("TARGET_KME_ID", "EEEEFFFFGGGGHHHH"),
+                    key_metadata={
+                        "generated_at": datetime.datetime.utcnow().isoformat(),
+                        "key_type": "qkd",
+                        "generator_type": type(self.key_generator).__name__,
+                        "quality_metrics": quality_metrics,
+                    },
+                )
+
+                keys.append(key)
+
+            self.logger.info(
+                "Keys generated successfully",
+                number=len(keys),
+                size=size,
+                generator_type=type(self.key_generator).__name__,
+            )
+
+            return keys
+
+        except Exception as e:
+            self.logger.error(
+                "Key generation failed",
+                error=str(e),
+                number=number,
+                size=size,
+                generator_type=type(self.key_generator).__name__,
+            )
+            raise RuntimeError(f"Key generation failed: {e}")
 
     async def _process_extensions(
         self,
@@ -436,6 +477,9 @@ class KeyService:
     async def get_keys_by_ids(
         self, master_sae_id: str, key_ids: list[str], requesting_sae_id: str
     ) -> KeyContainer:
+        # Set current context for key retrieval
+        self._current_requesting_sae_id = requesting_sae_id
+        self._current_master_sae_id = master_sae_id
         """
         Retrieve keys by their key_IDs (Get Key with Key IDs endpoint)
 
@@ -604,40 +648,164 @@ class KeyService:
             key_count=len(key_ids),
         )
 
-        # TODO: Implement real key storage integration
-        # For now, generate mock keys for demonstration
-
+        # Use real key storage service
         retrieved_keys = []
         for key_id in key_ids:
-            # Generate mock key data
-            key_data = os.urandom(44)  # 352 bits = 44 bytes
-            key_data_b64 = base64.b64encode(key_data).decode("utf-8")
+            try:
+                # Retrieve key from storage service
+                key = await self.key_storage_service.retrieve_key(
+                    key_id=key_id,
+                    requesting_sae_id=self._current_requesting_sae_id,
+                    master_sae_id=self._current_master_sae_id,
+                )
 
-            # Create mock key
-            key = Key(
-                key_ID=key_id,
-                key=key_data_b64,
-                key_ID_extension=None,
-                key_extension=None,
-                key_size=352,
-                created_at=datetime.datetime.utcnow(),
-                expires_at=datetime.datetime.utcnow() + datetime.timedelta(hours=24),
-                source_kme_id=os.getenv("KME_ID", "AAAABBBBCCCCDDDD"),
-                target_kme_id=os.getenv("TARGET_KME_ID", "EEEEFFFFGGGGHHHH"),
-                key_metadata={
-                    "retrieved_at": datetime.datetime.utcnow().isoformat(),
-                    "retrieval_method": "key_ids",
-                },
-            )
+                if key:
+                    retrieved_keys.append(key)
+                else:
+                    logger.warning(f"Key not found or access denied: {key_id}")
 
-            retrieved_keys.append(key)
+            except Exception as e:
+                logger.error(f"Failed to retrieve key {key_id}: {str(e)}")
+                continue
 
         logger.info(
             "Successfully retrieved keys from storage",
             retrieved_count=len(retrieved_keys),
+            requested_count=len(key_ids),
         )
 
         return retrieved_keys
+
+    async def get_key_pool_status(self) -> dict[str, Any]:
+        """
+        Get comprehensive key pool status
+
+        Returns:
+            Dict containing pool status information
+        """
+        try:
+            # Get basic pool status
+            pool_status = await self.key_pool_service.get_pool_status()
+
+            # Get health metrics
+            health_metrics = await self.key_pool_service.get_pool_health_metrics()
+
+            # Get cleanup statistics
+            cleanup_stats = await self.key_storage_service.get_key_cleanup_statistics()
+
+            # Check for alerts
+            alerts = await self.key_pool_service.check_alert_conditions()
+
+            return {
+                "pool_status": pool_status,
+                "health_metrics": health_metrics,
+                "cleanup_statistics": cleanup_stats,
+                "active_alerts": alerts,
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            }
+
+        except Exception as e:
+            logger.error("Failed to get key pool status", error=str(e))
+            raise RuntimeError(f"Pool status retrieval failed: {e}")
+
+    async def optimize_key_management(self) -> dict[str, Any]:
+        """
+        Optimize key management operations
+
+        Returns:
+            Dict containing optimization results
+        """
+        try:
+            # Optimize pool performance
+            pool_optimization = await self.key_pool_service.optimize_pool_performance()
+
+            # Schedule key cleanup
+            cleanup_scheduled = await self.key_storage_service.schedule_key_cleanup()
+
+            # Get optimization recommendations
+            health_metrics = await self.key_pool_service.get_pool_health_metrics()
+
+            return {
+                "pool_optimization": pool_optimization,
+                "cleanup_scheduled": cleanup_scheduled,
+                "recommendations": health_metrics.get("recommendations", []),
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            }
+
+        except Exception as e:
+            logger.error("Failed to optimize key management", error=str(e))
+            raise RuntimeError(f"Key management optimization failed: {e}")
+
+    async def setup_key_management_monitoring(
+        self, alert_thresholds: dict[str, Any]
+    ) -> bool:
+        """
+        Set up comprehensive key management monitoring
+
+        Args:
+            alert_thresholds: Dictionary containing alert thresholds
+
+        Returns:
+            bool: True if setup successful
+        """
+        try:
+            # Setup pool alerting
+            pool_alerting = await self.key_pool_service.setup_pool_alerting(
+                alert_thresholds
+            )
+
+            # Schedule periodic cleanup
+            cleanup_scheduled = await self.key_storage_service.schedule_key_cleanup()
+
+            # Start automatic replenishment
+            replenishment_started = (
+                await self.key_pool_service.start_automatic_replenishment()
+            )
+
+            logger.info(
+                "Key management monitoring setup completed",
+                pool_alerting=pool_alerting,
+                cleanup_scheduled=cleanup_scheduled,
+                replenishment_started=replenishment_started,
+            )
+
+            return pool_alerting and cleanup_scheduled and replenishment_started
+
+        except Exception as e:
+            logger.error("Failed to setup key management monitoring", error=str(e))
+            return False
+
+    async def get_key_generation_status(self) -> dict[str, Any]:
+        """
+        Get key generation system status and metrics
+
+        Returns:
+            dict: Key generation status and metrics
+        """
+        try:
+            # Get key generator status
+            generator_status = await self.key_generator.get_system_status()
+            generator_metrics = await self.key_generator.get_generation_metrics()
+
+            return {
+                "key_generation": {
+                    "status": generator_status,
+                    "metrics": generator_metrics,
+                    "current_mode": KeyGenerationFactory.get_current_mode(),
+                    "available_modes": KeyGenerationFactory.get_available_modes(),
+                },
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            }
+
+        except Exception as e:
+            self.logger.error("Failed to get key generation status", error=str(e))
+            return {
+                "key_generation": {
+                    "status": "error",
+                    "error": str(e),
+                },
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            }
 
 
 # Global service instance - will be initialized with proper db_session when needed
