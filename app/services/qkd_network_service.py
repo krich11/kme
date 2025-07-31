@@ -12,7 +12,7 @@ import datetime
 import os
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import structlog
 
@@ -394,13 +394,16 @@ class MockKeyExchangeProtocol(KeyExchangeProtocol):
             "timestamp": datetime.datetime.utcnow().isoformat(),
         }
 
+        # Count active links
+        links = cast(list[dict[str, Any]], topology["links"])
+        nodes = cast(list[dict[str, Any]], topology["nodes"])
+        active_links_count = sum(1 for link in links if link["status"] == "active")
+
         return {
             "success": True,
             "topology": topology,
-            "total_nodes": len(topology["nodes"]),
-            "active_links": len(
-                [link for link in topology["links"] if link["status"] == "active"]
-            ),
+            "total_nodes": len(nodes),
+            "active_links": active_links_count,
         }
 
 
