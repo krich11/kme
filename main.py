@@ -175,6 +175,34 @@ async def http_exception_handler(request, exc):
         request_id=request_id,
     )
 
+    # For authentication errors (401), return a simple error response
+    if exc.status_code == 401:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "message": exc.detail
+                if isinstance(exc.detail, str)
+                else "Authentication failed",
+                "error_code": "AUTHENTICATION_ERROR",
+                "request_id": request_id,
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            },
+        )
+
+    # For authorization errors (403), return a simple error response
+    if exc.status_code == 403:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "message": exc.detail
+                if isinstance(exc.detail, str)
+                else "Authorization failed",
+                "error_code": "AUTHORIZATION_ERROR",
+                "request_id": request_id,
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            },
+        )
+
     # If the exception already has a standardized error response, return it as-is
     if isinstance(exc.detail, dict) and "message" in exc.detail:
         return JSONResponse(
@@ -182,7 +210,7 @@ async def http_exception_handler(request, exc):
             content=exc.detail,
         )
 
-    # Otherwise, create a standardized error response
+    # For other errors, create a standardized error response
     error_response = error_handler.create_error_response(
         message=exc.detail if isinstance(exc.detail, str) else "HTTP error occurred",
         details=[{"parameter": "request", "error": f"HTTP {exc.status_code} error"}],
