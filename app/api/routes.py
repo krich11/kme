@@ -125,6 +125,7 @@ async def get_status(
         )
 
         # Generate ETSI-compliant status response using status service
+        # Note: In a real implementation, status_service would be initialized with db_session
         status_response = await status_service.generate_status_response(
             slave_sae_id=slave_sae_id,
             master_sae_id=master_sae_id,

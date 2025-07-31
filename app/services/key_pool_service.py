@@ -163,6 +163,89 @@ class KeyPoolService:
             self.logger.error("Failed to check key availability", error=str(e))
             return False
 
+    async def check_key_exhaustion(self, requested_keys: int) -> dict[str, Any]:
+        """
+        Check for key exhaustion and return ETSI-compliant response
+
+        Args:
+            requested_keys: Number of keys requested
+
+        Returns:
+            dict: Exhaustion status with ETSI-compliant error details
+        """
+        try:
+            # Get current active key count
+            active_keys = await self._count_active_keys()
+
+            # Check if we have any keys at all
+            if active_keys == 0:
+                self.logger.error("Key pool completely exhausted")
+                return {
+                    "exhausted": True,
+                    "available_keys": 0,
+                    "requested_keys": requested_keys,
+                    "etsi_error": {
+                        "message": "Key pool exhausted - no keys available",
+                        "details": [
+                            {
+                                "error_type": "key_exhaustion",
+                                "available_keys": 0,
+                                "requested_keys": requested_keys,
+                                "recommendation": "Wait for key generation to complete",
+                            }
+                        ],
+                    },
+                }
+
+            # Check if we have insufficient keys
+            if active_keys < requested_keys:
+                self.logger.warning(
+                    "Insufficient keys available",
+                    available_keys=active_keys,
+                    requested_keys=requested_keys,
+                )
+                return {
+                    "exhausted": True,
+                    "available_keys": active_keys,
+                    "requested_keys": requested_keys,
+                    "etsi_error": {
+                        "message": f"Insufficient keys available - requested {requested_keys}, available {active_keys}",
+                        "details": [
+                            {
+                                "error_type": "insufficient_keys",
+                                "available_keys": active_keys,
+                                "requested_keys": requested_keys,
+                                "recommendation": "Reduce key request size or wait for replenishment",
+                            }
+                        ],
+                    },
+                }
+
+            # Keys are available
+            return {
+                "exhausted": False,
+                "available_keys": active_keys,
+                "requested_keys": requested_keys,
+            }
+
+        except Exception as e:
+            self.logger.error("Failed to check key exhaustion", error=str(e))
+            return {
+                "exhausted": True,
+                "available_keys": 0,
+                "requested_keys": requested_keys,
+                "etsi_error": {
+                    "message": "Failed to check key availability",
+                    "details": [
+                        {
+                            "error_type": "system_error",
+                            "error": str(e),
+                            "recommendation": "Contact system administrator",
+                        }
+                    ],
+                },
+            }
+
     async def handle_key_exhaustion(self) -> dict[str, Any]:
         """
         Handle key pool exhaustion
