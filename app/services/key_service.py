@@ -31,6 +31,7 @@ import structlog
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.authentication import get_extension_processor
 from app.models.etsi_models import Key, KeyContainer, KeyRequest
 from app.services.key_pool_service import KeyPoolService
 from app.services.key_storage_service import KeyStorageService
@@ -349,39 +350,37 @@ class KeyService:
         Returns:
             Dict[str, Any]: Extension responses
         """
-        extension_responses = {}
+        try:
+            extension_processor = get_extension_processor()
 
-        # Process mandatory extensions (ETSI requirement: must handle or return error)
-        if extension_mandatory:
-            self.logger.info(
-                "Processing mandatory extensions",
-                count=len(extension_mandatory),
+            # Process mandatory extensions
+            mandatory_responses = (
+                await extension_processor.process_mandatory_extensions(
+                    extension_mandatory
+                )
             )
 
-            # TODO: Implement actual extension processing
-            # For now, we'll log and return placeholder responses
-            for ext in extension_mandatory:
-                self.logger.info(f"Mandatory extension: {ext}")
-
-            # Return placeholder extension response
-            extension_responses["key_container_extension"] = {
-                "mandatory_extensions_processed": len(extension_mandatory),
-                "timestamp": datetime.datetime.utcnow().isoformat(),
-            }
-
-        # Process optional extensions (ETSI requirement: may ignore)
-        if extension_optional:
-            self.logger.info(
-                "Processing optional extensions",
-                count=len(extension_optional),
+            # Process optional extensions
+            optional_responses = await extension_processor.process_optional_extensions(
+                extension_optional
             )
 
-            # TODO: Implement actual optional extension processing
-            # For now, we'll log and ignore
-            for ext in extension_optional:
-                self.logger.info(f"Optional extension: {ext}")
+            # Combine responses
+            extension_responses = {**mandatory_responses, **optional_responses}
 
-        return extension_responses
+            # Add key container specific extension info
+            if extension_mandatory or extension_optional:
+                extension_responses["key_container_extension"] = {
+                    "mandatory_extensions_processed": len(mandatory_responses),
+                    "optional_extensions_processed": len(optional_responses),
+                    "timestamp": datetime.datetime.utcnow().isoformat(),
+                }
+
+            return extension_responses
+
+        except Exception as e:
+            self.logger.error("Extension processing error", error=str(e))
+            raise ValueError(f"Extension processing error: {str(e)}")
 
     async def validate_key_access(
         self,

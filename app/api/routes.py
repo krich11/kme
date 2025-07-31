@@ -29,6 +29,7 @@ import uuid
 import structlog
 from fastapi import APIRouter, HTTPException, Request, status
 
+from app.core.authentication_middleware import get_auth_middleware
 from app.core.error_handling import error_handler
 from app.models.etsi_models import Error, KeyContainer, KeyIDs, KeyRequest, Status
 from app.services.key_service import key_service
@@ -95,22 +96,33 @@ async def get_status(
     )
 
     try:
-        # TODO: Extract master_sae_id from certificate authentication
-        # For now, we'll use a placeholder
-        master_sae_id = None
+        # Use enhanced authentication middleware
+        auth_middleware = get_auth_middleware()
 
-        # Validate SAE access using status service
-        access_granted = await status_service.validate_sae_access(
-            slave_sae_id=slave_sae_id,
-            master_sae_id=master_sae_id,
+        # Authenticate and authorize request with enhanced logging
+        (
+            requesting_sae_id,
+            cert_info,
+            audit_data,
+        ) = await auth_middleware.authenticate_request(
+            request=request,
+            endpoint_type="status",
+            resource_id=slave_sae_id,
         )
 
-        if not access_granted:
-            error_handler.raise_authorization_error(
-                resource="status information",
-                error_message="SAE access denied",
-                request_id=request_id,
-            )
+        master_sae_id = (
+            requesting_sae_id  # For status requests, the requesting SAE is the master
+        )
+
+        # Log authentication audit data
+        logger.info(
+            "Status endpoint authentication completed",
+            request_id=audit_data["request_id"],
+            requesting_sae_id=requesting_sae_id,
+            slave_sae_id=slave_sae_id,
+            auth_time=audit_data["authentication_time"],
+            success=audit_data["success"],
+        )
 
         # Generate ETSI-compliant status response using status service
         status_response = await status_service.generate_status_response(
@@ -210,23 +222,33 @@ async def get_key(
     )
 
     try:
-        # TODO: Extract master_sae_id from certificate authentication
-        # For now, we'll use a placeholder
-        master_sae_id = None
+        # Use enhanced authentication middleware
+        auth_middleware = get_auth_middleware()
 
-        # Validate SAE access using key service
-        access_granted = await key_service.validate_key_access(  # type: ignore[attr-defined]
-            slave_sae_id=slave_sae_id,
-            master_sae_id=master_sae_id,
+        # Authenticate and authorize request with enhanced logging
+        (
+            requesting_sae_id,
+            cert_info,
+            audit_data,
+        ) = await auth_middleware.authenticate_request(
+            request=request,
+            endpoint_type="key",
+            resource_id=slave_sae_id,
         )
 
-        if not access_granted:
-            error_handler.raise_authorization_error(
-                resource="key request",
-                error_message="SAE access denied",
-                request_id=request_id,
-            )
-            raise  # This line is unreachable but satisfies MyPy
+        master_sae_id = (
+            requesting_sae_id  # For key requests, the requesting SAE is the master
+        )
+
+        # Log authentication audit data
+        logger.info(
+            "Get Key endpoint authentication completed",
+            request_id=audit_data["request_id"],
+            requesting_sae_id=requesting_sae_id,
+            slave_sae_id=slave_sae_id,
+            auth_time=audit_data["authentication_time"],
+            success=audit_data["success"],
+        )
 
         # Process key request using key service
         key_container = await key_service.process_key_request(  # type: ignore[attr-defined]
@@ -325,9 +347,29 @@ async def get_key_with_ids(
     )
 
     try:
-        # TODO: Extract requesting_sae_id from certificate authentication
-        # For now, we'll use a placeholder - in production this would come from TLS cert
-        requesting_sae_id = "IIIIJJJJKKKKLLLL"  # Placeholder SAE ID
+        # Use enhanced authentication middleware
+        auth_middleware = get_auth_middleware()
+
+        # Authenticate and authorize request with enhanced logging
+        (
+            requesting_sae_id,
+            cert_info,
+            audit_data,
+        ) = await auth_middleware.authenticate_request(
+            request=request,
+            endpoint_type="key_ids",
+            resource_id=master_sae_id,
+        )
+
+        # Log authentication audit data
+        logger.info(
+            "Get Key with IDs endpoint authentication completed",
+            request_id=audit_data["request_id"],
+            requesting_sae_id=requesting_sae_id,
+            master_sae_id=master_sae_id,
+            auth_time=audit_data["authentication_time"],
+            success=audit_data["success"],
+        )
 
         # Extract key_IDs from the request
         key_ids = [key_id.key_ID for key_id in key_ids_request.key_IDs]
