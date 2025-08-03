@@ -1,0 +1,20 @@
+{
+  "sae_name": "SAE cLRyqRTP",
+  "sae_id": "cLRyqRTPBIxhlE9o",
+  "kme_endpoint": "https://localhost:8464",
+  "certificate_file": ".config/sae_certificate.pem",
+  "private_key_file": ".config/sae_private_key.pem",
+  "ca_certificate_file": ".config/kme_ca_certificate.pem",
+  "connection_config": {
+    "verify_ssl": true,
+    "timeout": 30,
+    "retry_attempts": 3
+  },
+  "api_endpoints": {
+    "status": "/api/v1/keys/{slave_SAE_ID}/status",
+    "enc_keys": "/api/v1/keys/{slave_SAE_ID}/enc_keys",
+    "dec_keys": "/api/v1/keys/{master_SAE_ID}/dec_keys"
+  },
+  "registration_date": "2025-07-31T22:58:44.875433",
+  "package_version": "1.0.0"
+}

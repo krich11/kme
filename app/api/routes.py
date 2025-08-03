@@ -232,12 +232,12 @@ async def get_key(
         # Create mock keys
         keys = []
         for i in range(key_request.number or 1):
+            key_id = str(uuid.uuid4())
+            # Use key_id for consistent key generation (matches dec_keys behavior)
             key_data = base64.b64encode(
-                f"test_key_{i}_data_32_bytes_long".encode()
+                f"test_key_{key_id}_data_32_bytes_long".encode()
             ).decode()
-            key = Key(
-                key_ID=str(uuid.uuid4()), key=key_data, key_size=key_request.size or 256
-            )
+            key = Key(key_ID=key_id, key=key_data, key_size=key_request.size or 256)
             keys.append(key)
         # Create key container
         key_container = KeyContainer(

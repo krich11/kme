@@ -213,8 +213,8 @@ class CertificateAuthentication:
         if not sae_id or len(sae_id) != 16:
             return False
 
-        # Check if it contains only alphanumeric characters (A-Z, 0-9)
-        return bool(re.match(r"^[A-Z0-9]{16}$", sae_id))
+        # Check if it contains only alphanumeric characters (A-Z, a-z, 0-9)
+        return bool(re.match(r"^[A-Za-z0-9]{16}$", sae_id))
 
 
 class SAEAuthorization:

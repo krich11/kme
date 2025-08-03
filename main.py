@@ -40,6 +40,9 @@ from fastapi.responses import JSONResponse
 # Import API routes
 from app.api.routes import api_router
 
+# Import authentication middleware
+from app.core.authentication_middleware import get_auth_middleware
+
 # Import database initialization
 from app.core.database import close_database, initialize_database
 
@@ -59,6 +62,7 @@ from app.core.security import initialize_security_infrastructure
 # from app.core.config import settings
 # from app.core.logging import setup_logging
 # from app.core.middleware import AuthMiddleware
+
 
 # Add the project root to Python path
 project_root = Path(__file__).parent
@@ -139,6 +143,53 @@ app = FastAPI(
     redoc_url="/redoc" if os.getenv("DEBUG", "false").lower() == "true" else None,
     lifespan=lifespan,
 )
+
+
+# Add request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all incoming requests for debugging"""
+    import time
+
+    start_time = time.time()
+
+    # Log request details
+    logger.info(
+        "📥 Incoming request",
+        method=request.method,
+        path=request.url.path,
+        client_ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        content_type=request.headers.get("content-type"),
+        has_scope=hasattr(request, "scope"),
+        scope_keys=list(request.scope.keys()) if hasattr(request, "scope") else [],
+    )
+
+    # Check for SSL context
+    if hasattr(request, "scope") and "ssl" in request.scope:
+        ssl_context = request.scope["ssl"]
+        logger.info(
+            "🔐 SSL context found",
+            ssl_keys=list(ssl_context.keys()) if ssl_context else [],
+            has_client_cert="client_cert" in ssl_context if ssl_context else False,
+        )
+    else:
+        logger.warning("⚠️ No SSL context in request")
+
+    response = await call_next(request)
+
+    # Log response details
+    process_time = time.time() - start_time
+    logger.info(
+        "📤 Response sent",
+        method=request.method,
+        path=request.url.path,
+        status_code=response.status_code,
+        process_time=round(process_time, 3),
+    )
+
+    return response
+
 
 # Configure CORS
 app.add_middleware(
@@ -387,25 +438,61 @@ async def debug_ssl(request: Request):
 
 
 if __name__ == "__main__":
+    import os
+    import ssl
+
     import uvicorn
 
-    # TLS configuration for mutual authentication
+    enable_ssl = os.environ.get("KME_ENABLE_SSL", "0") == "1"
+
     ssl_keyfile = "test_certs/kme_key.pem"
     ssl_certfile = "test_certs/kme_cert.pem"
+    ssl_ca_certs = "test_certs/ca_cert.pem"
 
-    # Check if certificates exist
-    if not (os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile)):
-        print("Warning: TLS certificates not found. Starting without TLS...")
-        print("To enable TLS, run: cd test_certs && python generate_test_certs.py")
-        ssl_keyfile = None
-        ssl_certfile = None
+    if enable_ssl:
+        # Check if certificates exist
+        if not (os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile)):
+            print("Warning: TLS certificates not found. Starting without TLS...")
+            print("To enable TLS, run: cd test_certs && python generate_test_certs.py")
+            ssl_keyfile = None
+            ssl_certfile = None
+            ssl_ca_certs = None
 
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",  # nosec B104 - Development server binding to all interfaces
-        port=8000,
-        reload=True,
-        log_level="info",
-        ssl_keyfile=ssl_keyfile,
-        ssl_certfile=ssl_certfile,
-    )
+        # Check if CA certificate exists for mutual authentication
+        if ssl_ca_certs and not os.path.exists(ssl_ca_certs):
+            print(f"Warning: CA certificate not found: {ssl_ca_certs}")
+            print("Mutual authentication will be disabled.")
+            ssl_ca_certs = None
+
+        # Log SSL configuration
+        if ssl_keyfile and ssl_certfile:
+            print("🔐 SSL Configuration:")
+            print(f"  Server Certificate: {ssl_certfile}")
+            print(f"  Server Key: {ssl_keyfile}")
+            if ssl_ca_certs:
+                print(f"  CA Certificate: {ssl_ca_certs}")
+                print("  Mutual Authentication: ENABLED")
+            else:
+                print("  Mutual Authentication: DISABLED")
+            print()
+
+        uvicorn.run(
+            "main:app",
+            host="0.0.0.0",  # nosec B104 - Development server binding to all interfaces
+            port=8000,
+            reload=True,
+            log_level="info",
+            ssl_keyfile=ssl_keyfile,
+            ssl_certfile=ssl_certfile,
+            ssl_ca_certs=ssl_ca_certs,
+            ssl_cert_reqs=ssl.CERT_REQUIRED if ssl_ca_certs else ssl.CERT_NONE,
+        )
+    else:
+        print("[INFO] Starting FastAPI backend in HTTP mode (no SSL, behind nginx)")
+        uvicorn.run(
+            "main:app",
+            host="0.0.0.0",
+            port=8000,
+            reload=True,
+            log_level="info",
+        )

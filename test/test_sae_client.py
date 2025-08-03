@@ -150,11 +150,11 @@ class SAEClient:
 
         # ETSI QKD 014 compliant key request format
         key_request = {
-            "number": 2,                    # Number of keys requested
-            "size": 256,                    # Key size in bits
+            "number": 2,  # Number of keys requested
+            "size": 256,  # Key size in bits
             "additional_slave_SAE_IDs": [self.sae_b_id],  # Include SAE B as slave
-            "extension_mandatory": [],      # Mandatory extensions
-            "extension_optional": [],       # Optional extensions
+            "extension_mandatory": [],  # Mandatory extensions
+            "extension_optional": [],  # Optional extensions
         }
 
         response = await self.make_request(
@@ -187,8 +187,8 @@ class SAEClient:
         key_ids_objects = [{"key_ID": key_id} for key_id in key_ids]
 
         key_ids_request = {
-            "key_IDs": key_ids_objects,     # Array of key ID objects
-            "key_IDs_extension": None,      # Key IDs extension (optional)
+            "key_IDs": key_ids_objects,  # Array of key ID objects
+            "key_IDs_extension": None,  # Key IDs extension (optional)
         }
 
         response = await self.make_request(
@@ -226,7 +226,7 @@ class SAEClient:
             # Basic key matching
             key_id_match = sae_a_key["key_ID"] == sae_b_key["key_ID"]
             key_value_match = sae_a_key["key"] == sae_b_key["key"]
-            
+
             # ETSI compliance checks
             etsi_compliant = self._validate_etsi_key_compliance(sae_a_key, sae_b_key)
 
@@ -256,27 +256,27 @@ class SAEClient:
             for field in required_fields:
                 if field not in key_a or field not in key_b:
                     return False
-            
+
             # Validate UUID format for key_ID
             try:
                 uuid.UUID(key_a["key_ID"])
                 uuid.UUID(key_b["key_ID"])
             except ValueError:
                 return False
-            
+
             # Validate Base64 encoding for key data
             try:
                 base64.b64decode(key_a["key"])
                 base64.b64decode(key_b["key"])
             except Exception:
                 return False
-            
+
             # Check that keys are identical (Master and Slave should have same keys)
             if key_a["key_ID"] != key_b["key_ID"] or key_a["key"] != key_b["key"]:
                 return False
-                
+
             return True
-            
+
         except Exception:
             return False
 
@@ -293,9 +293,8 @@ class SAEClient:
 
             print(f"📊 SAE A Keys Retrieved:")
             for i, key in enumerate(sae_a_keys):
-                print(
-                    f"  Key {i+1}: ID={key['key_ID'][:8]}..., Size={key['key_size']} bits"
-                )
+                print(f"  Key {i+1}: ID={key['key_ID']}, Size={key['key_size']} bits")
+                print(f"    Key Data: {key['key']}")
 
             print()
 
@@ -305,9 +304,8 @@ class SAEClient:
 
             print(f"📊 SAE B Keys Retrieved:")
             for i, key in enumerate(sae_b_keys):
-                print(
-                    f"  Key {i+1}: ID={key['key_ID'][:8]}..., Size={key['key_size']} bits"
-                )
+                print(f"  Key {i+1}: ID={key['key_ID']}, Size={key['key_size']} bits")
+                print(f"    Key Data: {key['key']}")
 
             print()
 
@@ -322,16 +320,22 @@ class SAEClient:
             print(
                 f"Key Values Match: {'✅' if all(comparison['key_values_match']) else '❌'}"
             )
-            print(f"ETSI Compliance: {'✅' if all(comparison['etsi_compliance']) else '❌'}")
+            print(
+                f"ETSI Compliance: {'✅' if all(comparison['etsi_compliance']) else '❌'}"
+            )
             print()
 
             print("🔍 DETAILED COMPARISON:")
             for detail in comparison["details"]:
                 status = (
-                    "✅" if detail["key_id_match"] and detail["key_value_match"] and detail["etsi_compliant"] else "❌"
+                    "✅"
+                    if detail["key_id_match"]
+                    and detail["key_value_match"]
+                    and detail["etsi_compliant"]
+                    else "❌"
                 )
                 print(f"  Key {detail['key_index']+1}: {status}")
-                print(f"    ID: {detail['key_id'][:8]}...")
+                print(f"    ID: {detail['key_id']}")
                 print(f"    ID Match: {'✅' if detail['key_id_match'] else '❌'}")
                 print(f"    Value Match: {'✅' if detail['key_value_match'] else '❌'}")
                 print(f"    ETSI Compliant: {'✅' if detail['etsi_compliant'] else '❌'}")
