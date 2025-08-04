@@ -75,5 +75,16 @@
     "min_key_size": 64,
     "status": "active",
     "registration_date": "2025-08-03T19:57:18.661645"
+  },
+  {
+    "sae_id": "dWHpAelPf0rS48IJ",
+    "name": "sae-a",
+    "kme_id": "KME Server E1F2A3B4C5D6E7F8",
+    "certificate_hash": "f57d4051a7ab40c5ee1da0f09aeb63d92619857718146e823860b904b10a5357",
+    "max_keys_per_request": 128,
+    "max_key_size": 1024,
+    "min_key_size": 64,
+    "status": "active",
+    "registration_date": "2025-08-04T03:35:23.715554"
   }
 ]

@@ -413,16 +413,31 @@ class DatabaseManager:
                 json.dumps({"subject": "CN=KME001", "issuer": "CN=CA"}),
             )
 
-            # Insert sample SAE entity
+            # Insert sample SAE entities (matching test certificates)
             await conn.execute(
                 """
                 INSERT INTO sae_entities (sae_id, kme_id, certificate_info)
                 VALUES ($1, $2, $3)
                 ON CONFLICT (sae_id) DO NOTHING
             """,
-                "SAE001ABCDEFGHIJ",
+                "A1B2C3D4E5F6A7B8",  # Master SAE from certificate
                 "KME001",
-                json.dumps({"subject": "CN=SAE001", "issuer": "CN=CA"}),
+                json.dumps(
+                    {"subject": "CN=Master SAE A1B2C3D4E5F6A7B8", "issuer": "CN=CA"}
+                ),
+            )
+
+            await conn.execute(
+                """
+                INSERT INTO sae_entities (sae_id, kme_id, certificate_info)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (sae_id) DO NOTHING
+            """,
+                "C1D2E3F4A5B6C7D8",  # Slave SAE from certificate
+                "KME001",
+                json.dumps(
+                    {"subject": "CN=Slave SAE C1D2E3F4A5B6C7D8", "issuer": "CN=CA"}
+                ),
             )
 
             # Insert sample key
@@ -435,8 +450,8 @@ class DatabaseManager:
                 "550e8400-e29b-41d4-a716-446655440000",
                 b"sample_key_data_32_bytes_long",
                 256,
-                "SAE001ABCDEFGHIJ",
-                "SAE002ABCDEFGHIJ",
+                "A1B2C3D4E5F6A7B8",  # Master SAE from certificate
+                "C1D2E3F4A5B6C7D8",  # Slave SAE from certificate
                 "KME001",
                 "KME002",
             )
