@@ -385,6 +385,37 @@ revoke_sae_certificate() {
     fi
 }
 
+# Function to launch database manager
+launch_database_manager() {
+    print_subheader "Database Manager"
+
+    print_status "Launching KME Database Manager..."
+    echo ""
+    echo "The Database Manager provides:"
+    echo "- Database browsing and inspection"
+    echo "- Table management (drop, truncate, etc.)"
+    echo "- Database reset and recreation"
+    echo "- Schema management"
+    echo "- Data export capabilities"
+    echo ""
+
+    # Check if database manager exists
+    if [[ ! -f "admin/database_manager.py" ]]; then
+        print_error "Database manager not found: admin/database_manager.py"
+        return 1
+    fi
+
+    # Launch the database manager
+    python admin/database_manager.py
+
+    if [[ $? -eq 0 ]]; then
+        print_status "Database manager completed successfully"
+    else
+        print_error "Database manager encountered an error"
+        return 1
+    fi
+}
+
 # Function to show help
 show_help() {
     print_header
@@ -396,12 +427,13 @@ show_help() {
     echo "4. Update SAE Status - Change SAE status (active, inactive, suspended, expired)"
     echo "5. Revoke SAE Access - Revoke access for a SAE"
     echo "6. Generate SAE Package - Create encrypted package for SAE distribution"
-echo "7. Generate Multi-SAE Test Package - Create package for multi-SAE testing"
-echo "8. Generate SAE Certificate - Create new certificate for SAE"
-echo "9. List SAE Certificates - Show all generated certificates"
-echo "10. Revoke SAE Certificate - Revoke a SAE certificate"
-echo "h. Show Help - Display this help message"
-echo "q. Exit - Exit the admin interface"
+    echo "7. Generate Multi-SAE Test Package - Create package for multi-SAE testing"
+    echo "8. Generate SAE Certificate - Create new certificate for SAE"
+    echo "9. List SAE Certificates - Show all generated certificates"
+    echo "10. Revoke SAE Certificate - Revoke a SAE certificate"
+    echo "11. Database Manager - Browse and manage database"
+    echo "h. Show Help - Display this help message"
+    echo "q. Exit - Exit the admin interface"
     echo ""
     echo "For more detailed help, run: python -m admin.kme_admin --help"
 }
@@ -441,11 +473,12 @@ main_menu() {
         echo "8. Generate SAE Certificate"
         echo "9. List SAE Certificates"
         echo "10. Revoke SAE Certificate"
+        echo "11. Database Manager"
         echo "h. Show Help"
         echo "q. Exit"
         echo "=================================="
 
-        read -p "Select option (1-10, h, q): " choice
+        read -p "Select option (1-11, h, q): " choice
 
         case $choice in
             1) register_new_sae ;;
@@ -458,9 +491,10 @@ main_menu() {
             8) generate_sae_certificate ;;
             9) list_sae_certificates ;;
             10) revoke_sae_certificate ;;
+            11) launch_database_manager ;;
             h|H) show_help ;;
             q|Q) print_status "Goodbye!"; exit 0 ;;
-            *) print_error "Invalid option. Please select 1-10, h, or q." ;;
+            *) print_error "Invalid option. Please select 1-11, h, or q." ;;
         esac
 
         echo ""
