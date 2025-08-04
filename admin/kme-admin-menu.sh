@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 KME_ADMIN="python -m admin.kme_admin"
-PACKAGE_DIR="packages"
+PACKAGE_DIR="admin/packages"
 
 # Change to project root directory if running from admin directory
 if [[ "$(basename "$PWD")" == "admin" ]]; then
