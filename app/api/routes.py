@@ -36,6 +36,7 @@ from app.core.authentication_middleware import get_auth_middleware
 from app.core.database import database_manager
 from app.core.error_handling import error_handler
 from app.models.etsi_models import Error, Key, KeyContainer, KeyIDs, KeyRequest, Status
+from app.services.key_storage_service import KeyStorageService
 from app.services.status_service import StatusService
 
 logger = structlog.get_logger()
@@ -266,30 +267,61 @@ async def get_key(
                         f"Additional SAE ID must be exactly 16 characters, got {len(sae_id)}"
                     )
 
-        # For testing, use mock key generation until database issues are resolved
-        # TODO: Implement proper key service integration when database issues are resolved
-
-        # Create mock keys
+        # Create mock keys and store them in database
         keys = []
+        key_storage_service = KeyStorageService(database_manager.get_session())
+
         for i in range(number_of_keys):
             key_id = str(uuid.uuid4())
-            # Use key_id for consistent key generation (matches dec_keys behavior)
-            key_data = base64.b64encode(
-                f"test_key_{key_id}_data_32_bytes_long".encode()
-            ).decode()
-            key = Key(
-                key_ID=key_id,
-                key=key_data,
-                key_size=key_request.size or 256,
-                key_ID_extension=None,
-                key_extension=None,
-                created_at=None,
-                expires_at=None,
-                source_kme_id=None,
-                target_kme_id=None,
-                key_metadata=None,
-            )
-            keys.append(key)
+            # Generate mock key data (32 bytes)
+            key_data = f"test_key_{key_id}_data_32_bytes_long".encode()
+
+            # Set expiration (24 hours from now)
+            expires_at = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+
+            try:
+                # Store key in database
+                stored = await key_storage_service.store_key(
+                    key_id=key_id,
+                    key_data=key_data,
+                    master_sae_id=requesting_sae_id,
+                    slave_sae_id=slave_sae_id,
+                    key_size=key_size,
+                    expires_at=expires_at,
+                    key_metadata={
+                        "generated_at": datetime.datetime.utcnow().isoformat(),
+                        "generation_method": "mock_key_generation",
+                        "entropy": 1.0,
+                        "error_rate": 0.0,
+                        "source": "api_endpoint_mock",
+                    },
+                )
+
+                if stored:
+                    # Create Key object for response
+                    key = Key(
+                        key_ID=key_id,
+                        key=base64.b64encode(key_data).decode("utf-8"),
+                        key_size=key_size,
+                        key_ID_extension=None,
+                        key_extension=None,
+                        created_at=datetime.datetime.utcnow(),
+                        expires_at=expires_at,
+                        source_kme_id=os.getenv("KME_ID", "AAAABBBBCCCCDDDD"),
+                        target_kme_id=slave_sae_id,
+                        key_metadata={
+                            "entropy": 1.0,
+                            "error_rate": 0.0,
+                            "source": "mock_generation",
+                        },
+                    )
+                    keys.append(key)
+                else:
+                    logger.error(f"Failed to store mock key {key_id}")
+
+            except Exception as e:
+                logger.error(f"Failed to generate and store mock key {i}: {str(e)}")
+                continue
         # Create key container
         key_container = KeyContainer(
             keys=keys,
@@ -301,7 +333,7 @@ async def get_key(
             total_key_size=None,
         )
         logger.info(
-            "Get Key response generated successfully (mock)",
+            "Get Key response generated successfully (mock keys stored in database)",
             slave_sae_id=slave_sae_id,
             requesting_sae_id=requesting_sae_id,
             number_of_keys=len(key_container.keys),
@@ -409,28 +441,41 @@ async def get_key_with_ids(
 
         # Extract key_IDs from the request
         key_ids = [key_id.key_ID for key_id in key_ids_request.key_IDs]
-        # For testing, use mock key generation until database issues are resolved
-        # TODO: Implement proper key service integration when database issues are resolved
 
-        # Create mock keys based on the requested key IDs
+        # Retrieve keys from database
         keys = []
-        for i, key_id in enumerate(key_ids):
-            key_data = base64.b64encode(
-                f"test_key_{key_id}_data_32_bytes_long".encode()
-            ).decode()
-            key = Key(
-                key_ID=key_id,
-                key=key_data,
-                key_size=256,
-                key_ID_extension=None,
-                key_extension=None,
-                created_at=None,
-                expires_at=None,
-                source_kme_id=None,
-                target_kme_id=None,
-                key_metadata=None,
-            )
-            keys.append(key)
+        key_storage_service = KeyStorageService(database_manager.get_session())
+
+        for key_id in key_ids:
+            try:
+                # Retrieve key from database
+                retrieved_key = await key_storage_service.retrieve_key(
+                    key_id=key_id,
+                    requesting_sae_id=requesting_sae_id,
+                    master_sae_id=master_sae_id,
+                )
+
+                if retrieved_key:
+                    # Create Key object for response
+                    key = Key(
+                        key_ID=retrieved_key.key_ID,
+                        key=retrieved_key.key,
+                        key_size=retrieved_key.key_size,
+                        key_ID_extension=retrieved_key.key_ID_extension,
+                        key_extension=retrieved_key.key_extension,
+                        created_at=retrieved_key.created_at,
+                        expires_at=retrieved_key.expires_at,
+                        source_kme_id=retrieved_key.source_kme_id,
+                        target_kme_id=retrieved_key.target_kme_id,
+                        key_metadata=retrieved_key.key_metadata,
+                    )
+                    keys.append(key)
+                else:
+                    logger.warning(f"Key {key_id} not found in database")
+
+            except Exception as e:
+                logger.error(f"Failed to retrieve key {key_id}: {str(e)}")
+                continue
         # Create key container
         key_container = KeyContainer(
             keys=keys,
@@ -442,7 +487,7 @@ async def get_key_with_ids(
             total_key_size=None,
         )
         logger.info(
-            "Get Key with Key IDs response generated successfully (mock)",
+            "Get Key with Key IDs response generated successfully (keys retrieved from database)",
             master_sae_id=master_sae_id,
             requesting_sae_id=requesting_sae_id,
             key_count=len(key_container.keys),
