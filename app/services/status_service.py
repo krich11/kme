@@ -34,6 +34,7 @@ from app.core.config import settings
 from app.models.database_models import KeyRecord, SAEEntity
 from app.models.etsi_models import Status
 from app.services.key_pool_service import KeyPoolService
+from app.services.key_storage_service import KeyStorageService
 from app.services.qkd_network_service import QKDNetworkService
 
 logger = structlog.get_logger()
@@ -49,9 +50,9 @@ class StatusService:
     def __init__(self, db_session: AsyncSession):
         """Initialize the status service"""
         self.db_session = db_session
-        self.key_pool_service = KeyPoolService(
-            db_session, None
-        )  # Will be properly initialized
+        # Create KeyStorageService instance for KeyPoolService
+        key_storage_service = KeyStorageService(db_session)
+        self.key_pool_service = KeyPoolService(db_session, key_storage_service)
         self.qkd_network_service = QKDNetworkService()
         self.logger = logger.bind(service="StatusService")
         self.logger.info("Status service initialized with database integration")
@@ -382,4 +383,6 @@ class StatusService:
 
 
 # Global service instance (will be properly initialized with database session)
-status_service = StatusService(None)  # Placeholder - will be set during initialization
+status_service: StatusService | None = (
+    None  # Placeholder - will be set during initialization
+)

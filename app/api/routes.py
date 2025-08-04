@@ -237,15 +237,28 @@ async def get_key(
             key_data = base64.b64encode(
                 f"test_key_{key_id}_data_32_bytes_long".encode()
             ).decode()
-            key = Key(key_ID=key_id, key=key_data, key_size=key_request.size or 256)
+            key = Key(
+                key_ID=key_id,
+                key=key_data,
+                key_size=key_request.size or 256,
+                key_ID_extension=None,
+                key_extension=None,
+                created_at=None,
+                expires_at=None,
+                source_kme_id=None,
+                target_kme_id=None,
+                key_metadata=None,
+            )
             keys.append(key)
         # Create key container
         key_container = KeyContainer(
             keys=keys,
-            source_KME_ID="AAAABBBBCCCCDDDD",
-            target_KME_ID="EEEEFFFFGGGGHHHH",
-            master_SAE_ID=requesting_sae_id,
-            slave_SAE_ID=slave_sae_id,
+            key_container_extension=None,
+            container_id=None,
+            created_at=None,
+            master_sae_id=requesting_sae_id,
+            slave_sae_id=slave_sae_id,
+            total_key_size=None,
         )
         logger.info(
             "Get Key response generated successfully (mock)",
@@ -365,15 +378,28 @@ async def get_key_with_ids(
             key_data = base64.b64encode(
                 f"test_key_{key_id}_data_32_bytes_long".encode()
             ).decode()
-            key = Key(key_ID=key_id, key=key_data, key_size=256)
+            key = Key(
+                key_ID=key_id,
+                key=key_data,
+                key_size=256,
+                key_ID_extension=None,
+                key_extension=None,
+                created_at=None,
+                expires_at=None,
+                source_kme_id=None,
+                target_kme_id=None,
+                key_metadata=None,
+            )
             keys.append(key)
         # Create key container
         key_container = KeyContainer(
             keys=keys,
-            source_KME_ID="AAAABBBBCCCCDDDD",
-            target_KME_ID="EEEEFFFFGGGGHHHH",
-            master_SAE_ID=master_sae_id,
-            slave_SAE_ID=requesting_sae_id,
+            key_container_extension=None,
+            container_id=None,
+            created_at=None,
+            master_sae_id=master_sae_id,
+            slave_sae_id=requesting_sae_id,
+            total_key_size=None,
         )
         logger.info(
             "Get Key with Key IDs response generated successfully (mock)",

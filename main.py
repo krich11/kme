@@ -445,13 +445,18 @@ if __name__ == "__main__":
 
     enable_ssl = os.environ.get("KME_ENABLE_SSL", "0") == "1"
 
-    ssl_keyfile = "test_certs/kme_key.pem"
-    ssl_certfile = "test_certs/kme_cert.pem"
-    ssl_ca_certs = "test_certs/ca_cert.pem"
+    ssl_keyfile: str | None = "test_certs/kme_key.pem"
+    ssl_certfile: str | None = "test_certs/kme_cert.pem"
+    ssl_ca_certs: str | None = "test_certs/ca_cert.pem"
 
     if enable_ssl:
         # Check if certificates exist
-        if not (os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile)):
+        if (
+            ssl_keyfile is None
+            or ssl_certfile is None
+            or not os.path.exists(ssl_keyfile)
+            or not os.path.exists(ssl_certfile)
+        ):
             print("Warning: TLS certificates not found. Starting without TLS...")
             print("To enable TLS, run: cd test_certs && python generate_test_certs.py")
             ssl_keyfile = None
@@ -459,7 +464,7 @@ if __name__ == "__main__":
             ssl_ca_certs = None
 
         # Check if CA certificate exists for mutual authentication
-        if ssl_ca_certs and not os.path.exists(ssl_ca_certs):
+        if ssl_ca_certs is not None and not os.path.exists(ssl_ca_certs):
             print(f"Warning: CA certificate not found: {ssl_ca_certs}")
             print("Mutual authentication will be disabled.")
             ssl_ca_certs = None

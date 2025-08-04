@@ -120,6 +120,9 @@ class SAEClient:
         # Add certificate for authentication
         headers["X-Client-Certificate"] = self.test_certificate
 
+        if self.session is None:
+            raise RuntimeError("Session not initialized. Use async context manager.")
+
         try:
             if method.upper() == "GET":
                 async with self.session.get(url, headers=headers) as response:

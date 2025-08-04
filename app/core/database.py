@@ -107,6 +107,9 @@ class DatabaseManager:
 
     async def _test_connection(self) -> bool:
         """Test database connection"""
+        if self.engine is None:
+            raise RuntimeError("Database engine not initialized")
+
         try:
             async with self.engine.begin() as conn:
                 result = await conn.execute(text("SELECT 1"))
@@ -121,6 +124,9 @@ class DatabaseManager:
         """Get database session"""
         if not self._is_initialized:
             raise RuntimeError("Database not initialized. Call initialize() first.")
+
+        if self.session_factory is None:
+            raise RuntimeError("Session factory not initialized")
 
         return self.session_factory()
 
@@ -153,12 +159,18 @@ class DatabaseManager:
                 result.fetchone()
 
                 # Get connection pool info
+                if self.engine is None:
+                    return {
+                        "status": "unhealthy",
+                        "message": "Database engine not initialized",
+                        "details": {"error": "Engine is None"},
+                    }
+
                 pool_info = {
-                    "pool_size": self.engine.pool.size(),
-                    "checked_in": self.engine.pool.checkedin(),
-                    "checked_out": self.engine.pool.checkedout(),
-                    "overflow": self.engine.pool.overflow(),
-                    "invalid": self.engine.pool.invalid(),
+                    "pool_size": self.engine.pool.size(),  # type: ignore[attr-defined]
+                    "checked_in": self.engine.pool.checkedin(),  # type: ignore[attr-defined]
+                    "checked_out": self.engine.pool.checkedout(),  # type: ignore[attr-defined]
+                    "overflow": self.engine.pool.overflow(),  # type: ignore[attr-defined]
                 }
 
                 return {
@@ -188,7 +200,7 @@ class DatabaseManager:
     async def close(self):
         """Close database connections"""
         try:
-            if self.engine:
+            if self.engine is not None:
                 await self.engine.dispose()
                 logger.info("Database connections closed")
         except Exception as e:
@@ -259,11 +271,10 @@ class DatabaseManager:
                     "table_count": table_count,
                     "connection_info": connection_info,
                     "pool_info": {
-                        "pool_size": self.engine.pool.size(),
-                        "checked_in": self.engine.pool.checkedin(),
-                        "checked_out": self.engine.pool.checkedout(),
-                        "overflow": self.engine.pool.overflow(),
-                        "invalid": self.engine.pool.invalid(),
+                        "pool_size": self.engine.pool.size(),  # type: ignore[attr-defined]
+                        "checked_in": self.engine.pool.checkedin(),  # type: ignore[attr-defined]
+                        "checked_out": self.engine.pool.checkedout(),  # type: ignore[attr-defined]
+                        "overflow": self.engine.pool.overflow(),  # type: ignore[attr-defined]
                     }
                     if self.engine
                     else None,

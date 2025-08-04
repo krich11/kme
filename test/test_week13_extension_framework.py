@@ -387,7 +387,7 @@ class TestVendorExtensionService:
             sample_extension_request, sample_handler
         )
         assert response2.success is False
-        assert "already exists" in response2.message
+        assert "already exists" in str(response2.validation_results.get("errors", []))
 
     @pytest.mark.asyncio
     async def test_register_vendor_extension_invalid_handler(

@@ -41,9 +41,13 @@ def detect_kme_id() -> str:
                 cert_data = x509.load_pem_x509_certificate(f.read(), default_backend())
 
             # Extract KME ID from Common Name
-            cn = cert_data.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[
-                0
-            ].value
+            cn_attr = cert_data.subject.get_attributes_for_oid(
+                x509.NameOID.COMMON_NAME
+            )[0]
+            cn = cn_attr.value
+            # Handle both str and bytes types
+            if isinstance(cn, bytes):
+                cn = cn.decode("utf-8")
             if cn and "KME" in cn:
                 return cn
 
@@ -324,7 +328,12 @@ class KMEAdmin:
                 cn = cert_data.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[
                     0
                 ].value
-                print(f"SAE ID (CN): {cn}")
+                # Handle both str and bytes types for display
+                if isinstance(cn, bytes):
+                    cn_display = cn.decode("utf-8")
+                else:
+                    cn_display = str(cn)
+                print(f"SAE ID (CN): {cn_display}")
 
             except Exception as e:
                 print(f"Warning: Could not read certificate details: {e}")
@@ -395,9 +404,13 @@ class KMEAdmin:
                 cert_data = x509.load_pem_x509_certificate(f.read(), default_backend())
 
             # Extract SAE ID from Common Name
-            cn = cert_data.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[
-                0
-            ].value
+            cn_attr = cert_data.subject.get_attributes_for_oid(
+                x509.NameOID.COMMON_NAME
+            )[0]
+            cn = cn_attr.value
+            # Handle both str and bytes types
+            if isinstance(cn, bytes):
+                cn = cn.decode("utf-8")
             return cn
         except Exception as e:
             logger.error(f"Failed to extract SAE ID from certificate: {e}")
@@ -414,9 +427,13 @@ class KMEAdmin:
 
             # Try to extract from Organizational Unit Name
             try:
-                ou = cert_data.subject.get_attributes_for_oid(
+                ou_attr = cert_data.subject.get_attributes_for_oid(
                     x509.NameOID.ORGANIZATIONAL_UNIT_NAME
-                )[0].value
+                )[0]
+                ou = ou_attr.value
+                # Handle both str and bytes types
+                if isinstance(ou, bytes):
+                    ou = ou.decode("utf-8")
                 if ou and ou != "SAE":
                     return ou
             except IndexError:
@@ -424,9 +441,13 @@ class KMEAdmin:
 
             # Try to extract from Organization Name
             try:
-                org = cert_data.subject.get_attributes_for_oid(
+                org_attr = cert_data.subject.get_attributes_for_oid(
                     x509.NameOID.ORGANIZATION_NAME
-                )[0].value
+                )[0]
+                org = org_attr.value
+                # Handle both str and bytes types
+                if isinstance(org, bytes):
+                    org = org.decode("utf-8")
                 if org and org != "KME System":
                     return org
             except IndexError:

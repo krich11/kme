@@ -420,6 +420,7 @@ class VendorExtensionService:
                 "secure": True,
                 "issues": [],
                 "recommendations": [],
+                "warnings": [],
             }
 
             # Check security level appropriateness

@@ -250,12 +250,12 @@ class Settings(BaseSettings):
             raise ValueError(f"Log level must be one of: {allowed_levels}")
         return v.upper()
 
-    model_config = ConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore",  # Allow extra environment variables (like DB_HOST, DB_PORT, etc.)
-    )
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+        "extra": "ignore",  # Allow extra environment variables (like DB_HOST, DB_PORT, etc.)
+    }
 
 
 # Global settings instance

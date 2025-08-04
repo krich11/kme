@@ -64,6 +64,8 @@ class SAEPackageCreator:
 
     def _create_package_contents(self, sae_data: dict[str, Any]) -> Path:
         """Create package directory with all files"""
+        if self.temp_dir is None:
+            raise RuntimeError("temp_dir not initialized")
         package_dir = Path(self.temp_dir) / "sae_package"
         package_dir.mkdir()
 
@@ -115,6 +117,8 @@ class SAEPackageCreator:
 
     def _create_archive(self, package_dir: Path) -> Path:
         """Create tar.gz archive of package contents"""
+        if self.temp_dir is None:
+            raise RuntimeError("temp_dir not initialized")
         archive_path = Path(self.temp_dir) / "package.tar.gz"
 
         with tarfile.open(archive_path, "w:gz") as tar:
@@ -145,7 +149,10 @@ class SAEPackageCreator:
         )
 
         if result.returncode != 0:
-            raise Exception(f"Encryption failed: {result.stderr}")
+            stderr_msg = (
+                result.stderr.decode("utf-8") if result.stderr else "Unknown error"
+            )
+            raise Exception(f"Encryption failed: {stderr_msg}")
 
         return result.stdout.decode("utf-8").strip()
 

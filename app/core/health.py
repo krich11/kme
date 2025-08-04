@@ -24,6 +24,7 @@ Progress: 10% (1/10 tasks completed)
 
 import asyncio
 import datetime
+import sys
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -159,8 +160,8 @@ class HealthMonitor:
                 status=HealthStatus.HEALTHY,
                 message="Basic system functionality is operational",
                 details={
-                    "python_version": f"{psutil.sys.version_info.major}.{psutil.sys.version_info.minor}",
-                    "platform": psutil.sys.platform,
+                    "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
+                    "platform": sys.platform,
                     "uptime_seconds": psutil.boot_time(),
                 },
             )
@@ -341,12 +342,21 @@ class HealthMonitor:
                 tables = [row[0] for row in result.fetchall()]
 
                 # Test 4: Check connection pool status
-                pool_status = {
-                    "pool_size": database_manager.engine.pool.size(),
-                    "checked_in": database_manager.engine.pool.checkedin(),
-                    "checked_out": database_manager.engine.pool.checkedout(),
-                    "overflow": database_manager.engine.pool.overflow(),
-                }
+                if database_manager.engine is None:
+                    pool_status = {
+                        "pool_size": 0,
+                        "checked_in": 0,
+                        "checked_out": 0,
+                        "overflow": 0,
+                        "note": "Engine not initialized",
+                    }
+                else:
+                    pool_status = {
+                        "pool_size": database_manager.engine.pool.size(),  # type: ignore[attr-defined]
+                        "checked_in": database_manager.engine.pool.checkedin(),  # type: ignore[attr-defined]
+                        "checked_out": database_manager.engine.pool.checkedout(),  # type: ignore[attr-defined]
+                        "overflow": database_manager.engine.pool.overflow(),  # type: ignore[attr-defined]
+                    }
 
                 end_time = datetime.datetime.utcnow()
                 response_time = (
@@ -715,8 +725,20 @@ class HealthMonitor:
 
             # Determine overall resource status
             memory_healthy = memory_info["percent"] < 80
-            cpu_healthy = max(cpu_info["cpu_percent"]) < 70
-            disk_healthy = all(disk["percent"] < 80 for disk in disk_info.values())
+            cpu_percent_list = cpu_info["cpu_percent"]
+            if isinstance(cpu_percent_list, list):
+                cpu_healthy = max(cpu_percent_list) < 70
+            else:
+                cpu_healthy = cpu_percent_list < 70  # type: ignore[operator]
+            # Check disk health with proper type handling
+            disk_healthy = True
+            for disk in disk_info.values():
+                if isinstance(disk, dict) and "percent" in disk:
+                    percent = disk["percent"]
+                    if isinstance(percent, (int, float)):
+                        if percent >= 80:  # type: ignore[operator]
+                            disk_healthy = False
+                            break
 
             if memory_healthy and cpu_healthy and disk_healthy:
                 status = HealthStatus.HEALTHY
@@ -769,7 +791,14 @@ class HealthMonitor:
             # Check performance against thresholds
             cpu_ok = cpu_percent < cpu_threshold
             memory_ok = memory_percent < memory_threshold
-            disk_io_ok = (disk_io.read_bytes + disk_io.write_bytes) < disk_io_threshold
+
+            # Handle case where disk_io might be None
+            disk_io_ok = True  # Default to OK if disk_io is None
+            if disk_io is not None:
+                disk_io_ok = (
+                    disk_io.read_bytes + disk_io.write_bytes
+                ) < disk_io_threshold
+
             network_io_ok = (
                 network_io.bytes_sent + network_io.bytes_recv
             ) < network_io_threshold
@@ -786,6 +815,10 @@ class HealthMonitor:
                 message = "Performance metrics are outside acceptable ranges"
 
             # Log performance metrics
+            disk_io_bytes = 0
+            if disk_io is not None:
+                disk_io_bytes = disk_io.read_bytes + disk_io.write_bytes
+
             performance_logger.log_performance_metric(
                 metric_name="system_performance",
                 value=cpu_percent,
@@ -793,7 +826,7 @@ class HealthMonitor:
                 details={
                     "cpu_percent": cpu_percent,
                     "memory_percent": memory_percent,
-                    "disk_io_bytes": disk_io.read_bytes + disk_io.write_bytes,
+                    "disk_io_bytes": disk_io_bytes,
                     "network_io_bytes": network_io.bytes_sent + network_io.bytes_recv,
                 },
             )
@@ -806,10 +839,14 @@ class HealthMonitor:
                     "cpu_percent": cpu_percent,
                     "memory_percent": memory_percent,
                     "disk_io": {
-                        "read_bytes": disk_io.read_bytes,
-                        "write_bytes": disk_io.write_bytes,
-                        "read_count": disk_io.read_count,
-                        "write_count": disk_io.write_count,
+                        "read_bytes": disk_io.read_bytes if disk_io is not None else 0,
+                        "write_bytes": disk_io.write_bytes
+                        if disk_io is not None
+                        else 0,
+                        "read_count": disk_io.read_count if disk_io is not None else 0,
+                        "write_count": disk_io.write_count
+                        if disk_io is not None
+                        else 0,
                     },
                     "network_io": {
                         "bytes_sent": network_io.bytes_sent,

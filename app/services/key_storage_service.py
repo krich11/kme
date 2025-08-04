@@ -431,7 +431,7 @@ class KeyStorageService:
             # Count total keys
             total_query = select(KeyModel).where(KeyModel.is_active.is_(True))
             total_result = await self.db_session.execute(total_query)
-            total_keys = len(await total_result.scalars().all())
+            total_keys = len(total_result.scalars().all())
 
             # Count non-expired keys
             now = datetime.datetime.utcnow()
@@ -442,7 +442,7 @@ class KeyStorageService:
                 )
             )
             active_result = await self.db_session.execute(active_query)
-            active_keys = len(await active_result.scalars().all())
+            active_keys = len(active_result.scalars().all())
 
             # Count expired keys
             expired_query = select(KeyModel).where(
@@ -452,7 +452,7 @@ class KeyStorageService:
                 )
             )
             expired_result = await self.db_session.execute(expired_query)
-            expired_keys = len(await expired_result.scalars().all())
+            expired_keys = len(expired_result.scalars().all())
 
             return {
                 "total_keys": total_keys,
@@ -483,7 +483,7 @@ class KeyStorageService:
                 )
             )
             expired_result = await self.db_session.execute(expired_query)
-            expired_keys = await expired_result.scalars().all()
+            expired_keys = expired_result.scalars().all()
 
             # Mark as inactive (soft delete for audit purposes)
             removed_count = 0
@@ -673,7 +673,7 @@ class KeyStorageService:
             encrypted_key_data = self._fernet.encrypt(decrypted_key_data)
 
             # Update the key model
-            key_model.encrypted_key_data = encrypted_key_data
+            key_model.encrypted_key_data = encrypted_key_data  # type: ignore[assignment]
             if hasattr(key_model, "version"):
                 key_model.version = new_version
             if hasattr(key_model, "updated_at"):

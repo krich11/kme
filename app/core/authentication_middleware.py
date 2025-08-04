@@ -79,7 +79,7 @@ class AuthenticationMiddleware:
         self.auth_attempts += 1
 
         # Initialize audit data
-        audit_data = {
+        audit_data: dict[str, Any] = {
             "request_id": request_id,
             "endpoint_type": endpoint_type,
             "resource_id": resource_id,

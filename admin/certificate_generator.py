@@ -39,8 +39,8 @@ class CertificateGenerator:
 
     def generate_sae_certificate(
         self,
-        sae_id: str = None,
-        sae_name: str = None,
+        sae_id: str | None = None,
+        sae_name: str | None = None,
         validity_days: int = 365,
         key_size: int = 2048,
     ) -> dict[str, str]:
@@ -148,7 +148,7 @@ class CertificateGenerator:
             "private_key_path": str(key_path),
             "sae_id": sae_id,
             "sae_name": sae_name,
-            "validity_days": validity_days,
+            "validity_days": str(validity_days),
             "expires": sae_cert.not_valid_after.isoformat(),
         }
 
@@ -170,6 +170,10 @@ class CertificateGenerator:
             ca_key = serialization.load_pem_private_key(
                 f.read(), password=None, backend=default_backend()
             )
+
+        # Ensure it's an RSA key
+        if not isinstance(ca_key, rsa.RSAPrivateKey):
+            raise ValueError("CA private key must be an RSA key")
 
         return ca_cert, ca_key
 

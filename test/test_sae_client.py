@@ -122,6 +122,9 @@ class SAEClient:
         # Add certificate for authentication
         headers["X-Client-Certificate"] = self.test_certificate
 
+        if self.session is None:
+            raise RuntimeError("Session not initialized. Use async context manager.")
+
         try:
             if method.upper() == "GET":
                 async with self.session.get(url, headers=headers) as response:
@@ -214,7 +217,7 @@ class SAEClient:
         """Compare keys between SAE A (Master) and SAE B (Slave) for ETSI compliance"""
         print("🔍 Phase 3: Comparing keys between SAE A (Master) and SAE B (Slave)...")
 
-        comparison = {
+        comparison: dict[str, Any] = {
             "key_count_match": len(sae_a_keys) == len(sae_b_keys),
             "key_ids_match": [],
             "key_values_match": [],

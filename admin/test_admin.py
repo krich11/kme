@@ -18,7 +18,7 @@ try:
     from admin.package_creator import SAEPackageCreator
 except ImportError:
     print("Warning: Could not import SAEPackageCreator")
-    SAEPackageCreator = None
+    SAEPackageCreator = None  # type: ignore
 
 
 def test_package_creator():

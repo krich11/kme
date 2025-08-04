@@ -22,7 +22,7 @@ class TestKeyStorageService:
     """Test cases for KeyStorageService"""
 
     @pytest.fixture
-    async def mock_db_session(self):
+    def mock_db_session(self):
         """Create a mock database session"""
         session = AsyncMock(spec=AsyncSession)
         session.commit = AsyncMock()
@@ -34,7 +34,9 @@ class TestKeyStorageService:
 
         # Create a mock scalars result that properly handles async operations
         mock_scalars_result = MagicMock()
-        mock_scalars_result.all = AsyncMock(return_value=[])
+        mock_scalars_result.all = MagicMock(
+            return_value=[]
+        )  # Changed from AsyncMock to MagicMock
         mock_result.scalars = MagicMock(return_value=mock_scalars_result)
 
         # Configure the execute method to return the mock result
@@ -71,11 +73,13 @@ class TestKeyStorageService:
             "metadata": {"test": "metadata"},
         }
 
+    @pytest.mark.asyncio
     async def test_initialize_encryption(self, key_storage_service):
         """Test encryption initialization"""
         assert key_storage_service._master_key is not None
         assert key_storage_service._fernet is not None
 
+    @pytest.mark.asyncio
     async def test_store_key_success(
         self, key_storage_service, sample_key_data, mock_db_session
     ):
@@ -97,6 +101,7 @@ class TestKeyStorageService:
         mock_db_session.add.assert_called_once()
         mock_db_session.commit.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_store_key_invalid_parameters(self, key_storage_service):
         """Test key storage with invalid parameters"""
         # Test invalid key_id
@@ -143,6 +148,7 @@ class TestKeyStorageService:
                 key_size=256,
             )
 
+    @pytest.mark.asyncio
     async def test_retrieve_key_success(
         self, key_storage_service, sample_key_data, mock_db_session
     ):
@@ -179,6 +185,7 @@ class TestKeyStorageService:
         assert isinstance(result, Key)
         assert result.key_ID == sample_key_data["key_id"]
 
+    @pytest.mark.asyncio
     async def test_retrieve_key_not_found(self, key_storage_service, mock_db_session):
         """Test key retrieval when key is not found"""
         # Mock the database query to return None
@@ -192,6 +199,7 @@ class TestKeyStorageService:
 
         assert result is None
 
+    @pytest.mark.asyncio
     async def test_retrieve_key_expired(
         self, key_storage_service, sample_key_data, mock_db_session
     ):
@@ -217,6 +225,7 @@ class TestKeyStorageService:
 
         assert result is None
 
+    @pytest.mark.asyncio
     async def test_retrieve_key_unauthorized(
         self, key_storage_service, sample_key_data, mock_db_session
     ):
@@ -242,6 +251,7 @@ class TestKeyStorageService:
 
         assert result is None
 
+    @pytest.mark.asyncio
     async def test_get_key_pool_status(self, key_storage_service, mock_db_session):
         """Test key pool status retrieval"""
         # Mock the database query results
@@ -258,6 +268,7 @@ class TestKeyStorageService:
         assert "expired_keys" in result
         assert "last_updated" in result
 
+    @pytest.mark.asyncio
     async def test_cleanup_expired_keys(self, key_storage_service, mock_db_session):
         """Test expired key cleanup"""
         # Mock expired keys
@@ -273,6 +284,7 @@ class TestKeyStorageService:
         assert result == 1
         mock_db_session.commit.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_authorization_logic(self, key_storage_service):
         """Test key access authorization logic"""
         # Create a mock key model

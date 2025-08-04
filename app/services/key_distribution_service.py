@@ -421,6 +421,10 @@ class KeyDistributionService:
         return Error(
             message=message,
             details=[ErrorDetail(detail=d) for d in details] if details else None,
+            error_code=None,
+            timestamp=None,
+            request_id=None,
+            severity=None,
         )
 
     async def distribute_keys_to_sae(self, request: KeyRequest) -> dict[str, Any]:
@@ -566,12 +570,23 @@ class KeyDistributionService:
                     created_at=datetime.datetime.utcnow(),
                     expires_at=datetime.datetime.utcnow()
                     + datetime.timedelta(hours=24),
+                    key_ID_extension=None,
+                    key_extension=None,
+                    source_kme_id=None,
+                    target_kme_id=None,
+                    key_metadata=None,
                 )
                 mock_keys.append(key)
 
             # Create key container
             key_container = KeyContainer(
                 keys=mock_keys,
+                key_container_extension=None,
+                container_id=None,
+                created_at=None,
+                master_sae_id=None,
+                slave_sae_id=None,
+                total_key_size=None,
             )
 
             return {
@@ -623,6 +638,10 @@ class KeyDistributionService:
                     created_at=datetime.datetime.utcnow(),
                     expires_at=datetime.datetime.utcnow()
                     + datetime.timedelta(hours=24),
+                    key_ID_extension=None,
+                    key_extension=None,
+                    source_kme_id=None,
+                    target_kme_id=None,
                     key_metadata={"quality_metrics": quality_results[i]},
                 )
                 keys.append(key)
@@ -639,6 +658,12 @@ class KeyDistributionService:
             # Create key container
             key_container = KeyContainer(
                 keys=stored_keys,
+                key_container_extension=None,
+                container_id=None,
+                created_at=None,
+                master_sae_id=None,
+                slave_sae_id=None,
+                total_key_size=None,
             )
 
             return {
@@ -717,6 +742,11 @@ class KeyDistributionService:
                     created_at=datetime.datetime.utcnow(),
                     expires_at=datetime.datetime.utcnow()
                     + datetime.timedelta(hours=24),
+                    key_ID_extension=None,
+                    key_extension=None,
+                    source_kme_id=None,
+                    target_kme_id=None,
+                    key_metadata=None,
                 )
                 keys.append(key)
 
@@ -732,6 +762,12 @@ class KeyDistributionService:
             # Create key container
             key_container = KeyContainer(
                 keys=stored_keys,
+                key_container_extension=None,
+                container_id=None,
+                created_at=None,
+                master_sae_id=None,
+                slave_sae_id=None,
+                total_key_size=None,
             )
 
             return {

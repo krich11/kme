@@ -247,12 +247,19 @@ class PerformanceMonitor:
             disk_io = psutil.disk_io_counters()
             network_io = psutil.net_io_counters()
 
+            # Handle case where disk_io might be None (some systems)
+            disk_io_read_mb: float = 0.0
+            disk_io_write_mb: float = 0.0
+            if disk_io is not None:
+                disk_io_read_mb = round(disk_io.read_bytes / (1024**2), 2)
+                disk_io_write_mb = round(disk_io.write_bytes / (1024**2), 2)
+
             return {
                 "cpu_percent": cpu_percent,
                 "memory_percent": memory.percent,
                 "memory_available_gb": round(memory.available / (1024**3), 2),
-                "disk_io_read_mb": round(disk_io.read_bytes / (1024**2), 2),
-                "disk_io_write_mb": round(disk_io.write_bytes / (1024**2), 2),
+                "disk_io_read_mb": disk_io_read_mb,
+                "disk_io_write_mb": disk_io_write_mb,
                 "network_io_sent_mb": round(network_io.bytes_sent / (1024**2), 2),
                 "network_io_recv_mb": round(network_io.bytes_recv / (1024**2), 2),
                 "uptime_seconds": (
