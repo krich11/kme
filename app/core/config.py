@@ -81,6 +81,16 @@ class Settings(BaseSettings):
     kme_hostname: str = Field(default="localhost", description="KME hostname")
     kme_port: int = Field(default=443, description="KME port")
 
+    # Server Configuration
+    server_host: str = Field(
+        default="127.0.0.1",
+        description="Server bind address (use 127.0.0.1 for localhost, 0.0.0.0 for all interfaces)",
+    )
+    server_port: int = Field(default=8000, description="Server port")
+    server_reload: bool = Field(
+        default=True, description="Enable auto-reload for development"
+    )
+
     # Database Configuration
     database_url: str = Field(
         default="postgresql://user:pass@localhost/kme",
@@ -249,6 +259,14 @@ class Settings(BaseSettings):
         if v.upper() not in allowed_levels:
             raise ValueError(f"Log level must be one of: {allowed_levels}")
         return v.upper()
+
+    @field_validator("server_host")
+    def validate_server_host(cls, v):
+        """Validate server host address"""
+        allowed_hosts = ["127.0.0.1", "localhost", "0.0.0.0"]  # nosec B104 - Allowed hosts for validation
+        if v not in allowed_hosts:
+            raise ValueError(f"Server host must be one of: {allowed_hosts}")
+        return v
 
     model_config = {
         "env_file": ".env",

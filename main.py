@@ -443,6 +443,9 @@ if __name__ == "__main__":
 
     import uvicorn
 
+    from app.core.config import get_settings
+
+    settings = get_settings()
     enable_ssl = os.environ.get("KME_ENABLE_SSL", "0") == "1"
 
     ssl_keyfile: str | None = "test_certs/kme_key.pem"
@@ -483,9 +486,9 @@ if __name__ == "__main__":
 
         uvicorn.run(
             "main:app",
-            host="0.0.0.0",  # nosec B104 - Development server binding to all interfaces
-            port=8000,
-            reload=True,
+            host=settings.server_host,
+            port=settings.server_port,
+            reload=settings.server_reload,
             log_level="info",
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
@@ -496,8 +499,8 @@ if __name__ == "__main__":
         print("[INFO] Starting FastAPI backend in HTTP mode (no SSL, behind nginx)")
         uvicorn.run(
             "main:app",
-            host="0.0.0.0",
-            port=8000,
-            reload=True,
+            host=settings.server_host,
+            port=settings.server_port,
+            reload=settings.server_reload,
             log_level="info",
         )
