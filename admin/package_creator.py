@@ -322,11 +322,11 @@ class SAEPackageCreator:
         config = {
             "package_type": "multi_sae_test",
             "package_version": "1.0.0",
-            "kme_endpoint": "http://localhost:8000",
+            "kme_endpoint": "https://localhost:443",
             "ca_certificate_file": ".config/kme_ca_certificate.pem",
             "sae_configurations": sae_configs,
             "connection_config": {
-                "verify_ssl": False,
+                "verify_ssl": True,
                 "timeout": 30,
                 "retry_attempts": 3,
             },

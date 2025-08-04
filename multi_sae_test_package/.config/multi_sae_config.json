@@ -1,7 +1,7 @@
 {
   "package_type": "multi_sae_test",
   "package_version": "1.0.0",
-  "kme_endpoint": "http://localhost:8000",
+  "kme_endpoint": "https://localhost:443",
   "ca_certificate_file": ".config/kme_ca_certificate.pem",
   "sae_configurations": [
     {
@@ -10,7 +10,7 @@
       "role": "master",
       "certificate_file": ".config/master_sae_cert.pem",
       "private_key_file": ".config/master_sae_key.pem",
-      "description": "Master SAE for multi-SAE testing (placeholder cert)"
+      "description": "Master SAE for multi-SAE testing"
     },
     {
       "sae_id": "sae_slave_001",
@@ -18,7 +18,7 @@
       "role": "slave",
       "certificate_file": ".config/slave_sae_001_cert.pem",
       "private_key_file": ".config/slave_sae_001_key.pem",
-      "description": "Slave SAE for multi-SAE testing (placeholder cert)"
+      "description": "Slave SAE for multi-SAE testing"
     },
     {
       "sae_id": "sae_slave_002",
@@ -26,7 +26,7 @@
       "role": "slave",
       "certificate_file": ".config/slave_sae_002_cert.pem",
       "private_key_file": ".config/slave_sae_002_key.pem",
-      "description": "Slave SAE for multi-SAE testing (placeholder cert)"
+      "description": "Slave SAE for multi-SAE testing"
     },
     {
       "sae_id": "sae_slave_003",
@@ -34,11 +34,11 @@
       "role": "slave",
       "certificate_file": ".config/slave_sae_003_cert.pem",
       "private_key_file": ".config/slave_sae_003_key.pem",
-      "description": "Slave SAE for multi-SAE testing (placeholder cert)"
+      "description": "Slave SAE for multi-SAE testing"
     }
   ],
   "connection_config": {
-    "verify_ssl": false,
+    "verify_ssl": true,
     "timeout": 30,
     "retry_attempts": 3
   },
@@ -47,5 +47,5 @@
     "enc_keys": "/api/v1/keys/{slave_SAE_ID}/enc_keys",
     "dec_keys": "/api/v1/keys/{master_SAE_ID}/dec_keys"
   },
-  "created_date": "2025-08-04T14:29:12.094733"
+  "created_date": "2025-08-04T14:57:56.631566"
 }
