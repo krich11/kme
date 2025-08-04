@@ -24,6 +24,7 @@ Progress: 70% (8/13 tasks completed)
 """
 import base64
 import datetime
+import os
 import uuid
 from typing import Any
 
@@ -226,12 +227,51 @@ async def get_key(
             resource_id=slave_sae_id,
         )
 
+        # Validate key request parameters
+        number_of_keys = key_request.number or 1
+        key_size = key_request.size or int(os.getenv("DEFAULT_KEY_SIZE", "352"))
+
+        # Validate number of keys (ETSI requirement)
+        max_keys_per_request = int(os.getenv("MAX_KEYS_PER_REQUEST", "128"))
+        if number_of_keys > max_keys_per_request:
+            raise ValueError(
+                f"Number of keys ({number_of_keys}) exceeds maximum ({max_keys_per_request})"
+            )
+
+        if number_of_keys <= 0:
+            raise ValueError(f"Number of keys must be positive, got {number_of_keys}")
+
+        # Validate key size (ETSI requirement)
+        min_key_size = int(os.getenv("MIN_KEY_SIZE", "64"))
+        max_key_size = int(os.getenv("MAX_KEY_SIZE", "1024"))
+
+        if key_size < min_key_size:
+            raise ValueError(f"Key size ({key_size}) is below minimum ({min_key_size})")
+
+        if key_size > max_key_size:
+            raise ValueError(f"Key size ({key_size}) exceeds maximum ({max_key_size})")
+
+        # Validate additional_slave_SAE_IDs (ETSI requirement)
+        if key_request.additional_slave_SAE_IDs:
+            max_sae_id_count = int(os.getenv("MAX_SAE_ID_COUNT", "10"))
+            if len(key_request.additional_slave_SAE_IDs) > max_sae_id_count:
+                raise ValueError(
+                    f"Number of additional SAE IDs ({len(key_request.additional_slave_SAE_IDs)}) exceeds maximum ({max_sae_id_count})"
+                )
+
+            # Validate each additional SAE ID format
+            for sae_id in key_request.additional_slave_SAE_IDs:
+                if len(sae_id) != 16:
+                    raise ValueError(
+                        f"Additional SAE ID must be exactly 16 characters, got {len(sae_id)}"
+                    )
+
         # For testing, use mock key generation until database issues are resolved
         # TODO: Implement proper key service integration when database issues are resolved
 
         # Create mock keys
         keys = []
-        for i in range(key_request.number or 1):
+        for i in range(number_of_keys):
             key_id = str(uuid.uuid4())
             # Use key_id for consistent key generation (matches dec_keys behavior)
             key_data = base64.b64encode(
