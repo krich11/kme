@@ -1,1 +1,50 @@
-[]
+[
+  {
+    "sae_id": "qnFFr9m6Re3EWs7C",
+    "name": "Master SAE",
+    "kme_id": "KME001ABCDEFGHIJ",
+    "certificate_hash": "placeholder_hash",
+    "max_keys_per_request": 128,
+    "max_key_size": 1024,
+    "min_key_size": 64,
+    "status": "active",
+    "registration_date": "2025-08-04T13:54:28.186800",
+    "role": "master"
+  },
+  {
+    "sae_id": "sae_slave_001",
+    "name": "Slave SAE 1",
+    "kme_id": "KME001ABCDEFGHIJ",
+    "certificate_hash": "placeholder_hash",
+    "max_keys_per_request": 128,
+    "max_key_size": 1024,
+    "min_key_size": 64,
+    "status": "active",
+    "registration_date": "2025-08-04T13:54:28.187031",
+    "role": "slave"
+  },
+  {
+    "sae_id": "sae_slave_002",
+    "name": "Slave SAE 2",
+    "kme_id": "KME001ABCDEFGHIJ",
+    "certificate_hash": "placeholder_hash",
+    "max_keys_per_request": 128,
+    "max_key_size": 1024,
+    "min_key_size": 64,
+    "status": "active",
+    "registration_date": "2025-08-04T13:54:28.187846",
+    "role": "slave"
+  },
+  {
+    "sae_id": "sae_slave_003",
+    "name": "Slave SAE 3",
+    "kme_id": "KME001ABCDEFGHIJ",
+    "certificate_hash": "placeholder_hash",
+    "max_keys_per_request": 128,
+    "max_key_size": 1024,
+    "min_key_size": 64,
+    "status": "active",
+    "registration_date": "2025-08-04T13:54:28.188478",
+    "role": "slave"
+  }
+]

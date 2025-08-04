@@ -69,16 +69,16 @@ class StatusService:
 
 
 try:
-    from certificate_generator import CertificateGenerator
-    from package_creator import SAEPackageCreator
-    from sae_id_generator import SAEIDGenerator
+    from admin.certificate_generator import CertificateGenerator
+    from admin.package_creator import SAEPackageCreator
+    from admin.sae_id_generator import SAEIDGenerator
 except ImportError:
     print(
         "Warning: Could not import SAEPackageCreator, CertificateGenerator, or SAEIDGenerator"
     )
-    SAEPackageCreator = None
-    CertificateGenerator = None
-    SAEIDGenerator = None
+    SAEPackageCreator = None  # type: ignore
+    CertificateGenerator = None  # type: ignore
+    SAEIDGenerator = None  # type: ignore
 
 
 class KMEAdmin:

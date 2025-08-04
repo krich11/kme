@@ -322,11 +322,11 @@ class SAEPackageCreator:
         config = {
             "package_type": "multi_sae_test",
             "package_version": "1.0.0",
-            "kme_endpoint": "https://localhost:443",
+            "kme_endpoint": "http://localhost:8000",
             "ca_certificate_file": ".config/kme_ca_certificate.pem",
             "sae_configurations": sae_configs,
             "connection_config": {
-                "verify_ssl": True,
+                "verify_ssl": False,
                 "timeout": 30,
                 "retry_attempts": 3,
             },
@@ -365,8 +365,13 @@ class SAEPackageCreator:
     def _generate_multi_sae_certificates(
         self, config_dir: Path
     ) -> list[dict[str, Any]]:
-        """Generate multiple SAE certificates for testing"""
+        """Generate multiple SAE certificates for testing using existing CertificateGenerator"""
         sae_configs = []
+
+        # Import CertificateGenerator to use existing certificate generation
+        from admin.certificate_generator import CertificateGenerator
+
+        cert_generator = CertificateGenerator()
 
         # Define SAE configurations
         sae_definitions = [
@@ -400,26 +405,65 @@ class SAEPackageCreator:
             },
         ]
 
+        # Generate certificates for each SAE using existing CertificateGenerator
         for sae_def in sae_definitions:
-            # Create placeholder certificates for now
-            # In a real implementation, these would be generated using the certificate generator
-            cert_path = config_dir / sae_def["cert_file"]
-            key_path = config_dir / sae_def["key_file"]
+            try:
+                # Generate certificate using existing infrastructure
+                cert_result = cert_generator.generate_sae_certificate(
+                    sae_id=sae_def["id"],
+                    sae_name=sae_def["name"],
+                    validity_days=365,
+                    key_size=2048,
+                )
 
-            self._create_placeholder_certificate(
-                cert_path, sae_def["id"], sae_def["name"]
-            )
-            self._create_placeholder_private_key(key_path)
+                # Copy generated certificates to package config directory
+                cert_path = config_dir / sae_def["cert_file"]
+                key_path = config_dir / sae_def["key_file"]
 
-            sae_configs.append(
-                {
-                    "sae_id": sae_def["id"],
-                    "sae_name": sae_def["name"],
-                    "role": sae_def["role"],
-                    "certificate_file": f".config/{sae_def['cert_file']}",
-                    "private_key_file": f".config/{sae_def['key_file']}",
-                }
-            )
+                # Copy certificate and key files
+                shutil.copy2(cert_result["certificate_path"], cert_path)
+                shutil.copy2(cert_result["private_key_path"], key_path)
+
+                # Add to configuration
+                sae_configs.append(
+                    {
+                        "sae_id": sae_def["id"],
+                        "sae_name": sae_def["name"],
+                        "role": sae_def["role"],
+                        "certificate_file": f".config/{sae_def['cert_file']}",
+                        "private_key_file": f".config/{sae_def['key_file']}",
+                        "description": f"{sae_def['role'].title()} SAE for multi-SAE testing",
+                    }
+                )
+
+                logger.info(
+                    f"Generated certificate for {sae_def['name']} ({sae_def['id']})"
+                )
+
+            except Exception as e:
+                logger.warning(
+                    f"Failed to generate certificate for {sae_def['id']}: {e}"
+                )
+                # Create placeholder certificate as fallback
+                cert_path = config_dir / sae_def["cert_file"]
+                key_path = config_dir / sae_def["key_file"]
+
+                self._create_placeholder_certificate(
+                    cert_path, sae_def["id"], sae_def["name"]
+                )
+                self._create_placeholder_private_key(key_path)
+
+                # Add to configuration with fallback note
+                sae_configs.append(
+                    {
+                        "sae_id": sae_def["id"],
+                        "sae_name": sae_def["name"],
+                        "role": sae_def["role"],
+                        "certificate_file": f".config/{sae_def['cert_file']}",
+                        "private_key_file": f".config/{sae_def['key_file']}",
+                        "description": f"{sae_def['role'].title()} SAE for multi-SAE testing (placeholder cert)",
+                    }
+                )
 
         return sae_configs
 
@@ -572,8 +616,8 @@ master_sae=$(jq -r '.sae_configurations[] | select(.role == "master") | .sae_id'
 slave_saes=$(jq -r '.sae_configurations[] | select(.role == "slave") | .sae_id' "$CONFIG_FILE")
 
 if [[ -n "$master_sae" ]]; then
-    master_cert=$(jq -r ".sae_configurations[] | select(.sae_id == \"$master_sae\") | .certificate_file" "$CONFIG_FILE")
-    master_key=$(jq -r ".sae_configurations[] | select(.sae_id == \"$master_sae\") | .private_key_file" "$CONFIG_FILE")
+    master_cert=$(jq -r --arg sae_id "$master_sae" '.sae_configurations[] | select(.sae_id == $sae_id) | .certificate_file' "$CONFIG_FILE")
+    master_key=$(jq -r --arg sae_id "$master_sae" '.sae_configurations[] | select(.sae_id == $sae_id) | .private_key_file' "$CONFIG_FILE")
 
     print_status "Testing master SAE ($master_sae) requesting keys for slave SAEs..."
 
@@ -746,6 +790,9 @@ else
     PASSWORD="$1"
 fi
 
+# Embedded encrypted data
+ENCRYPTED_DATA="{encrypted_data}"
+
 # Create extraction directory
 EXTRACT_DIR="multi_sae_test_package"
 mkdir -p "$EXTRACT_DIR"
@@ -754,10 +801,23 @@ cd "$EXTRACT_DIR"
 print_status "Extracting package contents..."
 
 # Decrypt and extract
-echo "$PASSWORD" | openssl enc -d -aes-256-cbc -a -salt -pbkdf2 -pass stdin << 'ENCRYPTED_DATA'
-{encrypted_data}
-ENCRYPTED_DATA
-| tar -xzf -
+if ! echo "$ENCRYPTED_DATA" | base64 -d | \
+    openssl enc -aes-256-cbc -d -salt -pbkdf2 \
+        -pass "pass:$PASSWORD" \
+        -out "package.tar.gz" 2>/dev/null; then
+    print_error "Invalid password or corrupted package"
+    rm -f "package.tar.gz"
+    exit 1
+fi
+
+# Extract package contents
+if ! tar -xzf package.tar.gz; then
+    print_error "Failed to extract package contents"
+    exit 1
+fi
+
+# Remove temporary archive
+rm package.tar.gz
 
 print_status "Package extracted successfully!"
 print_status "Directory: $EXTRACT_DIR"
@@ -779,8 +839,13 @@ echo "This will run the comprehensive multi-SAE test suite."
         )  # nosec B103 - Self-extracting script needs execute permissions
 
     def _register_multi_sae_saes(self):
-        """Register all multi-SAE SAEs in the KME system"""
+        """Register all multi-SAE SAEs in the KME system using existing admin infrastructure"""
         logger.info("Registering multi-SAE SAEs in KME system")
+
+        # Import KMEAdmin to use existing registration methods
+        from admin.kme_admin import KMEAdmin
+
+        admin = KMEAdmin()
 
         # Define SAE configurations
         sae_definitions = [
@@ -814,112 +879,32 @@ echo "This will run the comprehensive multi-SAE test suite."
             },
         ]
 
-        # Register each SAE
+        # Register each SAE using existing admin infrastructure
         for sae_def in sae_definitions:
             try:
-                self._register_sae_in_kme(sae_def)
+                # Check if SAE already exists
+                if admin._is_sae_registered(sae_def["id"]):
+                    logger.info(f"SAE {sae_def['id']} already registered")
+                    continue
+
+                # Create SAE data using existing format
+                sae_data = {
+                    "sae_id": sae_def["id"],
+                    "name": sae_def["name"],
+                    "kme_id": admin.settings.kme_id,
+                    "certificate_hash": "placeholder_hash",  # Will be updated when real cert is generated
+                    "max_keys_per_request": sae_def["max_keys"],
+                    "max_key_size": sae_def["max_key_size"],
+                    "min_key_size": 64,  # Default minimum
+                    "status": "active",
+                    "registration_date": datetime.utcnow().isoformat(),
+                    "role": sae_def["role"],
+                }
+
+                # Use existing admin method to add SAE
+                admin._add_sae(sae_data)
                 logger.info(f"Registered SAE: {sae_def['name']} ({sae_def['id']})")
+
             except Exception as e:
                 logger.warning(f"Failed to register SAE {sae_def['id']}: {e}")
                 # Continue with other SAEs even if one fails
-
-    def _register_sae_in_kme(self, sae_def: dict[str, Any]):
-        """Register a single SAE in the KME system"""
-        # Try to register in database first
-        try:
-            self._register_sae_in_database(sae_def)
-        except Exception as e:
-            logger.warning(f"Database registration failed for {sae_def['id']}: {e}")
-            # Fallback to JSON registry
-            self._register_sae_in_json_registry(sae_def)
-
-    def _register_sae_in_database(self, sae_def: dict[str, Any]):
-        """Register SAE in database"""
-        try:
-            # Import here to avoid circular imports
-            from app.core.database import database_manager
-
-            async def register_async():
-                # Initialize database if needed
-                await database_manager.initialize()
-
-                async with database_manager.get_session_context() as session:
-                    # Check if SAE already exists
-                    existing_sae = await session.execute(
-                        "SELECT sae_id FROM sae_entities WHERE sae_id = :sae_id",
-                        {"sae_id": sae_def["id"]},
-                    )
-
-                    if existing_sae.fetchone():
-                        logger.info(f"SAE {sae_def['id']} already exists in database")
-                        return
-
-                    # Insert new SAE
-                    await session.execute(
-                        """
-                        INSERT INTO sae_entities
-                        (sae_id, sae_name, status, max_keys_per_request, max_key_size, created_at, updated_at)
-                        VALUES (:sae_id, :sae_name, :status, :max_keys, :max_key_size, NOW(), NOW())
-                        """,
-                        {
-                            "sae_id": sae_def["id"],
-                            "sae_name": sae_def["name"],
-                            "status": "active",
-                            "max_keys": sae_def["max_keys"],
-                            "max_key_size": sae_def["max_key_size"],
-                        },
-                    )
-                    await session.commit()
-                    logger.info(f"Registered SAE {sae_def['id']} in database")
-
-            # Run the async function
-            import asyncio
-
-            asyncio.run(register_async())
-
-        except Exception as e:
-            logger.warning(f"Database registration failed: {e}")
-            raise e
-
-    def _register_sae_in_json_registry(self, sae_def: dict[str, Any]):
-        """Register SAE in JSON registry file"""
-        try:
-            registry_path = Path("admin/sae_registry.json")
-
-            # Load existing registry
-            if registry_path.exists():
-                with open(registry_path) as f:
-                    registry = json.load(f)
-            else:
-                registry = []
-
-            # Check if SAE already exists
-            existing_sae = next(
-                (sae for sae in registry if sae.get("sae_id") == sae_def["id"]), None
-            )
-            if existing_sae:
-                logger.info(f"SAE {sae_def['id']} already exists in JSON registry")
-                return
-
-            # Add new SAE
-            new_sae = {
-                "sae_id": sae_def["id"],
-                "sae_name": sae_def["name"],
-                "status": "active",
-                "max_keys_per_request": sae_def["max_keys"],
-                "max_key_size": sae_def["max_key_size"],
-                "registration_date": datetime.utcnow().isoformat(),
-                "role": sae_def["role"],
-            }
-
-            registry.append(new_sae)
-
-            # Save updated registry
-            with open(registry_path, "w") as f:
-                json.dump(registry, f, indent=2)
-
-            logger.info(f"Registered SAE {sae_def['id']} in JSON registry")
-
-        except Exception as e:
-            logger.error(f"JSON registry registration failed: {e}")
-            raise e
