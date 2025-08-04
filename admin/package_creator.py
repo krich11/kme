@@ -71,19 +71,22 @@ class SAEPackageCreator:
         self.temp_dir = tempfile.mkdtemp()
 
         try:
-            # 1. Create multi-SAE package contents
+            # 1. Register all SAEs in the KME system
+            self._register_multi_sae_saes()
+
+            # 2. Create multi-SAE package contents
             package_dir = self._create_multi_sae_package_contents()
 
-            # 2. Create tar.gz archive
+            # 3. Create tar.gz archive
             archive_path = self._create_archive(package_dir)
 
-            # 3. Encrypt archive
+            # 4. Encrypt archive
             encrypted_data = self._encrypt_archive(archive_path, password)
 
-            # 4. Create self-extracting script
+            # 5. Create self-extracting script
             self._create_multi_sae_self_extractor(encrypted_data, output_path)
 
-            # 5. Clean up
+            # 6. Clean up
             self._cleanup()
 
             logger.info(f"Multi-SAE test package created successfully: {output_path}")
@@ -751,7 +754,7 @@ cd "$EXTRACT_DIR"
 print_status "Extracting package contents..."
 
 # Decrypt and extract
-echo "$PASSWORD" | openssl enc -d -aes-256-cbc -a -salt -pass stdin << 'ENCRYPTED_DATA'
+echo "$PASSWORD" | openssl enc -d -aes-256-cbc -a -salt -pbkdf2 -pass stdin << 'ENCRYPTED_DATA'
 {encrypted_data}
 ENCRYPTED_DATA
 | tar -xzf -
@@ -774,3 +777,149 @@ echo "This will run the comprehensive multi-SAE test suite."
         os.chmod(
             output_path, 0o755
         )  # nosec B103 - Self-extracting script needs execute permissions
+
+    def _register_multi_sae_saes(self):
+        """Register all multi-SAE SAEs in the KME system"""
+        logger.info("Registering multi-SAE SAEs in KME system")
+
+        # Define SAE configurations
+        sae_definitions = [
+            {
+                "id": "qnFFr9m6Re3EWs7C",
+                "name": "Master SAE",
+                "role": "master",
+                "max_keys": 128,
+                "max_key_size": 1024,
+            },
+            {
+                "id": "sae_slave_001",
+                "name": "Slave SAE 1",
+                "role": "slave",
+                "max_keys": 128,
+                "max_key_size": 1024,
+            },
+            {
+                "id": "sae_slave_002",
+                "name": "Slave SAE 2",
+                "role": "slave",
+                "max_keys": 128,
+                "max_key_size": 1024,
+            },
+            {
+                "id": "sae_slave_003",
+                "name": "Slave SAE 3",
+                "role": "slave",
+                "max_keys": 128,
+                "max_key_size": 1024,
+            },
+        ]
+
+        # Register each SAE
+        for sae_def in sae_definitions:
+            try:
+                self._register_sae_in_kme(sae_def)
+                logger.info(f"Registered SAE: {sae_def['name']} ({sae_def['id']})")
+            except Exception as e:
+                logger.warning(f"Failed to register SAE {sae_def['id']}: {e}")
+                # Continue with other SAEs even if one fails
+
+    def _register_sae_in_kme(self, sae_def: dict[str, Any]):
+        """Register a single SAE in the KME system"""
+        # Try to register in database first
+        try:
+            self._register_sae_in_database(sae_def)
+        except Exception as e:
+            logger.warning(f"Database registration failed for {sae_def['id']}: {e}")
+            # Fallback to JSON registry
+            self._register_sae_in_json_registry(sae_def)
+
+    def _register_sae_in_database(self, sae_def: dict[str, Any]):
+        """Register SAE in database"""
+        try:
+            # Import here to avoid circular imports
+            from app.core.database import database_manager
+
+            async def register_async():
+                # Initialize database if needed
+                await database_manager.initialize()
+
+                async with database_manager.get_session_context() as session:
+                    # Check if SAE already exists
+                    existing_sae = await session.execute(
+                        "SELECT sae_id FROM sae_entities WHERE sae_id = :sae_id",
+                        {"sae_id": sae_def["id"]},
+                    )
+
+                    if existing_sae.fetchone():
+                        logger.info(f"SAE {sae_def['id']} already exists in database")
+                        return
+
+                    # Insert new SAE
+                    await session.execute(
+                        """
+                        INSERT INTO sae_entities
+                        (sae_id, sae_name, status, max_keys_per_request, max_key_size, created_at, updated_at)
+                        VALUES (:sae_id, :sae_name, :status, :max_keys, :max_key_size, NOW(), NOW())
+                        """,
+                        {
+                            "sae_id": sae_def["id"],
+                            "sae_name": sae_def["name"],
+                            "status": "active",
+                            "max_keys": sae_def["max_keys"],
+                            "max_key_size": sae_def["max_key_size"],
+                        },
+                    )
+                    await session.commit()
+                    logger.info(f"Registered SAE {sae_def['id']} in database")
+
+            # Run the async function
+            import asyncio
+
+            asyncio.run(register_async())
+
+        except Exception as e:
+            logger.warning(f"Database registration failed: {e}")
+            raise e
+
+    def _register_sae_in_json_registry(self, sae_def: dict[str, Any]):
+        """Register SAE in JSON registry file"""
+        try:
+            registry_path = Path("admin/sae_registry.json")
+
+            # Load existing registry
+            if registry_path.exists():
+                with open(registry_path) as f:
+                    registry = json.load(f)
+            else:
+                registry = []
+
+            # Check if SAE already exists
+            existing_sae = next(
+                (sae for sae in registry if sae.get("sae_id") == sae_def["id"]), None
+            )
+            if existing_sae:
+                logger.info(f"SAE {sae_def['id']} already exists in JSON registry")
+                return
+
+            # Add new SAE
+            new_sae = {
+                "sae_id": sae_def["id"],
+                "sae_name": sae_def["name"],
+                "status": "active",
+                "max_keys_per_request": sae_def["max_keys"],
+                "max_key_size": sae_def["max_key_size"],
+                "registration_date": datetime.utcnow().isoformat(),
+                "role": sae_def["role"],
+            }
+
+            registry.append(new_sae)
+
+            # Save updated registry
+            with open(registry_path, "w") as f:
+                json.dump(registry, f, indent=2)
+
+            logger.info(f"Registered SAE {sae_def['id']} in JSON registry")
+
+        except Exception as e:
+            logger.error(f"JSON registry registration failed: {e}")
+            raise e
