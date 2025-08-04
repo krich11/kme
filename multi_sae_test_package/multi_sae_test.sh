@@ -73,18 +73,20 @@ for i in $(seq 0 $((sae_count - 1))); do
 
     # Test basic connectivity
     print_status "Testing basic connectivity for $sae_name..."
-    if curl -s -X GET "$KME_ENDPOINT/health/ready"         --cert "$cert_file"         --key "$key_file"         --cacert "$CA_FILE"         --connect-timeout 10 > /dev/null; then
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$KME_ENDPOINT/health/ready"         --cert "$cert_file"         --key "$key_file"         --cacert "$CA_FILE"         --connect-timeout 10)
+    if [[ "$http_code" == "200" ]]; then
         print_status "✅ $sae_name connectivity successful"
     else
-        print_error "❌ $sae_name connectivity failed"
+        print_error "❌ $sae_name connectivity failed (HTTP $http_code)"
     fi
 
     # Test status endpoint
     print_status "Testing status endpoint for $sae_name..."
-    if curl -s -X GET "$KME_ENDPOINT/api/v1/keys/$sae_id/status"         --cert "$cert_file"         --key "$key_file"         --cacert "$CA_FILE"         --connect-timeout 10 > /dev/null; then
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$KME_ENDPOINT/api/v1/keys/$sae_id/status"         --cert "$cert_file"         --key "$key_file"         --cacert "$CA_FILE"         --connect-timeout 10)
+    if [[ "$http_code" == "200" ]]; then
         print_status "✅ $sae_name status endpoint successful"
     else
-        print_error "❌ $sae_name status endpoint failed"
+        print_error "❌ $sae_name status endpoint failed (HTTP $http_code)"
     fi
 done
 
@@ -106,10 +108,11 @@ if [[ -n "$master_sae" ]]; then
         # Create key request JSON
         key_request=$(jq -n '{"number": 1, "size": 352}')
 
-        if curl -s -X POST "$KME_ENDPOINT/api/v1/keys/$slave_sae/enc_keys"             --cert "$master_cert"             --key "$master_key"             --cacert "$CA_FILE"             --header "Content-Type: application/json"             --data "$key_request"             --connect-timeout 10 > /dev/null; then
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$KME_ENDPOINT/api/v1/keys/$slave_sae/enc_keys"             --cert "$master_cert"             --key "$master_key"             --cacert "$CA_FILE"             --header "Content-Type: application/json"             --data "$key_request"             --connect-timeout 10)
+        if [[ "$http_code" == "200" ]]; then
             print_status "✅ Key request for $slave_sae successful"
         else
-            print_error "❌ Key request for $slave_sae failed"
+            print_error "❌ Key request for $slave_sae failed (HTTP $http_code)"
         fi
     done
 fi
