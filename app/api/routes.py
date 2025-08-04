@@ -269,7 +269,8 @@ async def get_key(
 
         # Create mock keys and store them in database
         keys = []
-        key_storage_service = KeyStorageService(database_manager.get_session())
+        db_session = await database_manager.get_session()
+        key_storage_service = KeyStorageService(db_session)
 
         for i in range(number_of_keys):
             key_id = str(uuid.uuid4())
@@ -444,7 +445,8 @@ async def get_key_with_ids(
 
         # Retrieve keys from database
         keys = []
-        key_storage_service = KeyStorageService(database_manager.get_session())
+        db_session = await database_manager.get_session()
+        key_storage_service = KeyStorageService(db_session)
 
         for key_id in key_ids:
             try:
