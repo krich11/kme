@@ -341,8 +341,8 @@ show_help() {
     echo "7. Generate SAE Certificate - Create new certificate for SAE"
     echo "8. List SAE Certificates - Show all generated certificates"
     echo "9. Revoke SAE Certificate - Revoke a SAE certificate"
-    echo "10. Show Help - Display this help message"
-    echo "11. Exit - Exit the admin interface"
+    echo "h. Show Help - Display this help message"
+    echo "q. Exit - Exit the admin interface"
     echo ""
     echo "For more detailed help, run: python kme_admin.py --help"
 }
@@ -381,11 +381,11 @@ main_menu() {
         echo "7. Generate SAE Certificate"
         echo "8. List SAE Certificates"
         echo "9. Revoke SAE Certificate"
-        echo "10. Show Help"
-        echo "11. Exit"
+        echo "h. Show Help"
+        echo "q. Exit"
         echo "=================================="
 
-        read -p "Select option (1-11): " choice
+        read -p "Select option (1-9, h, q): " choice
 
         case $choice in
             1) register_new_sae ;;
@@ -397,9 +397,9 @@ main_menu() {
             7) generate_sae_certificate ;;
             8) list_sae_certificates ;;
             9) revoke_sae_certificate ;;
-            10) show_help ;;
-            11) print_status "Goodbye!"; exit 0 ;;
-            *) print_error "Invalid option. Please select 1-11." ;;
+            h|H) show_help ;;
+            q|Q) print_status "Goodbye!"; exit 0 ;;
+            *) print_error "Invalid option. Please select 1-9, h, or q." ;;
         esac
 
         echo ""

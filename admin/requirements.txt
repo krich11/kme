@@ -1,0 +1,19 @@
+# SAE Package Requirements
+# Python dependencies for KME SAE client scripts
+
+# HTTP client for API communication
+requests>=2.31.0
+
+# Cryptography for certificate handling and encryption
+cryptography>=41.0.0
+
+# JSON handling (included in Python stdlib, but listed for clarity)
+# json - built-in
+
+# Path handling (included in Python stdlib, but listed for clarity)
+# pathlib - built-in
+
+# System utilities (included in Python stdlib, but listed for clarity)
+# sys - built-in
+# os - built-in
+# subprocess - built-in

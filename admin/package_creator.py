@@ -113,6 +113,17 @@ class SAEPackageCreator:
         self._create_test_script(package_dir, config)
         self._create_security_readme(package_dir)
 
+        # Copy requirements.txt to package
+        requirements_src = Path(self.admin_dir) / "requirements.txt"
+        if requirements_src.exists():
+            shutil.copy2(requirements_src, package_dir / "requirements.txt")
+        else:
+            # Create a basic requirements.txt if it doesn't exist
+            with open(package_dir / "requirements.txt", "w") as f:
+                f.write("# SAE Package Requirements\n")
+                f.write("requests>=2.31.0\n")
+                f.write("cryptography>=41.0.0\n")
+
         return package_dir
 
     def _create_archive(self, package_dir: Path) -> Path:
@@ -195,6 +206,8 @@ This package contains everything needed to connect this SAE to the KME.
 ./
 ├── client_example.py          # Python client example
 ├── test_connection.sh         # Connection test script
+├── requirements.txt           # Python dependencies
+├── venv/                      # Python virtual environment (created by installer)
 ├── README.md                  # This file
 └── SECURITY_README.md         # Security warnings and instructions
 
@@ -206,9 +219,23 @@ This package contains everything needed to connect this SAE to the KME.
 ```
 
 ## Quick Start
-1. Install dependencies: `pip install requests cryptography`
-2. Test connection: `./test_connection.sh`
-3. Use client example: `python client_example.py`
+1. Extract the package: `./package_name.sh [password]`
+2. The installer will automatically create a virtual environment and install dependencies
+3. Test connection: `./test_connection.sh`
+4. Use client example: `python client_example.py` (automatically activates venv)
+
+## Virtual Environment
+The package installer automatically creates a Python virtual environment (`venv/`) and installs all required dependencies from `requirements.txt`. This ensures:
+- Isolated Python environment
+- Correct dependency versions
+- No conflicts with system Python packages
+
+**Automatic Activation**: The `client_example.py` script automatically activates the virtual environment when run.
+
+To manually activate the virtual environment:
+```bash
+source venv/bin/activate
+```
 
 ## Configuration
 The `.config/sae_package.json` file contains all connection parameters:
@@ -310,16 +337,35 @@ For security incidents or questions:
     def _create_client_example(self, package_dir: Path, config: dict[str, Any]):
         """Create Python client example"""
         client_content = f"""#!/usr/bin/env python3
+# This script automatically activates the virtual environment
+# -*- coding: utf-8 -*-
 \"\"\"
 SAE Client Example
 
 This script demonstrates how to connect to the KME and perform key operations.
+Automatically activates the virtual environment if available.
 \"\"\"
 
 import json
-import requests
+import os
 import sys
+import subprocess
 from pathlib import Path
+
+def activate_venv():
+    \"\"\"Activate virtual environment if it exists\"\"\"
+    venv_python = Path("venv/bin/python")
+    if venv_python.exists():
+        # Replace current process with venv python
+        os.execv(str(venv_python), [str(venv_python)] + sys.argv)
+    else:
+        print("Warning: Virtual environment not found. Using system Python.")
+        print("To create virtual environment: python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt")
+
+# Try to activate virtual environment
+activate_venv()
+
+import requests
 
 def load_config():
     \"\"\"Load SAE configuration\"\"\"

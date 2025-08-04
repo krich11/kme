@@ -79,6 +79,24 @@ extract_package() {
     chmod 644 .config/sae_package.json
     chmod 755 *.sh *.py 2>/dev/null || true
 
+    # Create virtual environment and install dependencies
+    print_status "Setting up Python virtual environment..."
+    if command -v python3 &> /dev/null; then
+        python3 -m venv venv
+        if [[ -f "requirements.txt" ]]; then
+            print_status "Installing Python dependencies..."
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+            print_status "✅ Virtual environment created and dependencies installed"
+        else
+            print_warning "No requirements.txt found, skipping dependency installation"
+        fi
+    else
+        print_error "Python3 is required but not installed"
+        return 1
+    fi
+
     print_status "Package installed successfully!"
     echo ""
     echo "Files installed:"
@@ -92,7 +110,7 @@ extract_package() {
     print_status "Next steps:"
     echo "1. Review SECURITY_README.md"
     echo "2. Test connection: ./test_connection.sh"
-    echo "3. Use client: python client_example.py"
+    echo "3. Use client: python client_example.py (automatically activates venv)"
 
     return 0
 }
@@ -105,7 +123,11 @@ show_help() {
     echo "  password    Password to decrypt package (if not provided, will prompt)"
     echo "  --help      Show this help message"
     echo ""
-    echo "The package will be extracted to .config/kme_sae/ in the current directory"
+    echo "The package will be extracted to the current directory with:"
+    echo "- Python virtual environment (venv/)"
+    echo "- Dependencies installed from requirements.txt"
+    echo "- Configuration files in .config/"
+    echo "- Executable scripts with proper permissions"
 }
 
 # Main execution

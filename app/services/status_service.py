@@ -258,7 +258,7 @@ class StatusService:
 
     async def _is_sae_registered(self, sae_id: str) -> bool:
         """
-        Check if SAE is registered in the database
+        Check if SAE is registered in the database or JSON registry
 
         Args:
             sae_id: SAE ID to check
@@ -267,14 +267,39 @@ class StatusService:
             bool: True if SAE is registered, False otherwise
         """
         try:
-            # Use raw SQL query with SQLAlchemy text()
+            # First check database
             query = text(
                 "SELECT 1 FROM sae_entities WHERE sae_id = :sae_id AND status = 'active'"
             )
             result = await self.db_session.execute(query, {"sae_id": sae_id})
             row = result.fetchone()
 
-            return row is not None
+            if row is not None:
+                self.logger.info("SAE found in database", sae_id=sae_id)
+                return True
+
+            # If not in database, check JSON registry as fallback
+            import json
+            import os
+            from pathlib import Path
+
+            registry_path = Path("admin/sae_registry.json")
+            if registry_path.exists():
+                with open(registry_path) as f:
+                    registry = json.load(f)
+
+                for sae_entry in registry:
+                    if (
+                        sae_entry.get("sae_id") == sae_id
+                        and sae_entry.get("status") == "active"
+                    ):
+                        self.logger.info("SAE found in JSON registry", sae_id=sae_id)
+                        return True
+
+            self.logger.warning(
+                "SAE not found in database or JSON registry", sae_id=sae_id
+            )
+            return False
 
         except Exception as e:
             self.logger.error(

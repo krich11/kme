@@ -31,7 +31,7 @@ class SAEClient:
     """Single SAE client for ETSI QKD 014 key requests"""
 
     def __init__(
-        self, base_url: str = "https://localhost:8000", sae_id: str = "SAE001ABCDEFGHIJ"
+        self, base_url: str = "http://localhost:8000", sae_id: str = "qnFFr9m6Re3EWs7C"
     ):
         """Initialize SAE client"""
         self.base_url = base_url
@@ -294,9 +294,9 @@ def print_usage():
     print()
     print("Optional Arguments:")
     print(
-        "  --url URL                   KME server URL (default: https://localhost:8000)"
+        "  --url URL                   KME server URL (default: http://localhost:8000)"
     )
-    print("  --sae-id SAE_ID             SAE ID (default: SAE001ABCDEFGHIJ)")
+    print("  --sae-id SAE_ID             SAE ID (default: qnFFr9m6Re3EWs7C)")
     print("  --number NUMBER             Number of keys to request (default: 1)")
     print("  --size SIZE                 Key size in bits (default: 256)")
     print("  --help                      Show this help message")
@@ -305,7 +305,7 @@ def print_usage():
     print("  python sae_client.py --master")
     print("  python sae_client.py --master --number 3 --size 512")
     print(
-        "  python sae_client.py --master --url https://kme.example.com --sae-id SAE002ABCDEFGHIJ"
+        "  python sae_client.py --master --url http://kme.example.com --sae-id qnFFr9m6Re3EWs7C"
     )
     print()
     print("Description:")
@@ -327,10 +327,8 @@ async def main():
     )
 
     parser.add_argument("--master", action="store_true", help="Run as Master SAE")
-    parser.add_argument(
-        "--url", default="https://localhost:8000", help="KME server URL"
-    )
-    parser.add_argument("--sae-id", default="SAE001ABCDEFGHIJ", help="SAE ID")
+    parser.add_argument("--url", default="http://localhost:8000", help="KME server URL")
+    parser.add_argument("--sae-id", default="qnFFr9m6Re3EWs7C", help="SAE ID")
     parser.add_argument(
         "--number", type=int, default=1, help="Number of keys to request"
     )

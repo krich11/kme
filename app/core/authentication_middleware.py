@@ -639,7 +639,26 @@ class AuthenticationMiddleware:
         """
         logger.info("🔍 Starting certificate extraction method")
 
-        # Method 1: Try to extract from Nginx header first (production setup)
+        # Method 1: Try to extract from SAE client header
+        cert_header = request.headers.get("X-Client-Certificate")
+        if cert_header:
+            logger.info(
+                "✅ Found certificate in X-Client-Certificate header (SAE client)",
+                cert_header_preview=cert_header[:50]
+                + ("..." if len(cert_header) > 50 else ""),
+            )
+            try:
+                import base64
+
+                cert_pem = base64.b64decode(cert_header).decode("utf-8")
+                return cert_pem.encode("utf-8")
+            except Exception as e:
+                logger.error(f"❌ Failed to decode X-Client-Certificate header: {e}")
+                raise AuthenticationError(
+                    "Invalid certificate format in X-Client-Certificate header"
+                )
+
+        # Method 2: Try to extract from Nginx header (production setup)
         cert_header = request.headers.get("x-ssl-client-cert")
         if cert_header:
             logger.info(
@@ -655,7 +674,7 @@ class AuthenticationMiddleware:
             )
             return cert_pem.encode("utf-8")
 
-        # Method 2: Try to extract from base64 encoded header
+        # Method 3: Try to extract from base64 encoded header
         cert_header_b64 = request.headers.get("x-ssl-client-cert-b64")
         if cert_header_b64:
             logger.info(
@@ -672,7 +691,7 @@ class AuthenticationMiddleware:
                 logger.error(f"❌ Failed to decode base64 certificate header: {e}")
                 raise AuthenticationError("Invalid base64 certificate format in header")
 
-        # Method 3: Production setup - trust Nginx validation and extract identity from headers
+        # Method 4: Production setup - trust Nginx validation and extract identity from headers
         client_subject = request.headers.get("x-forwarded-ssl-client-subject")
         client_verify = request.headers.get("x-forwarded-ssl-client-verify")
 
@@ -719,7 +738,7 @@ class AuthenticationMiddleware:
                     "Failed to extract client identity from headers"
                 )
 
-        # Method 4: Fallback to old logic for direct SSL connections
+        # Method 5: Fallback to old logic for direct SSL connections
         # Enhanced debugging for certificate extraction
         logger.info(
             "🔍 Starting certificate extraction",
