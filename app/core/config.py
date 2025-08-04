@@ -263,7 +263,11 @@ class Settings(BaseSettings):
     @field_validator("server_host")
     def validate_server_host(cls, v):
         """Validate server host address"""
-        allowed_hosts = ["127.0.0.1", "localhost", "0.0.0.0"]  # nosec B104 - Allowed hosts for validation
+        allowed_hosts = [
+            "127.0.0.1",
+            "localhost",
+            "0.0.0.0",
+        ]  # nosec B104 - Allowed hosts for validation
         if v not in allowed_hosts:
             raise ValueError(f"Server host must be one of: {allowed_hosts}")
         return v

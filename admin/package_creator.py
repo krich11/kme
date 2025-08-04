@@ -10,7 +10,7 @@ import json
 import logging
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404 - Required for OpenSSL encryption in admin tools
 import tarfile
 import tempfile
 from datetime import datetime
@@ -133,9 +133,9 @@ class SAEPackageCreator:
             data = f.read()
 
         # Encrypt using OpenSSL
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603
             [
-                "openssl",
+                "/usr/bin/openssl",
                 "enc",
                 "-aes-256-cbc",
                 "-salt",
@@ -178,8 +178,10 @@ class SAEPackageCreator:
         with open(output_path, "w") as f:
             f.write(script_content)
 
-        # Make executable
-        os.chmod(output_path, 0o755)
+        # Make executable - self-extracting script needs execute permissions
+        os.chmod(
+            output_path, 0o755
+        )  # nosec B103 - Self-extracting script needs execute permissions
 
     def _create_readme(self, package_dir: Path, sae_data: dict[str, Any]):
         """Create README file"""
@@ -447,8 +449,7 @@ if __name__ == "__main__":
         with open(package_dir / "client_example.py", "w") as f:
             f.write(client_content)
 
-        # Make executable
-        os.chmod(package_dir / "client_example.py", 0o755)
+        # Python files don't need execute permissions - they're run by the interpreter
 
     def _create_test_script(self, package_dir: Path, config: dict[str, Any]):
         """Create connection test script"""
@@ -595,8 +596,10 @@ print_status "All tests passed successfully!"
         with open(package_dir / "test_connection.sh", "w") as f:
             f.write(test_content)
 
-        # Make executable
-        os.chmod(package_dir / "test_connection.sh", 0o755)
+        # Make executable - shell script needs execute permissions
+        os.chmod(
+            package_dir / "test_connection.sh", 0o755
+        )  # nosec B103 - Shell script needs execute permissions
 
     def _cleanup(self):
         """Clean up temporary files"""

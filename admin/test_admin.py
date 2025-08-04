@@ -6,7 +6,7 @@ This script tests the admin package creation and CLI functionality.
 """
 
 import os
-import subprocess
+import subprocess  # nosec B404 - Required for testing admin CLI tools
 import sys
 import tempfile
 from pathlib import Path
@@ -104,8 +104,10 @@ def test_cli_help():
 
     try:
         # Test main help
-        result = subprocess.run(
-            ["python", "admin/kme_admin.py", "--help"], capture_output=True, text=True
+        result = subprocess.run(  # nosec B603
+            [sys.executable, "admin/kme_admin.py", "--help"],
+            capture_output=True,
+            text=True,
         )
 
         if result.returncode == 0:
@@ -115,8 +117,8 @@ def test_cli_help():
             return False
 
         # Test SAE help
-        result = subprocess.run(
-            ["python", "admin/kme_admin.py", "sae", "--help"],
+        result = subprocess.run(  # nosec B603
+            [sys.executable, "admin/kme_admin.py", "sae", "--help"],
             capture_output=True,
             text=True,
         )
@@ -128,8 +130,8 @@ def test_cli_help():
             return False
 
         # Test SAE list command
-        result = subprocess.run(
-            ["python", "admin/kme_admin.py", "sae", "list"],
+        result = subprocess.run(  # nosec B603
+            [sys.executable, "admin/kme_admin.py", "sae", "list"],
             capture_output=True,
             text=True,
         )
@@ -169,7 +171,7 @@ def test_menu_script():
             return False
 
         # Test menu script help (non-interactive)
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 - Testing admin menu script
             [str(menu_script), "--help"], capture_output=True, text=True
         )
 
