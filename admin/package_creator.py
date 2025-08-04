@@ -808,10 +808,9 @@ cd "$EXTRACT_DIR"
 print_status "Extracting package contents..."
 
 # Decrypt and extract
-if ! echo "$ENCRYPTED_DATA" | \
+if ! echo "$ENCRYPTED_DATA" | base64 -d | \
     openssl enc -aes-256-cbc -d -salt -pbkdf2 \
         -pass "pass:$PASSWORD" \
-        -a \
         -out "package.tar.gz" 2>/dev/null; then
     print_error "Invalid password or corrupted package"
     rm -f "package.tar.gz"
