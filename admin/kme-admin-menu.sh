@@ -250,6 +250,59 @@ generate_sae_package() {
     fi
 }
 
+# Function to generate Multi-SAE Test Package
+generate_multi_sae_test_package() {
+    print_subheader "Generate Multi-SAE Test Package"
+
+    # Prompt for package password
+    read -s -p "Enter package encryption password: " package_password
+    echo
+    read -s -p "Confirm password: " confirm_password
+    echo
+
+    if [[ "$package_password" != "$confirm_password" ]]; then
+        print_error "Passwords do not match"
+        return 1
+    fi
+
+    # Create package name
+    package_name="multi_sae_test"
+    package_file="$PACKAGE_DIR/${package_name}_package.sh"
+
+    # Ensure packages directory exists
+    mkdir -p "$PACKAGE_DIR"
+
+    # Generate multi-SAE test package
+    print_status "Generating multi-SAE test package..."
+    $KME_ADMIN sae generate-multi-sae-package \
+        --password "$package_password" \
+        --output "$package_file"
+
+    if [[ $? -eq 0 ]]; then
+        print_status "Multi-SAE test package generated successfully: $package_file"
+        echo ""
+        echo "Package details:"
+        echo "- File: $package_file"
+        echo "- Size: $(du -h "$package_file" | cut -f1)"
+        echo "- Permissions: $(ls -la "$package_file" | awk '{print $1}')"
+        echo ""
+        echo "This package contains:"
+        echo "- 4 SAE certificates (1 master + 3 slaves)"
+        echo "- Multi-SAE test script"
+        echo "- SAE configuration file"
+        echo "- Comprehensive ETSI QKD 014 multi-SAE testing"
+        echo ""
+        echo "To install on target system:"
+        echo "1. Copy package to target system"
+        echo "2. Run: ./${package_name}_package.sh"
+        echo "3. Enter password when prompted"
+        echo "4. Run: ./multi_sae_test.sh"
+    else
+        print_error "Multi-SAE test package generation failed"
+        return 1
+    fi
+}
+
 # Function to generate SAE certificate
 generate_sae_certificate() {
     print_subheader "Generate SAE Certificate"
@@ -338,11 +391,12 @@ show_help() {
     echo "4. Update SAE Status - Change SAE status (active, inactive, suspended, expired)"
     echo "5. Revoke SAE Access - Revoke access for a SAE"
     echo "6. Generate SAE Package - Create encrypted package for SAE distribution"
-    echo "7. Generate SAE Certificate - Create new certificate for SAE"
-    echo "8. List SAE Certificates - Show all generated certificates"
-    echo "9. Revoke SAE Certificate - Revoke a SAE certificate"
-    echo "h. Show Help - Display this help message"
-    echo "q. Exit - Exit the admin interface"
+echo "7. Generate Multi-SAE Test Package - Create package for multi-SAE testing"
+echo "8. Generate SAE Certificate - Create new certificate for SAE"
+echo "9. List SAE Certificates - Show all generated certificates"
+echo "10. Revoke SAE Certificate - Revoke a SAE certificate"
+echo "h. Show Help - Display this help message"
+echo "q. Exit - Exit the admin interface"
     echo ""
     echo "For more detailed help, run: python kme_admin.py --help"
 }
@@ -378,14 +432,15 @@ main_menu() {
         echo "4. Update SAE Status"
         echo "5. Revoke SAE Access"
         echo "6. Generate SAE Package"
-        echo "7. Generate SAE Certificate"
-        echo "8. List SAE Certificates"
-        echo "9. Revoke SAE Certificate"
+        echo "7. Generate Multi-SAE Test Package"
+        echo "8. Generate SAE Certificate"
+        echo "9. List SAE Certificates"
+        echo "10. Revoke SAE Certificate"
         echo "h. Show Help"
         echo "q. Exit"
         echo "=================================="
 
-        read -p "Select option (1-9, h, q): " choice
+        read -p "Select option (1-10, h, q): " choice
 
         case $choice in
             1) register_new_sae ;;
@@ -394,12 +449,13 @@ main_menu() {
             4) update_sae_status ;;
             5) revoke_sae ;;
             6) generate_sae_package "" "" ;;
-            7) generate_sae_certificate ;;
-            8) list_sae_certificates ;;
-            9) revoke_sae_certificate ;;
+            7) generate_multi_sae_test_package ;;
+            8) generate_sae_certificate ;;
+            9) list_sae_certificates ;;
+            10) revoke_sae_certificate ;;
             h|H) show_help ;;
             q|Q) print_status "Goodbye!"; exit 0 ;;
-            *) print_error "Invalid option. Please select 1-9, h, or q." ;;
+            *) print_error "Invalid option. Please select 1-10, h, or q." ;;
         esac
 
         echo ""

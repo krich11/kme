@@ -286,6 +286,28 @@ class KMEAdmin:
             logger.error(f"Package generation failed: {e}")
             return 1
 
+    def generate_multi_sae_package(self, args: argparse.Namespace) -> int:
+        """Generate multi-SAE test package"""
+        try:
+            if not self.package_creator:
+                logger.error("Package creator not available")
+                return 1
+
+            password = args.password
+            output_path = args.output
+
+            # Create multi-SAE test package
+            package_path = self.package_creator.create_multi_sae_package(
+                output_path, password
+            )
+
+            print(f"Multi-SAE test package created successfully: {package_path}")
+            return 0
+
+        except Exception as e:
+            logger.error(f"Multi-SAE package generation failed: {e}")
+            return 1
+
     def generate_certificate(self, args: argparse.Namespace) -> int:
         """Generate SAE certificate"""
         try:
@@ -618,6 +640,15 @@ def main():
     )
     package_parser.add_argument("--output", required=True, help="Output file path")
 
+    # Generate multi-SAE test package
+    multi_sae_parser = sae_subparsers.add_parser(
+        "generate-multi-sae-package", help="Generate multi-SAE test package"
+    )
+    multi_sae_parser.add_argument(
+        "--password", required=True, help="Package encryption password"
+    )
+    multi_sae_parser.add_argument("--output", required=True, help="Output file path")
+
     # Generate certificate
     cert_parser = sae_subparsers.add_parser(
         "generate-certificate", help="Generate SAE certificate"
@@ -667,6 +698,8 @@ def main():
                 return admin.revoke_sae(args)
             elif args.sae_command == "generate-package":
                 return admin.generate_package(args)
+            elif args.sae_command == "generate-multi-sae-package":
+                return admin.generate_multi_sae_package(args)
             elif args.sae_command == "generate-certificate":
                 return admin.generate_certificate(args)
             elif args.sae_command == "list-certificates":
