@@ -47,5 +47,5 @@
     "enc_keys": "/api/v1/keys/{slave_SAE_ID}/enc_keys",
     "dec_keys": "/api/v1/keys/{master_SAE_ID}/dec_keys"
   },
-  "created_date": "2025-08-04T13:56:54.406506"
+  "created_date": "2025-08-04T14:14:35.191421"
 }
