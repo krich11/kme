@@ -1,7 +1,7 @@
 {
   "sae_name": "SAE cLRyqRTP",
   "sae_id": "cLRyqRTPBIxhlE9o",
-  "kme_endpoint": "https://localhost:8464",
+  "kme_endpoint": "https://localhost:443",
   "certificate_file": ".config/sae_certificate.pem",
   "private_key_file": ".config/sae_private_key.pem",
   "ca_certificate_file": ".config/kme_ca_certificate.pem",

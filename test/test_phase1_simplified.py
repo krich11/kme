@@ -139,7 +139,7 @@ class Phase1SimplifiedTestSuite:
             return (
                 settings.kme_id == "AAAABBBBCCCCDDDD"
                 and settings.kme_hostname == "localhost"
-                and settings.kme_port == 8443
+                and settings.kme_port == 443
             )
         except Exception:
             return False
@@ -393,7 +393,7 @@ class Phase1SimplifiedTestSuite:
             kme_entity = KMEEntity(
                 kme_id="AAAABBBBCCCCDDDD",
                 hostname="kme1.example.com",
-                port=8443,
+                port=443,
                 certificate_info={"subject": "CN=KME1"},
             )
 

@@ -55,7 +55,7 @@ class KMEEntity(BaseModel):
     id: uuid.UUID | None = Field(None, description="Primary key")
     kme_id: str = Field(..., description="Unique KME identifier")
     hostname: str = Field(..., description="KME hostname")
-    port: int = Field(default=8443, description="KME port")
+    port: int = Field(default=443, description="KME port")
     certificate_info: dict[str, Any] | None = Field(
         None, description="Certificate information"
     )

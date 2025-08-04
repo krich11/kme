@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 def get_settings():
     class Settings:
         host = "localhost"
-        port = 8464  # Updated to use Nginx SSL port with mTLS
+        port = 443  # Production HTTPS port with mTLS
         kme_id = detect_kme_id()
 
     return Settings()

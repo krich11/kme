@@ -145,7 +145,7 @@ class DatabaseManager:
                 id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                 kme_id VARCHAR(16) UNIQUE NOT NULL,
                 hostname VARCHAR(255) NOT NULL,
-                port INTEGER NOT NULL DEFAULT 8443,
+                port INTEGER NOT NULL DEFAULT 443,
                 certificate_info JSONB,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -409,7 +409,7 @@ class DatabaseManager:
             """,
                 "KME001",
                 "localhost",
-                8443,
+                443,
                 json.dumps({"subject": "CN=KME001", "issuer": "CN=CA"}),
             )
 

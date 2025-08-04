@@ -79,7 +79,7 @@ class Settings(BaseSettings):
     # KME Identity
     kme_id: str = Field(default="1234567890ABCDEF", description="Unique KME identifier")
     kme_hostname: str = Field(default="localhost", description="KME hostname")
-    kme_port: int = Field(default=8443, description="KME port")
+    kme_port: int = Field(default=443, description="KME port")
 
     # Database Configuration
     database_url: str = Field(

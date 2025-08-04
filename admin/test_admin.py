@@ -29,7 +29,7 @@ def test_package_creator():
     sae_data = {
         "name": "Test Encryption Module",
         "sae_id": "TEST001ABCDEFGHIJ",
-        "kme_endpoint": "https://localhost:8464",  # Updated to use Nginx SSL port
+        "kme_endpoint": "https://localhost:443",  # Production HTTPS port
         "certificate_path": "test_certs/master_sae_cert.pem",  # Updated certificate path
         "private_key_path": "test_certs/master_sae_key.pem",  # Updated key path
         "ca_certificate_path": "test_certs/ca_cert.pem",  # Updated CA path

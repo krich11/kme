@@ -342,7 +342,7 @@ def test_database_models():
             kme_entity = KMEEntity(
                 kme_id="AAAABBBBCCCCDDDD",
                 hostname="kme1.example.com",
-                port=8443,
+                port=443,
                 certificate_info={"subject": "CN=KME001"},
             )
             results.add_pass("KMEEntity model creation")
