@@ -39,6 +39,7 @@ make_request() {
     local url="$2"
     local data="$3"
     local description="$4"
+    local verbose="${5:-true}"
 
     print_status "$description"
 
@@ -68,12 +69,16 @@ make_request() {
     fi
 
     if [[ "$http_status" == "200" ]]; then
-        print_status "✅ $description successful"
-        echo "$response_body"
+        if [[ "$verbose" == "true" ]]; then
+            print_status "✅ $description successful"
+            echo "$response_body"
+        fi
         return 0
     else
-        print_error "❌ $description failed: HTTP $http_status"
-        echo "Response: $response_body"
+        if [[ "$verbose" == "true" ]]; then
+            print_error "❌ $description failed: HTTP $http_status"
+            echo "Response: $response_body"
+        fi
         return 1
     fi
 }
@@ -320,7 +325,7 @@ print_section "PHASE 5: ERROR HANDLING AND EDGE CASES"
 # Test 5.1: Invalid SAE ID
 print_status "Testing invalid SAE ID (should return 400/401)..."
 INVALID_SAE_ID="INVALID123456789"
-if make_request "GET" "$KME_ENDPOINT/api/v1/keys/$INVALID_SAE_ID/status" "" "Invalid SAE ID test"; then
+if make_request "GET" "$KME_ENDPOINT/api/v1/keys/$INVALID_SAE_ID/status" "" "Invalid SAE ID test" "false"; then
     print_warning "Invalid SAE ID accepted (unexpected)"
     ((TESTS_FAILED++))
 else
@@ -333,7 +338,7 @@ if [[ "$MAX_KEYS" -gt 1 ]]; then
     EXCESS_COUNT=$((MAX_KEYS + 1))
     print_status "Testing key request exceeding maximum ($EXCESS_COUNT keys)..."
     KEY_REQUEST_DATA=$(jq -n --arg number "$EXCESS_COUNT" --arg size "$DEFAULT_KEY_SIZE" '{"number": ($number | tonumber), "size": ($size | tonumber)}')
-    if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Excessive key request ($EXCESS_COUNT keys)"; then
+    if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Excessive key request ($EXCESS_COUNT keys)" "false"; then
         print_warning "Excessive key request accepted (unexpected)"
         ((TESTS_FAILED++))
     else
@@ -347,7 +352,7 @@ if [[ "$MAX_KEY_SIZE" -gt "$DEFAULT_KEY_SIZE" ]]; then
     EXCESS_SIZE=$((MAX_KEY_SIZE + 64))
     print_status "Testing key request exceeding maximum size ($EXCESS_SIZE bits)..."
     KEY_REQUEST_DATA=$(jq -n --arg size "$EXCESS_SIZE" '{"number": 1, "size": ($size | tonumber)}')
-    if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Excessive key size request ($EXCESS_SIZE bits)"; then
+    if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Excessive key size request ($EXCESS_SIZE bits)" "false"; then
         print_warning "Excessive key size accepted (unexpected)"
         ((TESTS_FAILED++))
     else
@@ -361,7 +366,7 @@ if [[ "$MIN_KEY_SIZE" -gt 64 ]]; then
     BELOW_MIN_SIZE=$((MIN_KEY_SIZE - 64))
     print_status "Testing key request below minimum size ($BELOW_MIN_SIZE bits)..."
     KEY_REQUEST_DATA=$(jq -n --arg size "$BELOW_MIN_SIZE" '{"number": 1, "size": ($size | tonumber)}')
-    if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Below minimum key size request ($BELOW_MIN_SIZE bits)"; then
+    if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Below minimum key size request ($BELOW_MIN_SIZE bits)" "false"; then
         print_warning "Below minimum key size accepted (unexpected)"
         ((TESTS_FAILED++))
     else
@@ -373,7 +378,7 @@ fi
 # Test 5.5: Invalid JSON Request
 print_status "Testing invalid JSON request..."
 INVALID_JSON='{"invalid": "json", "missing": "closing brace"'
-if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$INVALID_JSON" "Invalid JSON request"; then
+if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$INVALID_JSON" "Invalid JSON request" "false"; then
     print_warning "Invalid JSON accepted (unexpected)"
     ((TESTS_FAILED++))
 else
