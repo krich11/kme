@@ -52,12 +52,20 @@ make_request() {
 
     if [[ -n "$data" ]]; then
         curl_cmd="$curl_cmd -H \"Content-Type: application/json\""
-        curl_cmd="$curl_cmd -d \"$data\""
+        # Write JSON data to temporary file to avoid quoting issues
+        local temp_json=$(mktemp)
+        echo "$data" > "$temp_json"
+        curl_cmd="$curl_cmd -d @\"$temp_json\""
     fi
 
     local response=$(eval $curl_cmd)
     local http_status=$(echo "$response" | grep "HTTP_STATUS:" | cut -d: -f2)
     local response_body=$(echo "$response" | grep -v "HTTP_STATUS:")
+
+    # Clean up temporary file if it was created
+    if [[ -n "$data" && -f "$temp_json" ]]; then
+        rm -f "$temp_json"
+    fi
 
     if [[ "$http_status" == "200" ]]; then
         print_status "✅ $description successful"
