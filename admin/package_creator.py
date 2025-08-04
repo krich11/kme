@@ -371,7 +371,8 @@ class SAEPackageCreator:
         # Import CertificateGenerator to use existing certificate generation
         from admin.certificate_generator import CertificateGenerator
 
-        cert_generator = CertificateGenerator()
+        # Use correct CA directory path (test_certs is in project root)
+        cert_generator = CertificateGenerator(ca_dir="test_certs")
 
         # Define SAE configurations
         sae_definitions = [
