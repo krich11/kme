@@ -210,7 +210,7 @@ print_section "PHASE 3: MASTER SAE WORKFLOWS (Key Request Operations)"
 
 # Test 3.1: Basic Key Request (Single Key)
 print_status "Testing basic key request (single key)..."
-KEY_REQUEST_DATA='{"number": 1, "size": '$DEFAULT_KEY_SIZE'}'
+KEY_REQUEST_DATA=$(jq -n --arg size "$DEFAULT_KEY_SIZE" '{"number": 1, "size": ($size | tonumber)}')
 if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Basic key request (1 key, $DEFAULT_KEY_SIZE bits)"; then
     ((TESTS_PASSED++))
     # Extract key IDs for later tests
@@ -223,7 +223,7 @@ fi
 if [[ "$MAX_KEYS" -gt 1 ]]; then
     REQUEST_COUNT=$((MAX_KEYS > 3 ? 3 : MAX_KEYS))
     print_status "Testing multiple key request ($REQUEST_COUNT keys)..."
-    KEY_REQUEST_DATA='{"number": '$REQUEST_COUNT', "size": '$DEFAULT_KEY_SIZE'}'
+    KEY_REQUEST_DATA=$(jq -n --arg number "$REQUEST_COUNT" --arg size "$DEFAULT_KEY_SIZE" '{"number": ($number | tonumber), "size": ($size | tonumber)}')
     if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Multiple key request ($REQUEST_COUNT keys)"; then
         ((TESTS_PASSED++))
     else
@@ -238,7 +238,7 @@ if [[ "$MAX_KEY_SIZE" -gt "$DEFAULT_KEY_SIZE" ]]; then
     CUSTOM_SIZE=$((DEFAULT_KEY_SIZE + 64))
     if [[ "$CUSTOM_SIZE" -le "$MAX_KEY_SIZE" ]]; then
         print_status "Testing custom key size request ($CUSTOM_SIZE bits)..."
-        KEY_REQUEST_DATA='{"number": 1, "size": '$CUSTOM_SIZE'}'
+        KEY_REQUEST_DATA=$(jq -n --arg size "$CUSTOM_SIZE" '{"number": 1, "size": ($size | tonumber)}')
         if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Custom key size request ($CUSTOM_SIZE bits)"; then
             ((TESTS_PASSED++))
         else
@@ -252,7 +252,7 @@ fi
 # Test 3.4: Minimum Key Size Request
 if [[ "$MIN_KEY_SIZE" -lt "$DEFAULT_KEY_SIZE" ]]; then
     print_status "Testing minimum key size request ($MIN_KEY_SIZE bits)..."
-    KEY_REQUEST_DATA='{"number": 1, "size": '$MIN_KEY_SIZE'}'
+    KEY_REQUEST_DATA=$(jq -n --arg size "$MIN_KEY_SIZE" '{"number": 1, "size": ($size | tonumber)}')
     if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Minimum key size request ($MIN_KEY_SIZE bits)"; then
         ((TESTS_PASSED++))
     else
@@ -264,7 +264,7 @@ fi
 
 # Test 3.5: Key Request with Extensions (Optional)
 print_status "Testing key request with optional extensions..."
-KEY_REQUEST_DATA='{"number": 1, "size": '$DEFAULT_KEY_SIZE', "extension_optional": [{"priority": "high"}, {"timeout": 30}]}'
+KEY_REQUEST_DATA=$(jq -n --arg size "$DEFAULT_KEY_SIZE" '{"number": 1, "size": ($size | tonumber), "extension_optional": [{"priority": "high"}, {"timeout": 30}]}')
 if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Key request with optional extensions"; then
     ((TESTS_PASSED++))
 else
@@ -273,7 +273,7 @@ fi
 
 # Test 3.6: Key Request with Mandatory Extensions (should fail gracefully)
 print_status "Testing key request with mandatory extensions (should handle gracefully)..."
-KEY_REQUEST_DATA='{"number": 1, "size": '$DEFAULT_KEY_SIZE', "extension_mandatory": [{"custom_requirement": "test"}]}'
+KEY_REQUEST_DATA=$(jq -n --arg size "$DEFAULT_KEY_SIZE" '{"number": 1, "size": ($size | tonumber), "extension_mandatory": [{"custom_requirement": "test"}]}')
 if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Key request with mandatory extensions"; then
     ((TESTS_PASSED++))
 else
@@ -291,7 +291,7 @@ if [[ -f "/tmp/key_ids.txt" ]]; then
     KEY_ID=$(head -1 /tmp/key_ids.txt)
     if [[ -n "$KEY_ID" ]]; then
         print_status "Testing Get Key with Key IDs..."
-        KEY_IDS_DATA='{"key_IDs": [{"key_ID": "'$KEY_ID'"}]}'
+        KEY_IDS_DATA=$(jq -n --arg key_id "$KEY_ID" '{"key_IDs": [{"key_ID": $key_id}]}')
         if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/dec_keys" "$KEY_IDS_DATA" "Get Key with Key IDs"; then
             ((TESTS_PASSED++))
         else
@@ -324,7 +324,7 @@ fi
 if [[ "$MAX_KEYS" -gt 1 ]]; then
     EXCESS_COUNT=$((MAX_KEYS + 1))
     print_status "Testing key request exceeding maximum ($EXCESS_COUNT keys)..."
-    KEY_REQUEST_DATA='{"number": '$EXCESS_COUNT', "size": '$DEFAULT_KEY_SIZE'}'
+    KEY_REQUEST_DATA=$(jq -n --arg number "$EXCESS_COUNT" --arg size "$DEFAULT_KEY_SIZE" '{"number": ($number | tonumber), "size": ($size | tonumber)}')
     if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Excessive key request ($EXCESS_COUNT keys)"; then
         print_warning "Excessive key request accepted (unexpected)"
         ((TESTS_FAILED++))
@@ -338,7 +338,7 @@ fi
 if [[ "$MAX_KEY_SIZE" -gt "$DEFAULT_KEY_SIZE" ]]; then
     EXCESS_SIZE=$((MAX_KEY_SIZE + 64))
     print_status "Testing key request exceeding maximum size ($EXCESS_SIZE bits)..."
-    KEY_REQUEST_DATA='{"number": 1, "size": '$EXCESS_SIZE'}'
+    KEY_REQUEST_DATA=$(jq -n --arg size "$EXCESS_SIZE" '{"number": 1, "size": ($size | tonumber)}')
     if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Excessive key size request ($EXCESS_SIZE bits)"; then
         print_warning "Excessive key size accepted (unexpected)"
         ((TESTS_FAILED++))
@@ -352,7 +352,7 @@ fi
 if [[ "$MIN_KEY_SIZE" -gt 64 ]]; then
     BELOW_MIN_SIZE=$((MIN_KEY_SIZE - 64))
     print_status "Testing key request below minimum size ($BELOW_MIN_SIZE bits)..."
-    KEY_REQUEST_DATA='{"number": 1, "size": '$BELOW_MIN_SIZE'}'
+    KEY_REQUEST_DATA=$(jq -n --arg size "$BELOW_MIN_SIZE" '{"number": 1, "size": ($size | tonumber)}')
     if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Below minimum key size request ($BELOW_MIN_SIZE bits)"; then
         print_warning "Below minimum key size accepted (unexpected)"
         ((TESTS_FAILED++))
@@ -381,7 +381,7 @@ print_section "PHASE 6: PERFORMANCE AND STRESS TESTING"
 # Test 6.1: Rapid Successive Requests
 print_status "Testing rapid successive key requests..."
 for i in {1..3}; do
-    KEY_REQUEST_DATA='{"number": 1, "size": '$DEFAULT_KEY_SIZE'}'
+    KEY_REQUEST_DATA=$(jq -n --arg size "$DEFAULT_KEY_SIZE" '{"number": 1, "size": ($size | tonumber)}')
     if make_request "POST" "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" "$KEY_REQUEST_DATA" "Rapid request $i/3"; then
         ((TESTS_PASSED++))
     else
@@ -438,7 +438,7 @@ KEY_RESPONSE=$(curl -s -X POST "$KME_ENDPOINT/api/v1/keys/$SAE_ID/enc_keys" \
     --key "$KEY_FILE" \
     --cacert "$CA_FILE" \
     --header "Content-Type: application/json" \
-    --data '{"number": 1, "size": '$DEFAULT_KEY_SIZE'}' \
+    --data "$(jq -n --arg size "$DEFAULT_KEY_SIZE" '{"number": 1, "size": ($size | tonumber)}')" \
     --connect-timeout 10)
 
 # Check for required ETSI fields in key response
