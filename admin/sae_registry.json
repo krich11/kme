@@ -1,90 +1,13 @@
 [
   {
-    "sae_id": "vrLEo8I8ZL-xnZP2",
-    "name": "SAE-A",
-    "kme_id": "KME001ABCDEFGHIJ",
-    "certificate_hash": "8f0f7244285436695d2f53acb3818fca81126ca203ad69441519c125e8461db2",
-    "max_keys_per_request": 2,
-    "max_key_size": 1024,
-    "min_key_size": 64,
-    "status": "active",
-    "registration_date": "2025-07-31T23:53:58.315841"
-  },
-  {
-    "sae_id": "kb5slQtEzYGRXsHo",
-    "name": "Test SAE",
-    "kme_id": "KME001ABCDEFGHIJ",
-    "certificate_hash": "fe512f2927aa9880fb399cd31911aaf2251044aa00e0f09dc70c9e4ef18115dc",
-    "max_keys_per_request": 128,
-    "max_key_size": 1024,
-    "min_key_size": 64,
-    "status": "active",
-    "registration_date": "2025-07-31T23:54:23.476281"
-  },
-  {
-    "sae_id": "aLa5rCzaiPW7dmjf",
-    "name": "Test SAE 2",
-    "kme_id": "KME001ABCDEFGHIJ",
-    "certificate_hash": "a76df9e3ef386b69d6cf910deb293c9071ff624654703d4735faaf5a9c70a7d4",
-    "max_keys_per_request": 128,
-    "max_key_size": 1024,
-    "min_key_size": 64,
-    "status": "active",
-    "registration_date": "2025-08-01T00:01:26.249056"
-  },
-  {
-    "sae_id": "fi_bPi3nQj9xrBjj",
-    "name": "Test SAE 5",
-    "kme_id": "KME001ABCDEFGHIJ",
-    "certificate_hash": "f3393ed278e16cd10be1d44b148f9885ee50b02624b874eb43c9ea4bc7f8fc21",
-    "max_keys_per_request": 2,
-    "max_key_size": 1024,
-    "min_key_size": 64,
-    "status": "active",
-    "registration_date": "2025-08-01T00:06:13.866733"
-  },
-  {
-    "sae_id": "TQK0fy7E3q904ZMa",
-    "name": "Test SAE 6",
-    "kme_id": "KME001ABCDEFGHIJ",
-    "certificate_hash": "29ae79a1c12c55c64a367782c0e42fae23ee97fe85020bd9baa832c6309a91d8",
-    "max_keys_per_request": 128,
-    "max_key_size": 1024,
-    "min_key_size": 64,
-    "status": "active",
-    "registration_date": "2025-08-01T00:06:26.565742"
-  },
-  {
-    "sae_id": "f4ryvy0FdortdKjW",
-    "name": "sae-a",
-    "kme_id": "KME001ABCDEFGHIJ",
-    "certificate_hash": "9bb726062672fcab845084f9491f2578ccaf797272b7f241d2e5dc8da9342d9d",
-    "max_keys_per_request": 128,
-    "max_key_size": 1024,
-    "min_key_size": 64,
-    "status": "active",
-    "registration_date": "2025-08-01T00:07:15.895603"
-  },
-  {
-    "sae_id": "v52xlvCEkappG33O",
+    "sae_id": "qnFFr9m6Re3EWs7C",
     "name": "sae-a",
     "kme_id": "KME Server E1F2A3B4C5D6E7F8",
-    "certificate_hash": "fe431f25e8f772b1219d8c96d97a63ee8861163fcfb1df35700d2e0af9f3450e",
+    "certificate_hash": "a13aa58b4de8fdccf82f27742ec7fd2f76478be4284d1bde0eb9f411eb8b756b",
     "max_keys_per_request": 128,
     "max_key_size": 1024,
     "min_key_size": 64,
     "status": "active",
-    "registration_date": "2025-08-03T19:57:18.661645"
-  },
-  {
-    "sae_id": "dWHpAelPf0rS48IJ",
-    "name": "sae-a",
-    "kme_id": "KME Server E1F2A3B4C5D6E7F8",
-    "certificate_hash": "f57d4051a7ab40c5ee1da0f09aeb63d92619857718146e823860b904b10a5357",
-    "max_keys_per_request": 128,
-    "max_key_size": 1024,
-    "min_key_size": 64,
-    "status": "active",
-    "registration_date": "2025-08-04T03:35:23.715554"
+    "registration_date": "2025-08-04T04:38:46.750764"
   }
 ]

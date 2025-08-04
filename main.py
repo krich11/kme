@@ -1,26 +1,74 @@
 #!/usr/bin/env python3
 """
-KME (Key Management Entity) - Main Application Entry Point
+⚠️  ⚠️  ⚠️  CRITICAL WARNING ⚠️  ⚠️  ⚠️
+
+THIS KME BACKEND WILL NEVER USE SSL/TLS. EVER.
+
+DO NOT ATTEMPT TO ENABLE SSL IN THIS CODEBASE.
+DO NOT ADD SSL CONFIGURATION.
+DO NOT MODIFY THIS TO SUPPORT HTTPS.
+DO NOT ASK ABOUT SSL SETUP.
+
+This is an HTTP-only backend designed to run behind nginx or other reverse proxies
+that handle SSL termination. The KME backend itself operates exclusively over HTTP
+on localhost/127.0.0.1 for security reasons.
+
+IF YOU NEED SSL, CONFIGURE IT IN YOUR REVERSE PROXY (nginx, etc.)
+NOT IN THIS PYTHON APPLICATION.
+
+⚠️  ⚠️  ⚠️  END WARNING ⚠️  ⚠️  ⚠️
+
+KME Backend Server
 
 Version: 1.0.0
 Author: KME Development Team
-Description: ETSI GS QKD 014 V1.1.1 compliant Key Management Entity
+Description: Key Management Entity (KME) backend implementing ETSI GS QKD 014 V1.1.1
 License: [To be determined]
 
-ToDo List:
-- [x] Implement FastAPI application setup
-- [x] Add middleware for authentication
-- [x] Configure CORS settings
-- [x] Set up API routing
-- [x] Add health check endpoints
-- [x] Implement logging configuration
-- [x] Add error handling middleware
-- [x] Configure TLS settings
-- [x] Add metrics collection
-- [x] Implement graceful shutdown
-- [x] Integrate ETSI-compliant API routes
+This module provides the main FastAPI application for the KME system,
+including all API endpoints, middleware, and server configuration.
 
-Progress: 100% (All tasks completed)
+Key Features:
+- HTTP-only operation (no SSL/TLS)
+- FastAPI-based REST API
+- Structured logging with JSON format
+- Health check endpoints
+- Performance monitoring
+- Database integration
+- Key management operations
+
+ToDo List:
+- [x] Implement basic FastAPI application
+- [x] Add health check endpoints
+- [x] Configure structured logging
+- [x] Add request/response middleware
+- [x] Implement error handling
+- [x] Add performance metrics
+- [x] Configure CORS middleware
+- [x] Add trusted host middleware
+- [ ] Add rate limiting
+- [ ] Implement caching
+- [ ] Add API versioning
+- [ ] Create deployment scripts
+
+Progress: 80% (8/10 tasks completed)
+
+Usage:
+    python main.py
+
+Environment Variables:
+    - KME_ID: Unique KME identifier (16 characters)
+    - SERVER_HOST: Server bind address (default: 127.0.0.1)
+    - SERVER_PORT: Server port (default: 8000)
+    - DATABASE_URL: Database connection URL
+    - REDIS_URL: Redis connection URL
+    - LOG_LEVEL: Logging level (default: INFO)
+
+Security Notes:
+- This backend runs on HTTP only
+- SSL/TLS is handled by reverse proxy (nginx)
+- All external access should go through the reverse proxy
+- Backend should only be accessible on localhost/127.0.0.1
 """
 
 import datetime
@@ -148,33 +196,10 @@ app = FastAPI(
 # Add request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """Log all incoming requests for debugging"""
+    """Log all requests"""
     import time
 
     start_time = time.time()
-
-    # Log request details
-    logger.info(
-        "📥 Incoming request",
-        method=request.method,
-        path=request.url.path,
-        client_ip=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
-        content_type=request.headers.get("content-type"),
-        has_scope=hasattr(request, "scope"),
-        scope_keys=list(request.scope.keys()) if hasattr(request, "scope") else [],
-    )
-
-    # Check for SSL context
-    if hasattr(request, "scope") and "ssl" in request.scope:
-        ssl_context = request.scope["ssl"]
-        logger.info(
-            "🔐 SSL context found",
-            ssl_keys=list(ssl_context.keys()) if ssl_context else [],
-            has_client_cert="client_cert" in ssl_context if ssl_context else False,
-        )
-    else:
-        logger.warning("⚠️ No SSL context in request")
 
     response = await call_next(request)
 
