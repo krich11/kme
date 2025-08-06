@@ -128,7 +128,7 @@ class KMEAdmin:
         self.package_creator = SAEPackageCreator() if SAEPackageCreator else None
         self.cert_generator = CertificateGenerator() if CertificateGenerator else None
         self.db_url = os.getenv(
-            "DATABASE_URL", "postgresql://krich:mustang@localhost/kme_db"
+            "DATABASE_URL", "postgresql://krich:password@localhost/kme_db"
         )
 
     def _get_db_connection(self):

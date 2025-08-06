@@ -20,7 +20,7 @@ PROJECT_ROOT = ADMIN_DIR.parent  # Go up one level to get to project root
 load_dotenv(ADMIN_DIR / ".env")
 
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://krich:mustang@localhost/kme_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://krich:password@localhost/kme_db")
 
 # KME configuration
 KME_ID = os.getenv("KME_ID", "KME001")
