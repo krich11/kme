@@ -27,7 +27,7 @@ test/
 **Objective**: Start with completely clean environment, remove all existing artifacts
 
 **Tests**:
-- [ ] Remove all existing certificates (sae_certs/, admin/sae_certs/, test_certs/)
+- [ ] Remove all existing certificates (sae_certs/, admin/sae_certs/, test_certs/, certs/)
 - [ ] Remove all configuration files (.env, nginx.conf modifications)
 - [ ] Clear all database entries (DROP SCHEMA public CASCADE)
 - [ ] Reset nginx configuration to original state

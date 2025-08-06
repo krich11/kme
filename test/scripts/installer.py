@@ -2152,7 +2152,7 @@ TESTING=false
             self.log("")
             self.log("5. System Nginx Installation (requires sudo):")
             self.log(
-                f"   sudo python {self.paths['scripts_dir']}/nginx_installer.py admin/kme_cert.pem admin/kme_key.pem"
+                f"   sudo python {self.paths['scripts_dir']}/nginx_installer.py certs/kme_cert.pem certs/kme_key.pem"
             )
 
             # Security notes
@@ -2264,7 +2264,7 @@ TESTING=false
                 self.log("🚀 USAGE:")
                 self.log("  Local testing: nginx -c kme_nginx.conf")
                 self.log(
-                    "  System install: sudo python test/scripts/nginx_installer.py admin/kme_cert.pem admin/kme_key.pem"
+                    "  System install: sudo python test/scripts/nginx_installer.py certs/kme_cert.pem certs/kme_key.pem"
                 )
 
             elif component == "utils":

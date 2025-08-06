@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 
-def generate_ca(ca_dir: str = "admin/ca", ca_name: str = "Test KME CA"):
+def generate_ca(ca_dir: str = "certs/ca", ca_name: str = "Test KME CA"):
     """Generate CA certificate and private key"""
 
     ca_path = Path(ca_dir)
@@ -60,7 +60,7 @@ def generate_ca(ca_dir: str = "admin/ca", ca_name: str = "Test KME CA"):
     return True
 
 
-def generate_kme_cert(ca_dir: str = "admin/ca", kme_id: str = "AAAABBBBCCCCDDDD"):
+def generate_kme_cert(ca_dir: str = "certs/ca", kme_id: str = "AAAABBBBCCCCDDDD"):
     """Generate KME certificate using the CA"""
 
     ca_path = Path(ca_dir)
@@ -71,8 +71,8 @@ def generate_kme_cert(ca_dir: str = "admin/ca", kme_id: str = "AAAABBBBCCCCDDDD"
         print("CA files not found. Generate CA first.")
         return False
 
-    kme_key = Path("admin/kme_key.pem")
-    kme_cert = Path("admin/kme_cert.pem")
+    kme_key = Path("certs/kme_key.pem")
+    kme_cert = Path("certs/kme_cert.pem")
 
     print(f"Generating KME certificate for ID: {kme_id}")
 

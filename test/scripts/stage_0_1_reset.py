@@ -42,7 +42,7 @@ class EnvironmentReset:
             "sae_certs",
             "admin/sae_certs",
             "test_certs",
-            "admin/ca",
+            "certs",
         ]
 
         # Files to remove

@@ -93,7 +93,7 @@ class CASetup:
 
             if self.run_command(command, "Generate CA using CA generation script"):
                 # Verify CA files were created
-                ca_dir = self.project_root / "admin" / "ca"
+                ca_dir = self.project_root / "certs" / "ca"
                 ca_cert = ca_dir / "ca.crt"
                 ca_key = ca_dir / "ca.key"
 
@@ -119,7 +119,7 @@ class CASetup:
     def validate_ca_structure(self) -> bool:
         """Validate CA certificate structure"""
         try:
-            ca_cert = self.project_root / "admin" / "ca" / "ca.crt"
+            ca_cert = self.project_root / "certs" / "ca" / "ca.crt"
 
             if not ca_cert.exists():
                 error_msg = f"CA certificate not found: {ca_cert}"
@@ -176,8 +176,8 @@ class CASetup:
 
             if self.run_command(command, "Generate KME certificate"):
                 # Verify KME certificate was created
-                kme_cert = self.project_root / "admin" / "kme_cert.pem"
-                kme_key = self.project_root / "admin" / "kme_key.pem"
+                kme_cert = self.project_root / "certs" / "kme_cert.pem"
+                kme_key = self.project_root / "certs" / "kme_key.pem"
 
                 if kme_cert.exists() and kme_key.exists():
                     details = f"KME certificate generated successfully: {kme_cert}"
@@ -205,8 +205,8 @@ class CASetup:
     def validate_cert_chain(self) -> bool:
         """Validate certificate chain"""
         try:
-            ca_cert = self.project_root / "admin" / "ca" / "ca.crt"
-            kme_cert = self.project_root / "admin" / "kme_cert.pem"
+            ca_cert = self.project_root / "certs" / "ca" / "ca.crt"
+            kme_cert = self.project_root / "certs" / "kme_cert.pem"
 
             if not ca_cert.exists() or not kme_cert.exists():
                 error_msg = "CA or KME certificate not found for chain validation"
@@ -238,8 +238,8 @@ class CASetup:
     def configure_nginx(self) -> bool:
         """Configure nginx with KME certificate using proper installer"""
         try:
-            kme_cert = self.project_root / "admin" / "kme_cert.pem"
-            kme_key = self.project_root / "admin" / "kme_key.pem"
+            kme_cert = self.project_root / "certs" / "kme_cert.pem"
+            kme_key = self.project_root / "certs" / "kme_key.pem"
 
             if not kme_cert.exists() or not kme_key.exists():
                 error_msg = "KME certificate or key not found for nginx configuration"

@@ -519,7 +519,7 @@ class KMEAdmin:
                 print("Certificate generator not available, using fallback method...")
 
                 # Create output directory
-                cert_dir = Path("admin/sae_certs")
+                cert_dir = Path("certs/sae_certs")
                 cert_dir.mkdir(parents=True, exist_ok=True)
 
                 cert_path = cert_dir / f"{sae_id}.crt"

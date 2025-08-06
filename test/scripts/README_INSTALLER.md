@@ -70,13 +70,13 @@ python test/scripts/generate_ca.py ca
 python test/scripts/generate_ca.py kme
 
 # Validate certificates
-python test/scripts/certificate_validator.py admin/kme_cert.pem admin/ca/ca.crt
+python test/scripts/certificate_validator.py certs/kme_cert.pem certs/ca/ca.crt
 ```
 
 ### 3. Nginx Configuration
 ```bash
 # Generate nginx config
-python test/scripts/nginx_config_generator.py admin/kme_cert.pem admin/kme_key.pem
+python test/scripts/nginx_config_generator.py certs/kme_cert.pem certs/kme_key.pem
 
 # Validate nginx config
 python test/scripts/nginx_validator.py nginx.conf
@@ -125,10 +125,10 @@ The installer uses the following database configuration:
 - Database: kme_db
 
 ### Certificate Configuration
-- CA Certificate: `admin/ca/ca.crt`
-- CA Private Key: `admin/ca/ca.key`
-- KME Certificate: `admin/kme_cert.pem`
-- KME Private Key: `admin/kme_key.pem`
+- CA Certificate: `certs/ca/ca.crt`
+- CA Private Key: `certs/ca/ca.key`
+- KME Certificate: `certs/kme_cert.pem`
+- KME Private Key: `certs/kme_key.pem`
 
 ## Testing Workflow
 

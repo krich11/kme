@@ -76,7 +76,7 @@ python test/scripts/generate_ca.py kme
 python test/scripts/database_setup.py setup
 
 # Generate nginx config
-python test/scripts/nginx_config_generator.py admin/kme_cert.pem admin/kme_key.pem
+python test/scripts/nginx_config_generator.py certs/kme_cert.pem certs/kme_key.pem
 ```
 
 ### Test Execution
