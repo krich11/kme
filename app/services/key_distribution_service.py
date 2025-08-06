@@ -94,7 +94,7 @@ class KeyRequestProcessor:
                 if not self.validate_sae_id(sae_id):
                     validation_result["valid"] = False
                     validation_result["errors"].append(
-                        f"Invalid SAE ID format: {sae_id} (must be 16 characters)"
+                        f"Invalid SAE ID format: {sae_id} (cannot be empty)"
                     )
 
         # Process extension parameters

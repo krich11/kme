@@ -262,76 +262,20 @@ async def get_key(
 
             # Validate each additional SAE ID format
             for sae_id in key_request.additional_slave_SAE_IDs:
-                if len(sae_id) != 16:
-                    raise ValueError(
-                        f"Additional SAE ID must be exactly 16 characters, got {len(sae_id)}"
-                    )
+                if not sae_id:
+                    raise ValueError("Additional SAE ID cannot be empty")
 
-        # Create mock keys and store them in database
-        keys = []
+        # Use KeyService to process the key request
         db_session = await database_manager.get_session()
-        key_storage_service = KeyStorageService(db_session)
+        from app.services.key_service import KeyService
 
-        for i in range(number_of_keys):
-            key_id = str(uuid.uuid4())
-            # Generate mock key data (32 bytes)
-            key_data = f"test_key_{key_id}_data_32_bytes_long".encode()
+        key_service = KeyService(db_session)
 
-            # Set expiration (24 hours from now)
-            expires_at = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-
-            try:
-                # Store key in database
-                stored = await key_storage_service.store_key(
-                    key_id=key_id,
-                    key_data=key_data,
-                    master_sae_id=requesting_sae_id,
-                    slave_sae_id=slave_sae_id,
-                    key_size=key_size,
-                    expires_at=expires_at,
-                    key_metadata={
-                        "generated_at": datetime.datetime.utcnow().isoformat(),
-                        "generation_method": "mock_key_generation",
-                        "entropy": 1.0,
-                        "error_rate": 0.0,
-                        "source": "api_endpoint_mock",
-                    },
-                )
-
-                if stored:
-                    # Create Key object for response
-                    key = Key(
-                        key_ID=key_id,
-                        key=base64.b64encode(key_data).decode("utf-8"),
-                        key_size=key_size,
-                        key_ID_extension=None,
-                        key_extension=None,
-                        created_at=datetime.datetime.utcnow(),
-                        expires_at=expires_at,
-                        source_kme_id=os.getenv("KME_ID", "AAAABBBBCCCCDDDD"),
-                        target_kme_id=slave_sae_id,
-                        key_metadata={
-                            "entropy": 1.0,
-                            "error_rate": 0.0,
-                            "source": "mock_generation",
-                        },
-                    )
-                    keys.append(key)
-                else:
-                    logger.error(f"Failed to store mock key {key_id}")
-
-            except Exception as e:
-                logger.error(f"Failed to generate and store mock key {i}: {str(e)}")
-                continue
-        # Create key container
-        key_container = KeyContainer(
-            keys=keys,
-            key_container_extension=None,
-            container_id=None,
-            created_at=None,
-            master_sae_id=requesting_sae_id,
+        # Process the key request using the KeyService
+        key_container = await key_service.process_key_request(
             slave_sae_id=slave_sae_id,
-            total_key_size=None,
+            key_request=key_request,
+            master_sae_id=requesting_sae_id,
         )
         logger.info(
             "Get Key response generated successfully (mock keys stored in database)",
@@ -440,53 +384,20 @@ async def get_key_with_ids(
             resource_id=master_sae_id,
         )
 
+        # Use KeyService to retrieve keys by IDs
+        db_session = await database_manager.get_session()
+        from app.services.key_service import KeyService
+
+        key_service = KeyService(db_session)
+
         # Extract key_IDs from the request
         key_ids = [key_id.key_ID for key_id in key_ids_request.key_IDs]
 
-        # Retrieve keys from database
-        keys = []
-        db_session = await database_manager.get_session()
-        key_storage_service = KeyStorageService(db_session)
-
-        for key_id in key_ids:
-            try:
-                # Retrieve key from database
-                retrieved_key = await key_storage_service.retrieve_key(
-                    key_id=key_id,
-                    requesting_sae_id=requesting_sae_id,
-                    master_sae_id=master_sae_id,
-                )
-
-                if retrieved_key:
-                    # Create Key object for response
-                    key = Key(
-                        key_ID=retrieved_key.key_ID,
-                        key=retrieved_key.key,
-                        key_size=retrieved_key.key_size,
-                        key_ID_extension=retrieved_key.key_ID_extension,
-                        key_extension=retrieved_key.key_extension,
-                        created_at=retrieved_key.created_at,
-                        expires_at=retrieved_key.expires_at,
-                        source_kme_id=retrieved_key.source_kme_id,
-                        target_kme_id=retrieved_key.target_kme_id,
-                        key_metadata=retrieved_key.key_metadata,
-                    )
-                    keys.append(key)
-                else:
-                    logger.warning(f"Key {key_id} not found in database")
-
-            except Exception as e:
-                logger.error(f"Failed to retrieve key {key_id}: {str(e)}")
-                continue
-        # Create key container
-        key_container = KeyContainer(
-            keys=keys,
-            key_container_extension=None,
-            container_id=None,
-            created_at=None,
+        # Retrieve keys using KeyService
+        key_container = await key_service.get_keys_by_ids(
             master_sae_id=master_sae_id,
-            slave_sae_id=requesting_sae_id,
-            total_key_size=None,
+            key_ids=key_ids,
+            requesting_sae_id=requesting_sae_id,
         )
         logger.info(
             "Get Key with Key IDs response generated successfully (keys retrieved from database)",

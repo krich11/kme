@@ -10,9 +10,17 @@ import json
 import logging
 import os
 import sys
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+import psycopg2
+from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
+
+# Load environment variables
+load_dotenv()
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -57,10 +65,10 @@ def detect_kme_id() -> str:
             return kme_id
 
         # Fallback to default
-        return "KME001ABCDEFGHIJ"
+        return "KME001"
     except Exception as e:
         logger.warning(f"Failed to detect KME ID: {e}, using default")
-        return "KME001ABCDEFGHIJ"
+        return "KME001"
 
 
 # Mock services for now
@@ -68,17 +76,46 @@ class StatusService:
     pass
 
 
+def generate_sae_id() -> str:
+    """Generate a simple SAE ID as fallback"""
+    import base64
+    import secrets
+
+    # Generate 12 random bytes (96 bits of entropy)
+    random_bytes = secrets.token_bytes(12)
+
+    # Encode to Base64 and remove padding
+    encoded = base64.urlsafe_b64encode(random_bytes).decode("ascii")
+    sae_id = encoded.rstrip("=")
+
+    # Ensure it's exactly 16 characters
+    if len(sae_id) != 16:
+        if len(sae_id) < 16:
+            sae_id = sae_id.ljust(16, "A")
+        else:
+            sae_id = sae_id[:16]
+
+    return sae_id
+
+
+# Initialize module variables
+SAEPackageCreator = None
+CertificateGenerator = None
+SAEIDGenerator = None
+
 try:
-    from admin.certificate_generator import CertificateGenerator
-    from admin.package_creator import SAEPackageCreator
-    from admin.sae_id_generator import SAEIDGenerator
+    from .certificate_generator import CertificateGenerator
+    from .package_creator import SAEPackageCreator
+    from .sae_id_generator import SAEIDGenerator
 except ImportError:
-    print(
-        "Warning: Could not import SAEPackageCreator, CertificateGenerator, or SAEIDGenerator"
-    )
-    SAEPackageCreator = None  # type: ignore
-    CertificateGenerator = None  # type: ignore
-    SAEIDGenerator = None  # type: ignore
+    try:
+        from certificate_generator import CertificateGenerator
+        from package_creator import SAEPackageCreator
+        from sae_id_generator import SAEIDGenerator
+    except ImportError:
+        print(
+            "Warning: Could not import SAEPackageCreator, CertificateGenerator, or SAEIDGenerator"
+        )
 
 
 class KMEAdmin:
@@ -87,44 +124,123 @@ class KMEAdmin:
     def __init__(self):
         self.settings = get_settings()
         self.status_service = StatusService()
+        # Use the imported modules or fallback to None
         self.package_creator = SAEPackageCreator() if SAEPackageCreator else None
         self.cert_generator = CertificateGenerator() if CertificateGenerator else None
-        self.sae_storage_file = Path("sae_registry.json")
-        self._ensure_sae_storage()
+        self.db_url = os.getenv(
+            "DATABASE_URL", "postgresql://krich:mustang@localhost/kme_db"
+        )
 
-    def _ensure_sae_storage(self):
-        """Ensure SAE storage file exists"""
-        if not self.sae_storage_file.exists():
-            self.sae_storage_file.write_text("[]")
+    def _get_db_connection(self):
+        """Get database connection"""
+        # Convert asyncpg URL to psycopg2 format
+        if self.db_url.startswith("postgresql+asyncpg://"):
+            db_url = self.db_url.replace("postgresql+asyncpg://", "postgresql://")
+        else:
+            db_url = self.db_url
+        return psycopg2.connect(db_url, cursor_factory=RealDictCursor)
 
     def _load_saes(self) -> list:
-        """Load SAEs from storage"""
+        """Load SAEs from database"""
         try:
-            data = self.sae_storage_file.read_text()
-            return json.loads(data)
-        except Exception:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM sae_entities ORDER BY sae_id")
+            rows = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            saes = []
+            for row in rows:
+                sae = dict(row)
+                # Convert certificate_info from JSONB to dict if needed
+                if isinstance(sae.get("certificate_info"), str):
+                    sae["certificate_info"] = json.loads(sae["certificate_info"])
+                saes.append(sae)
+            return saes
+        except Exception as e:
+            logger.error(f"Failed to load SAEs from database: {e}")
             return []
 
-    def _save_saes(self, saes: list):
-        """Save SAEs to storage"""
-        try:
-            self.sae_storage_file.write_text(json.dumps(saes, indent=2))
-        except Exception as e:
-            logger.error(f"Failed to save SAEs: {e}")
-
     def _add_sae(self, sae_data: dict):
-        """Add SAE to storage"""
-        saes = self._load_saes()
-        saes.append(sae_data)
-        self._save_saes(saes)
+        """Add SAE to database"""
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+
+            # Prepare certificate info
+            cert_info = {
+                "hash": sae_data.get("certificate_hash", ""),
+                "subject": f"CN={sae_data.get('name', sae_data['sae_id'])}",
+                "issuer": "KME Development CA",
+            }
+
+            cursor.execute(
+                """
+                INSERT INTO sae_entities (
+                    id, sae_id, kme_id, certificate_info, registration_date,
+                    last_seen, status, created_at, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    sae_data["sae_id"],
+                    sae_data.get("kme_id", self.settings.kme_id),
+                    json.dumps(cert_info),
+                    datetime.fromisoformat(
+                        sae_data.get("registration_date", datetime.now().isoformat())
+                    ),
+                    datetime.now(),
+                    sae_data.get("status", "active"),
+                    datetime.now(),
+                    datetime.now(),
+                ),
+            )
+            conn.commit()
+            cursor.close()
+            conn.close()
+            logger.info(f"SAE {sae_data['sae_id']} added to database")
+        except Exception as e:
+            logger.error(f"Failed to add SAE to database: {e}")
+            raise
 
     def _get_sae_by_id(self, sae_id: str) -> dict | None:
-        """Get SAE by ID from storage"""
-        saes = self._load_saes()
-        for sae in saes:
-            if sae.get("sae_id") == sae_id:
+        """Get SAE by ID from database"""
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM sae_entities WHERE sae_id = %s", (sae_id,))
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+
+            if row:
+                sae = dict(row)
+                # Convert certificate_info from JSONB to dict if needed
+                if isinstance(sae.get("certificate_info"), str):
+                    sae["certificate_info"] = json.loads(sae["certificate_info"])
                 return sae
-        return None
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get SAE from database: {e}")
+            return None
+
+    def _is_sae_registered(self, sae_id: str) -> bool:
+        """Check if SAE is registered in database"""
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT 1 FROM sae_entities WHERE sae_id = %s AND status = 'active'",
+                (sae_id,),
+            )
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            return row is not None
+        except Exception as e:
+            logger.error(f"Failed to check SAE registration: {e}")
+            return False
 
     def register_sae(self, args: argparse.Namespace) -> int:
         """Register a new SAE"""
@@ -155,7 +271,7 @@ class KMEAdmin:
                 "registration_date": datetime.now().isoformat(),
             }
 
-            # Save SAE to storage
+            # Save SAE to database
             self._add_sae(sae_data)
             logger.info(f"SAE {sae_id} registered successfully")
 
@@ -172,7 +288,7 @@ class KMEAdmin:
     def list_saes(self, args: argparse.Namespace) -> int:
         """List all registered SAEs"""
         try:
-            # Load SAEs from storage
+            # Load SAEs from database
             saes = self._load_saes()
 
             if args.json:
@@ -201,7 +317,7 @@ class KMEAdmin:
         try:
             sae_id = args.sae_id
 
-            # Load SAE from storage
+            # Load SAE from database
             sae_data = self._get_sae_by_id(sae_id)
 
             if not sae_data:
@@ -234,10 +350,24 @@ class KMEAdmin:
                 logger.error(f"Invalid status. Must be one of: {valid_statuses}")
                 return 1
 
-            # This would typically update the database
-            logger.info(f"Updated SAE {sae_id} status to {new_status}")
+            # Update database
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE sae_entities SET status = %s, updated_at = %s WHERE sae_id = %s",
+                (new_status, datetime.now(), sae_id),
+            )
+            rows_affected = cursor.rowcount
+            conn.commit()
+            cursor.close()
+            conn.close()
 
-            return 0
+            if rows_affected > 0:
+                logger.info(f"Updated SAE {sae_id} status to {new_status}")
+                return 0
+            else:
+                logger.error(f"SAE {sae_id} not found")
+                return 1
 
         except Exception as e:
             logger.error(f"Failed to update SAE status: {e}")
@@ -248,10 +378,24 @@ class KMEAdmin:
         try:
             sae_id = args.sae_id
 
-            # This would typically update the database
-            logger.info(f"Revoked access for SAE {sae_id}")
+            # Update database to set status to revoked
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE sae_entities SET status = 'revoked', updated_at = %s WHERE sae_id = %s",
+                (datetime.now(), sae_id),
+            )
+            rows_affected = cursor.rowcount
+            conn.commit()
+            cursor.close()
+            conn.close()
 
-            return 0
+            if rows_affected > 0:
+                logger.info(f"Revoked access for SAE {sae_id}")
+                return 0
+            else:
+                logger.error(f"SAE {sae_id} not found")
+                return 1
 
         except Exception as e:
             logger.error(f"Failed to revoke SAE: {e}")
@@ -311,54 +455,136 @@ class KMEAdmin:
     def generate_certificate(self, args: argparse.Namespace) -> int:
         """Generate SAE certificate"""
         try:
-            if not self.cert_generator:
-                logger.error("Certificate generator not available")
-                return 1
-
             sae_id = args.sae_id
             sae_name = args.name
             validity_days = args.validity_days
             key_size = args.key_size
 
-            # Generate certificate
-            result = self.cert_generator.generate_sae_certificate(
-                sae_id=sae_id,
-                sae_name=sae_name,
-                validity_days=validity_days,
-                key_size=key_size,
-            )
-
-            print(f"Certificate generated successfully!")
-            print(f"Certificate: {result['certificate_path']}")
-            print(f"Private Key: {result['private_key_path']}")
-            print(f"Expires: {result['expires']}")
-
-            # Display certificate subject for verification
-            try:
-                from cryptography import x509
-                from cryptography.hazmat.backends import default_backend
-
-                with open(result["certificate_path"], "rb") as f:
-                    cert_data = x509.load_pem_x509_certificate(
-                        f.read(), default_backend()
-                    )
-
-                print(f"Certificate Subject: {cert_data.subject}")
-                print(f"Certificate Issuer: {cert_data.issuer}")
-
-                # Extract and display SAE ID from CN
-                cn = cert_data.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[
-                    0
-                ].value
-                # Handle both str and bytes types for display
-                if isinstance(cn, bytes):
-                    cn_display = cn.decode("utf-8")
+            # Generate SAE ID if not provided
+            if not sae_id:
+                if SAEIDGenerator:
+                    sae_id = SAEIDGenerator.generate_sae_id()
                 else:
-                    cn_display = str(cn)
-                print(f"SAE ID (CN): {cn_display}")
+                    sae_id = generate_sae_id()
+                print(f"Generated SAE ID: {sae_id}")
 
-            except Exception as e:
-                print(f"Warning: Could not read certificate details: {e}")
+            # Generate SAE name if not provided
+            if not sae_name:
+                sae_name = f"SAE-{sae_id[:8]}"
+                print(f"Generated SAE name: {sae_name}")
+
+            if self.cert_generator:
+                # Use the certificate generator if available
+                result = self.cert_generator.generate_sae_certificate(
+                    sae_id=sae_id,
+                    sae_name=sae_name,
+                    validity_days=validity_days,
+                    key_size=key_size,
+                )
+
+                print(f"Certificate generated successfully!")
+                print(f"Certificate: {result['certificate_path']}")
+                print(f"Private Key: {result['private_key_path']}")
+                print(f"Expires: {result.get('expires', 'N/A')}")
+
+                # Display certificate subject for verification
+                try:
+                    from cryptography import x509
+                    from cryptography.hazmat.backends import default_backend
+
+                    with open(result["certificate_path"], "rb") as f:
+                        cert_data = x509.load_pem_x509_certificate(
+                            f.read(), default_backend()
+                        )
+
+                    print(f"Certificate Subject: {cert_data.subject}")
+                    print(f"Certificate Issuer: {cert_data.issuer}")
+
+                    # Extract and display SAE ID from CN
+                    cn = cert_data.subject.get_attributes_for_oid(
+                        x509.NameOID.COMMON_NAME
+                    )[0].value
+                    # Handle both str and bytes types for display
+                    if isinstance(cn, bytes):
+                        cn_display = cn.decode("utf-8")
+                    else:
+                        cn_display = str(cn)
+                    print(f"SAE ID (CN): {cn_display}")
+
+                except Exception as e:
+                    print(f"Warning: Could not read certificate details: {e}")
+
+            else:
+                # Fallback: create a simple certificate using OpenSSL
+                print("Certificate generator not available, using fallback method...")
+
+                # Create output directory
+                cert_dir = Path("admin/sae_certs")
+                cert_dir.mkdir(parents=True, exist_ok=True)
+
+                cert_path = cert_dir / f"{sae_id}.crt"
+                key_path = cert_dir / f"{sae_id}.key"
+
+                # Generate certificate using OpenSSL command
+                import subprocess
+
+                # Create OpenSSL config
+                config_content = f"""
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+C = US
+ST = State
+L = City
+O = Organization
+OU = Unit
+CN = {sae_id}
+
+[v3_req]
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = {sae_name}
+"""
+
+                config_path = cert_dir / f"{sae_id}.conf"
+                with open(config_path, "w") as f:
+                    f.write(config_content)
+
+                # Generate private key and certificate
+                subprocess.run(
+                    [
+                        "openssl",
+                        "req",
+                        "-x509",
+                        "-newkey",
+                        "rsa:2048",
+                        "-keyout",
+                        str(key_path),
+                        "-out",
+                        str(cert_path),
+                        "-days",
+                        str(validity_days),
+                        "-config",
+                        str(config_path),
+                        "-nodes",
+                    ],
+                    check=True,
+                )
+
+                # Clean up config file
+                config_path.unlink()
+
+                print(f"Certificate generated successfully!")
+                print(f"Certificate: {cert_path}")
+                print(f"Private Key: {key_path}")
+                print(f"SAE ID: {sae_id}")
+                print(f"SAE Name: {sae_name}")
 
             return 0
 
@@ -496,11 +722,6 @@ class KMEAdmin:
         except Exception as e:
             logger.error(f"Failed to get certificate hash: {e}")
             return ""
-
-    def _is_sae_registered(self, sae_id: str) -> bool:
-        """Check if SAE is registered"""
-        sae_data = self._get_sae_by_id(sae_id)
-        return sae_data is not None
 
     def _get_sae_data(self, sae_id: str) -> dict[str, Any] | None:
         """Get SAE data for package generation"""

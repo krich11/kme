@@ -66,8 +66,8 @@ class KMEEntity(BaseModel):
     @classmethod
     def validate_kme_id(cls, v):
         """Validate KME ID length"""
-        if len(v) != 16:
-            raise ValueError("KME ID must be exactly 16 characters")
+        if not v:
+            raise ValueError("KME ID cannot be empty")
         return v
 
     @field_validator("port")
@@ -100,8 +100,8 @@ class SAEEntity(BaseModel):
     @classmethod
     def validate_id_length(cls, v):
         """Validate ID length"""
-        if len(v) != 16:
-            raise ValueError("ID must be exactly 16 characters")
+        if not v:
+            raise ValueError("ID cannot be empty")
         return v
 
     @field_validator("status")
@@ -157,8 +157,8 @@ class KeyRecord(BaseModel):
     @classmethod
     def validate_id_length(cls, v):
         """Validate ID length"""
-        if len(v) != 16:
-            raise ValueError("ID must be exactly 16 characters")
+        if not v:
+            raise ValueError("ID cannot be empty")
         return v
 
     @field_validator("status")
@@ -176,8 +176,8 @@ class KeyRecord(BaseModel):
         """Validate additional SAE IDs"""
         if v is not None:
             for sae_id in v:
-                if len(sae_id) != 16:
-                    raise ValueError("SAE ID must be exactly 16 characters")
+                if not sae_id:
+                    raise ValueError("SAE ID cannot be empty")
         return v
 
 
@@ -218,8 +218,8 @@ class KeyRequestRecord(BaseModel):
     @classmethod
     def validate_id_length(cls, v):
         """Validate ID length"""
-        if len(v) != 16:
-            raise ValueError("ID must be exactly 16 characters")
+        if not v:
+            raise ValueError("ID cannot be empty")
         return v
 
     @field_validator("number_of_keys")
@@ -268,8 +268,8 @@ class KeyDistributionEvent(BaseModel):
     @classmethod
     def validate_id_length(cls, v):
         """Validate ID length"""
-        if len(v) != 16:
-            raise ValueError("ID must be exactly 16 characters")
+        if not v:
+            raise ValueError("ID cannot be empty")
         return v
 
     @field_validator("key_count")
@@ -325,8 +325,9 @@ class SecurityEventRecord(BaseModel):
             "authentication",
             "authorization",
             "key_management",
-            "network_security",
-            "compliance",
+            "network",
+            "system",
+            "security",
         ]
         if v not in valid_categories:
             raise ValueError(f"Category must be one of: {valid_categories}")
@@ -336,8 +337,8 @@ class SecurityEventRecord(BaseModel):
     @classmethod
     def validate_id_length(cls, v):
         """Validate ID length"""
-        if v is not None and len(v) != 16:
-            raise ValueError("ID must be exactly 16 characters")
+        if v is not None and not v:
+            raise ValueError("ID cannot be empty")
         return v
 
     @field_validator("key_id")

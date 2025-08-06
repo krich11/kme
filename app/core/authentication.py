@@ -203,7 +203,7 @@ class CertificateAuthentication:
 
     def _validate_sae_id_format(self, sae_id: str) -> bool:
         """
-        Validate SAE ID format (16 alphanumeric characters)
+        Validate SAE ID format
 
         Args:
             sae_id: SAE ID to validate
@@ -211,11 +211,11 @@ class CertificateAuthentication:
         Returns:
             bool: True if valid format
         """
-        if not sae_id or len(sae_id) != 16:
+        if not sae_id:
             return False
 
         # Check if it contains only alphanumeric characters (A-Z, a-z, 0-9)
-        return bool(re.match(r"^[A-Za-z0-9]{16}$", sae_id))
+        return bool(re.match(r"^[A-Za-z0-9]+$", sae_id))
 
 
 class SAEAuthorization:

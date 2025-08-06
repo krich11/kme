@@ -356,8 +356,8 @@ async def main():
         print("❌ Error: Key size must be at least 1 bit")
         return 1
 
-    if len(args.sae_id) != 16:
-        print("❌ Error: SAE ID must be exactly 16 characters")
+    if not args.sae_id:
+        print("❌ Error: SAE ID cannot be empty")
         return 1
 
     async with SAEClient(base_url=args.url, sae_id=args.sae_id) as client:

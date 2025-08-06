@@ -52,7 +52,7 @@ All configuration can be set via environment variables. See env.template for
 complete list of available options and their default values.
 
 Validation Rules:
-- KME_ID: Exactly 16 characters
+    - KME_ID: Cannot be empty
 - Port: 1-65535 range
 - Key sizes: 64-8192 bits
 - TLS version: 1.2 or 1.3 only
@@ -77,7 +77,7 @@ class Settings(BaseSettings):
     """KME Configuration Settings"""
 
     # KME Identity
-    kme_id: str = Field(default="1234567890ABCDEF", description="Unique KME identifier")
+    kme_id: str = Field(..., description="Unique KME identifier")
     kme_hostname: str = Field(default="localhost", description="KME hostname")
     kme_port: int = Field(default=443, description="KME port")
 
@@ -226,8 +226,8 @@ class Settings(BaseSettings):
     @field_validator("kme_id")
     def validate_kme_id(cls, v):
         """Validate KME ID format"""
-        if not v or len(v) != 16:
-            raise ValueError("KME_ID must be exactly 16 characters")
+        if not v:
+            raise ValueError("KME_ID cannot be empty")
         return v
 
     @field_validator("kme_port")

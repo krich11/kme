@@ -7,6 +7,9 @@ requests>=2.31.0
 # Cryptography for certificate handling and encryption
 cryptography>=41.0.0
 
+# Database connectivity
+psycopg2-binary>=2.9.0
+
 # JSON handling (included in Python stdlib, but listed for clarity)
 # json - built-in
 

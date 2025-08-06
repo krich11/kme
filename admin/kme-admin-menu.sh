@@ -11,13 +11,11 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-KME_ADMIN="python -m admin.kme_admin"
-PACKAGE_DIR="admin/packages"
+KME_ADMIN="python kme_admin.py"
+PACKAGE_DIR="packages"
 
-# Change to project root directory if running from admin directory
-if [[ "$(basename "$PWD")" == "admin" ]]; then
-    cd ..
-fi
+# Note: Admin tool now runs from admin directory with proper path configuration
+# No need to change directory - paths are configured relative to admin directory
 
 # Function to print colored output
 print_status() {
@@ -400,13 +398,13 @@ launch_database_manager() {
     echo ""
 
     # Check if database manager exists
-    if [[ ! -f "admin/database_manager.py" ]]; then
-        print_error "Database manager not found: admin/database_manager.py"
+    if [[ ! -f "database_manager.py" ]]; then
+        print_error "Database manager not found: database_manager.py"
         return 1
     fi
 
     # Launch the database manager
-    python admin/database_manager.py
+    python database_manager.py
 
     if [[ $? -eq 0 ]]; then
         print_status "Database manager completed successfully"
@@ -435,7 +433,7 @@ show_help() {
     echo "h. Show Help - Display this help message"
     echo "q. Exit - Exit the admin interface"
     echo ""
-    echo "For more detailed help, run: python -m admin.kme_admin --help"
+    echo "For more detailed help, run: python kme_admin.py --help"
 }
 
 # Function to check prerequisites
@@ -446,9 +444,9 @@ check_prerequisites() {
         exit 1
     fi
 
-    # Check if KME admin module exists
-    if ! python -c "import admin.kme_admin" 2>/dev/null; then
-        print_error "KME admin module not found: admin.kme_admin"
+    # Check if KME admin script exists
+    if [[ ! -f "kme_admin.py" ]]; then
+        print_error "KME admin script not found: kme_admin.py"
         exit 1
     fi
 

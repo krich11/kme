@@ -57,7 +57,7 @@ Usage:
     python main.py
 
 Environment Variables:
-    - KME_ID: Unique KME identifier (16 characters)
+    - KME_ID: Unique KME identifier
     - SERVER_HOST: Server bind address (default: 127.0.0.1)
     - SERVER_PORT: Server port (default: 8000)
     - DATABASE_URL: Database connection URL

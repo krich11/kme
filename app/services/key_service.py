@@ -96,16 +96,12 @@ class KeyService:
         )
 
         # Validate slave_SAE_ID format (ETSI requirement)
-        if not slave_sae_id or len(slave_sae_id) != 16:
-            raise ValueError(
-                f"slave_sae_id must be exactly 16 characters, got {len(slave_sae_id) if slave_sae_id else 0}"
-            )
+        if not slave_sae_id:
+            raise ValueError("slave_sae_id cannot be empty")
 
         # Validate master_sae_id if provided
-        if master_sae_id and len(master_sae_id) != 16:
-            raise ValueError(
-                f"master_sae_id must be exactly 16 characters, got {len(master_sae_id)}"
-            )
+        if master_sae_id and not master_sae_id:
+            raise ValueError("master_sae_id cannot be empty")
 
         # TODO: Validate SAE registration and authorization
         # For now, we'll proceed with basic validation
@@ -145,10 +141,8 @@ class KeyService:
 
             # Validate each additional SAE ID format
             for sae_id in key_request.additional_slave_SAE_IDs:
-                if len(sae_id) != 16:
-                    raise ValueError(
-                        f"Additional SAE ID must be exactly 16 characters, got {len(sae_id)}"
-                    )
+                if not sae_id:
+                    raise ValueError("Additional SAE ID cannot be empty")
 
         # Process extension parameters (ETSI requirement)
         extension_responses = await self._process_extensions(
@@ -233,65 +227,127 @@ class KeyService:
             slave_sae_id=slave_sae_id,
         )
 
-        # Check key pool availability first
-        pool_available = await self.key_pool_service.check_key_availability(
-            number, size
-        )
-        if not pool_available:
-            logger.warning("Key pool does not have sufficient keys available")
-            # Trigger replenishment
-            await self.key_pool_service.handle_key_exhaustion()
+        # Key pool availability is already checked in process_key_request
+        # No need to check again here
 
-        generated_keys = []
-        for i in range(number):
-            try:
-                # Generate key data
-                key_data = os.urandom(size // 8)  # Convert bits to bytes
-                key_id = str(uuid.uuid4())
+        # Generate keys using the configured key generator
+        try:
+            raw_keys = await self.key_generator.generate_keys(number, size)
 
-                # Set expiration (24 hours from now)
-                expires_at = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+            # Validate key quality for the first key
+            quality_metrics = (
+                await self.key_generator.validate_key_quality(raw_keys[0])
+                if raw_keys
+                else {}
+            )
 
-                # Store key in storage service
-                stored = await self.key_storage_service.store_key(
-                    key_id=key_id,
-                    key_data=key_data,
-                    master_sae_id=master_sae_id,
-                    slave_sae_id=slave_sae_id,
-                    key_size=size,
-                    expires_at=expires_at,
-                    key_metadata={
-                        "generated_at": datetime.datetime.utcnow().isoformat(),
-                        "generation_method": "key_service",
-                        "entropy": 1.0,  # TODO: Calculate actual entropy
-                        "error_rate": 0.0,  # TODO: Get from QKD system
-                    },
-                )
+            generated_keys = []
+            for i, key_data in enumerate(raw_keys):
+                try:
+                    key_id = str(uuid.uuid4())
 
-                if stored:
-                    # Create Key object for response
-                    key = Key(
-                        key_ID=key_id,
-                        key=base64.b64encode(key_data).decode("utf-8"),
-                        key_ID_extension=None,  # TODO: Add key ID extensions if needed
-                        key_extension=None,  # TODO: Add key extensions if needed
+                    # Set expiration (24 hours from now)
+                    expires_at = datetime.datetime.utcnow() + datetime.timedelta(
+                        hours=24
+                    )
+
+                    # Store key in storage service
+                    stored = await self.key_storage_service.store_key(
+                        key_id=key_id,
+                        key_data=key_data,
+                        master_sae_id=master_sae_id,
+                        slave_sae_id=slave_sae_id,
                         key_size=size,
-                        created_at=datetime.datetime.utcnow(),
                         expires_at=expires_at,
-                        source_kme_id=os.getenv("KME_ID", "AAAABBBBCCCCDDDD"),
-                        target_kme_id=slave_sae_id,
                         key_metadata={
+                            "generated_at": datetime.datetime.utcnow().isoformat(),
+                            "generation_method": "key_generator_service",
+                            "generator_type": type(self.key_generator).__name__,
+                            "quality_metrics": quality_metrics,
+                        },
+                    )
+
+                    if stored:
+                        # Create Key object for response
+                        key = Key(
+                            key_ID=key_id,
+                            key=base64.b64encode(key_data).decode("utf-8"),
+                            key_ID_extension=None,  # TODO: Add key ID extensions if needed
+                            key_extension=None,  # TODO: Add key extensions if needed
+                            key_size=size,
+                            created_at=datetime.datetime.utcnow(),
+                            expires_at=expires_at,
+                            source_kme_id=os.getenv("KME_ID", "AAAABBBBCCCCDDDD"),
+                            target_kme_id=slave_sae_id,
+                            key_metadata={
+                                "generator_type": type(self.key_generator).__name__,
+                                "quality_metrics": quality_metrics,
+                            },
+                        )
+                        generated_keys.append(key)
+                    else:
+                        logger.error(f"Failed to store key {key_id}")
+
+                except Exception as e:
+                    logger.error(f"Failed to process generated key {i}: {str(e)}")
+                    continue
+
+        except Exception as e:
+            logger.error(f"Failed to generate keys using key generator: {str(e)}")
+            # Fallback to direct generation if key generator fails
+            logger.warning("Falling back to direct key generation")
+            generated_keys = []
+            for i in range(number):
+                try:
+                    # Generate key data using direct method as fallback
+                    key_data = os.urandom(size // 8)  # Convert bits to bytes
+                    key_id = str(uuid.uuid4())
+
+                    # Set expiration (24 hours from now)
+                    expires_at = datetime.datetime.utcnow() + datetime.timedelta(
+                        hours=24
+                    )
+
+                    # Store key in storage service
+                    stored = await self.key_storage_service.store_key(
+                        key_id=key_id,
+                        key_data=key_data,
+                        master_sae_id=master_sae_id,
+                        slave_sae_id=slave_sae_id,
+                        key_size=size,
+                        expires_at=expires_at,
+                        key_metadata={
+                            "generated_at": datetime.datetime.utcnow().isoformat(),
+                            "generation_method": "fallback_direct",
                             "entropy": 1.0,  # TODO: Calculate actual entropy
                             "error_rate": 0.0,  # TODO: Get from QKD system
                         },
                     )
-                    generated_keys.append(key)
-                else:
-                    logger.error(f"Failed to store key {key_id}")
 
-            except Exception as e:
-                logger.error(f"Failed to generate and store key {i}: {str(e)}")
-                continue
+                    if stored:
+                        # Create Key object for response
+                        key = Key(
+                            key_ID=key_id,
+                            key=base64.b64encode(key_data).decode("utf-8"),
+                            key_ID_extension=None,  # TODO: Add key ID extensions if needed
+                            key_extension=None,  # TODO: Add key extensions if needed
+                            key_size=size,
+                            created_at=datetime.datetime.utcnow(),
+                            expires_at=expires_at,
+                            source_kme_id=os.getenv("KME_ID", "AAAABBBBCCCCDDDD"),
+                            target_kme_id=slave_sae_id,
+                            key_metadata={
+                                "entropy": 1.0,  # TODO: Calculate actual entropy
+                                "error_rate": 0.0,  # TODO: Get from QKD system
+                            },
+                        )
+                        generated_keys.append(key)
+                    else:
+                        logger.error(f"Failed to store key {key_id}")
+
+                except Exception as e:
+                    logger.error(f"Failed to generate and store key {i}: {str(e)}")
+                    continue
 
         logger.info(
             "Successfully generated and stored keys",
@@ -507,15 +563,11 @@ class KeyService:
         )
 
         # Validate parameters
-        if not master_sae_id or len(master_sae_id) != 16:
-            raise ValueError(
-                f"master_sae_id must be exactly 16 characters, got {len(master_sae_id) if master_sae_id else 0}"
-            )
+        if not master_sae_id:
+            raise ValueError("master_sae_id cannot be empty")
 
-        if not requesting_sae_id or len(requesting_sae_id) != 16:
-            raise ValueError(
-                f"requesting_sae_id must be exactly 16 characters, got {len(requesting_sae_id) if requesting_sae_id else 0}"
-            )
+        if not requesting_sae_id:
+            raise ValueError("requesting_sae_id cannot be empty")
 
         if not key_ids:
             raise ValueError("key_ids cannot be empty")

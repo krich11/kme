@@ -33,6 +33,7 @@ Progress: 60% (6/10 tasks completed)
 import base64
 import datetime
 import hashlib
+import json
 import os
 import secrets
 import uuid
@@ -42,11 +43,10 @@ import structlog
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from sqlalchemy import and_, select
+from sqlalchemy import and_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.etsi_models import Key
-from app.models.sqlalchemy_models import Key as KeyModel
 
 logger = structlog.get_logger()
 
@@ -108,10 +108,9 @@ class KeyStorageService:
         Returns:
             bytes: Base64-encoded master key
         """
-        # Generate 32 bytes of random data
-        key_material = secrets.token_bytes(32)
-        # Encode as base64 for storage
-        return base64.urlsafe_b64encode(key_material)
+        master_key = Fernet.generate_key()
+        self.logger.info("Generated new master key")
+        return master_key
 
     def _derive_key_from_master(
         self, salt: bytes, purpose: str = "key_encryption"
@@ -126,16 +125,17 @@ class KeyStorageService:
         Returns:
             bytes: Derived key
         """
+        if not self._master_key:
+            raise RuntimeError("Master key not initialized")
+
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=salt,
             iterations=100000,
         )
-        if self._master_key is None:
-            raise RuntimeError("Master key not initialized")
-        purpose_bytes = purpose.encode("utf-8")
-        return kdf.derive(self._master_key + purpose_bytes)
+        derived_key = kdf.derive(self._master_key + purpose.encode())
+        return derived_key
 
     async def store_key(
         self,
@@ -186,45 +186,55 @@ class KeyStorageService:
         if not key_data:
             raise ValueError("key_data cannot be empty")
 
-        if not master_sae_id or len(master_sae_id) != 16:
-            raise ValueError("master_sae_id must be exactly 16 characters")
+        if not master_sae_id:
+            raise ValueError("master_sae_id cannot be empty")
 
-        if not slave_sae_id or len(slave_sae_id) != 16:
-            raise ValueError("slave_sae_id must be exactly 16 characters")
+        if not slave_sae_id:
+            raise ValueError("slave_sae_id cannot be empty")
 
         try:
-            # Generate salt for this key
-            salt = secrets.token_bytes(16)
-
-            # Encrypt the key data
-            if self._fernet is None:
-                raise RuntimeError("Fernet cipher not initialized")
-            encrypted_key_data = self._fernet.encrypt(key_data)
-
-            # Create key hash for integrity verification
-            key_hash = hashlib.sha256(key_data).hexdigest()
+            # Encrypt the key data if encryption is available
+            if self._fernet is not None:
+                encrypted_key_data = self._fernet.encrypt(key_data)
+            else:
+                # Fallback to storing unencrypted (not recommended for production)
+                self.logger.warning("Encryption not available, storing key unencrypted")
+                encrypted_key_data = key_data
 
             # Set default expiration if not provided (24 hours from now)
             if not expires_at:
                 expires_at = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
 
-            # Create key model instance
-            key_model = KeyModel(
-                key_id=key_id,
-                encrypted_key_data=encrypted_key_data,
-                key_hash=key_hash,
-                salt=salt,
-                master_sae_id=master_sae_id,
-                slave_sae_id=slave_sae_id,
-                key_size=key_size,
-                created_at=datetime.datetime.utcnow(),
-                expires_at=expires_at,
-                key_metadata=key_metadata or {},
-                is_active=True,
+            # Use raw SQL to match the actual database schema
+            insert_query = text(
+                """
+                INSERT INTO keys (
+                    key_id, key_data, key_size, master_sae_id, slave_sae_id,
+                    source_kme_id, target_kme_id, created_at, expires_at, status, key_metadata
+                ) VALUES (
+                    :key_id, :key_data, :key_size, :master_sae_id, :slave_sae_id,
+                    :source_kme_id, :target_kme_id, :created_at, :expires_at, :status, :key_metadata
+                )
+            """
             )
 
-            # Store in database
-            self.db_session.add(key_model)
+            # Execute the insert
+            await self.db_session.execute(
+                insert_query,
+                {
+                    "key_id": key_id,
+                    "key_data": encrypted_key_data,
+                    "key_size": key_size,
+                    "master_sae_id": master_sae_id,
+                    "slave_sae_id": slave_sae_id,
+                    "source_kme_id": master_sae_id,  # Use master_sae_id as source for now
+                    "target_kme_id": slave_sae_id,  # Use slave_sae_id as target for now
+                    "created_at": datetime.datetime.utcnow(),
+                    "expires_at": expires_at,
+                    "status": "active",
+                    "key_metadata": json.dumps(key_metadata or {}),
+                },
+            )
             await self.db_session.commit()
 
             self.logger.info(
@@ -252,15 +262,15 @@ class KeyStorageService:
         master_sae_id: str | None = None,
     ) -> Key | None:
         """
-        Retrieve a key with authorization check
+        Retrieve a key with authorization checks
 
         Args:
             key_id: UUID of the key to retrieve
             requesting_sae_id: SAE ID requesting the key
-            master_sae_id: SAE ID of the master SAE (for validation)
+            master_sae_id: Master SAE ID for authorization (optional)
 
         Returns:
-            Key: ETSI-compliant Key object if authorized, None otherwise
+            Key: Key object if found and authorized, None otherwise
 
         Raises:
             ValueError: If parameters are invalid
@@ -277,106 +287,67 @@ class KeyStorageService:
         if not key_id:
             raise ValueError("key_id cannot be empty")
 
-        try:
-            uuid.UUID(key_id)
-        except ValueError:
-            raise ValueError("key_id must be a valid UUID")
-
-        if not requesting_sae_id or len(requesting_sae_id) != 16:
-            raise ValueError("requesting_sae_id must be exactly 16 characters")
+        if not requesting_sae_id:
+            raise ValueError("requesting_sae_id cannot be empty")
 
         try:
-            # Query for the key
-            query = select(KeyModel).where(
-                and_(
-                    KeyModel.key_id == key_id,
-                    KeyModel.is_active.is_(True),
-                )
+            # Query the key from database using raw SQL
+            select_query = text(
+                """
+                SELECT key_id, key_data, key_size, master_sae_id, slave_sae_id,
+                       source_kme_id, target_kme_id, created_at, expires_at, status, key_metadata
+                FROM keys
+                WHERE key_id = :key_id AND status = 'active'
+            """
             )
 
-            result = await self.db_session.execute(query)
-            key_model = result.scalar_one_or_none()
+            result = await self.db_session.execute(select_query, {"key_id": key_id})
+            row = result.fetchone()
 
-            if not key_model:
-                self.logger.warning(
-                    "Key not found",
-                    key_id=key_id,
-                )
-                return None
-
-            # Check if key has expired
-            if (
-                key_model.expires_at
-                and key_model.expires_at < datetime.datetime.utcnow()
-            ):
-                self.logger.warning(
-                    "Key has expired",
-                    key_id=key_id,
-                    expires_at=key_model.expires_at.isoformat(),
-                )
+            if not row:
+                self.logger.warning("Key not found or inactive", key_id=key_id)
                 return None
 
             # Check authorization
             if not self._is_authorized_to_access_key(
-                key_model, requesting_sae_id, master_sae_id
+                row, requesting_sae_id, master_sae_id
             ):
                 self.logger.warning(
                     "Unauthorized key access attempt",
                     key_id=key_id,
                     requesting_sae_id=requesting_sae_id,
-                    master_sae_id=master_sae_id,
                 )
                 return None
 
-            # Decrypt the key data
-            if self._fernet is None:
-                raise RuntimeError("Fernet cipher not initialized")
-            try:
-                decrypted_key_data = self._fernet.decrypt(
-                    bytes(key_model.encrypted_key_data)
-                )
-            except Exception as e:
-                self.logger.error(
-                    "Failed to decrypt key data",
-                    key_id=key_id,
-                    error=str(e),
-                )
-                raise RuntimeError(f"Key decryption failed: {e}")
+            # Check if key is expired
+            if row.expires_at and row.expires_at < datetime.datetime.utcnow():
+                self.logger.warning("Key has expired", key_id=key_id)
+                return None
 
-            # Verify key integrity
-            if hashlib.sha256(decrypted_key_data).hexdigest() != key_model.key_hash:
-                self.logger.error(
-                    "Key integrity check failed",
-                    key_id=key_id,
-                )
-                raise RuntimeError("Key integrity verification failed")
+            # Decrypt the key data if encryption was used
+            if self._fernet is not None:
+                try:
+                    decrypted_key_data = self._fernet.decrypt(row.key_data)
+                except Exception as e:
+                    self.logger.error(
+                        "Failed to decrypt key data",
+                        key_id=key_id,
+                        error=str(e),
+                    )
+                    return None
+            else:
+                decrypted_key_data = row.key_data
 
-            # Create ETSI-compliant Key object
+            # Create ETSI Key object
             key = Key(
-                key_ID=key_id,
+                key_ID=row.key_id,
                 key=base64.b64encode(decrypted_key_data).decode("utf-8"),
-                key_ID_extension=None,
-                key_extension=None,
-                key_size=int(key_model.key_size)
-                if key_model.key_size is not None
-                else None,
-                created_at=key_model.created_at,  # type: ignore[arg-type]
-                expires_at=key_model.expires_at,  # type: ignore[arg-type]
-                source_kme_id=str(key_model.master_sae_id)
-                if key_model.master_sae_id is not None
-                else None,
-                target_kme_id=str(key_model.slave_sae_id)
-                if key_model.slave_sae_id is not None
-                else None,
-                key_metadata=dict(key_model.key_metadata)
-                if key_model.key_metadata is not None
-                else None,
             )
 
             self.logger.info(
                 "Key retrieved successfully",
                 key_id=key_id,
-                requesting_sae_id=requesting_sae_id,
+                key_size=row.key_size,
             )
 
             return key
@@ -391,7 +362,7 @@ class KeyStorageService:
 
     def _is_authorized_to_access_key(
         self,
-        key_model: KeyModel,
+        key_row,
         requesting_sae_id: str,
         master_sae_id: str | None = None,
     ) -> bool:
@@ -399,24 +370,32 @@ class KeyStorageService:
         Check if SAE is authorized to access the key
 
         Args:
-            key_model: Key model from database
+            key_row: Database row containing key information
             requesting_sae_id: SAE ID requesting access
-            master_sae_id: SAE ID of the master SAE (for validation)
+            master_sae_id: Master SAE ID for authorization (optional)
 
         Returns:
             bool: True if authorized, False otherwise
         """
         # Master SAE can always access keys it created
-        if requesting_sae_id == key_model.master_sae_id:
+        if key_row.master_sae_id == requesting_sae_id:
             return True
 
-        # Slave SAE can access keys if it's the intended recipient
-        if requesting_sae_id == key_model.slave_sae_id:
+        # Slave SAE can access keys where it's the slave
+        if key_row.slave_sae_id == requesting_sae_id:
             return True
 
-        # Additional validation if master_sae_id is provided
-        if master_sae_id and master_sae_id != key_model.master_sae_id:
-            return False
+        # Additional slave SAEs can access if they're in the additional_slave_sae_ids
+        if key_row.key_metadata and "additional_slave_sae_ids" in key_row.key_metadata:
+            additional_sae_ids = key_row.key_metadata.get(
+                "additional_slave_sae_ids", []
+            )
+            if requesting_sae_id in additional_sae_ids:
+                return True
+
+        # If master_sae_id is provided, check if it matches the key's master
+        if master_sae_id and key_row.master_sae_id == master_sae_id:
+            return True
 
         return False
 
@@ -425,85 +404,73 @@ class KeyStorageService:
         Get current key pool status
 
         Returns:
-            Dict containing key pool statistics
+            dict: Key pool status information
         """
         try:
-            # Count total keys
-            total_query = select(KeyModel).where(KeyModel.is_active.is_(True))
-            total_result = await self.db_session.execute(total_query)
-            total_keys = len(total_result.scalars().all())
-
-            # Count non-expired keys
-            now = datetime.datetime.utcnow()
-            active_query = select(KeyModel).where(
-                and_(
-                    KeyModel.is_active.is_(True),
-                    KeyModel.expires_at > now,
-                )
+            # Query key pool statistics using raw SQL
+            status_query = text(
+                """
+                SELECT
+                    COUNT(*) as total_keys,
+                    COUNT(CASE WHEN status = 'active' THEN 1 END) as active_keys,
+                    COUNT(CASE WHEN status = 'expired' THEN 1 END) as expired_keys,
+                    COUNT(CASE WHEN status = 'consumed' THEN 1 END) as consumed_keys,
+                    COUNT(CASE WHEN expires_at < NOW() THEN 1 END) as expired_keys_count
+                FROM keys
+            """
             )
-            active_result = await self.db_session.execute(active_query)
-            active_keys = len(active_result.scalars().all())
 
-            # Count expired keys
-            expired_query = select(KeyModel).where(
-                and_(
-                    KeyModel.is_active.is_(True),
-                    KeyModel.expires_at <= now,
-                )
-            )
-            expired_result = await self.db_session.execute(expired_query)
-            expired_keys = len(expired_result.scalars().all())
+            result = await self.db_session.execute(status_query)
+            row = result.fetchone()
 
-            return {
-                "total_keys": total_keys,
-                "active_keys": active_keys,
-                "expired_keys": expired_keys,
+            status = {
+                "total_keys": row.total_keys,
+                "active_keys": row.active_keys,
+                "expired_keys": row.expired_keys,
+                "consumed_keys": row.consumed_keys,
+                "expired_keys_count": row.expired_keys_count,
                 "last_updated": datetime.datetime.utcnow().isoformat(),
             }
 
+            self.logger.info("Key pool status retrieved", status=status)
+            return status
+
         except Exception as e:
             self.logger.error("Failed to get key pool status", error=str(e))
-            raise RuntimeError(f"Key pool status retrieval failed: {e}")
+            raise RuntimeError(f"Failed to get key pool status: {e}")
 
     async def cleanup_expired_keys(self) -> int:
         """
-        Remove expired keys from storage
+        Clean up expired keys from the database
 
         Returns:
-            int: Number of keys removed
+            int: Number of keys cleaned up
         """
         try:
-            now = datetime.datetime.utcnow()
-
-            # Find expired keys
-            expired_query = select(KeyModel).where(
-                and_(
-                    KeyModel.is_active.is_(True),
-                    KeyModel.expires_at <= now,
-                )
+            # Update expired keys status using raw SQL
+            cleanup_query = text(
+                """
+                UPDATE keys
+                SET status = 'expired'
+                WHERE expires_at < NOW() AND status = 'active'
+            """
             )
-            expired_result = await self.db_session.execute(expired_query)
-            expired_keys = expired_result.scalars().all()
 
-            # Mark as inactive (soft delete for audit purposes)
-            removed_count = 0
-            for key_model in expired_keys:
-                key_model.is_active = False  # type: ignore[assignment]
-                removed_count += 1
-
+            result = await self.db_session.execute(cleanup_query)
             await self.db_session.commit()
 
+            cleaned_count = result.rowcount
             self.logger.info(
-                "Cleaned up expired keys",
-                removed_count=removed_count,
+                "Expired keys cleaned up",
+                cleaned_count=cleaned_count,
             )
 
-            return removed_count
+            return cleaned_count
 
         except Exception as e:
             await self.db_session.rollback()
             self.logger.error("Failed to cleanup expired keys", error=str(e))
-            raise RuntimeError(f"Key cleanup failed: {e}")
+            raise RuntimeError(f"Failed to cleanup expired keys: {e}")
 
     async def get_keys_by_sae_id(
         self,
@@ -512,82 +479,67 @@ class KeyStorageService:
         limit: int | None = None,
     ) -> list[Key]:
         """
-        Get all keys for a specific SAE
+        Get keys associated with a specific SAE ID
 
         Args:
-            sae_id: SAE ID to query for
-            is_master: True if querying for master SAE, False for slave SAE
+            sae_id: SAE ID to search for
+            is_master: If True, search for keys where SAE is master
             limit: Maximum number of keys to return
 
         Returns:
-            List of Key objects
+            list[Key]: List of keys associated with the SAE
         """
         try:
+            # Build query based on whether SAE is master or slave
             if is_master:
-                query = select(KeyModel).where(
-                    and_(
-                        KeyModel.master_sae_id == sae_id,
-                        KeyModel.is_active.is_(True),
-                    )
-                )
+                where_clause = "master_sae_id = :sae_id"
             else:
-                query = select(KeyModel).where(
-                    and_(
-                        KeyModel.slave_sae_id == sae_id,
-                        KeyModel.is_active.is_(True),
-                    )
-                )
+                where_clause = "slave_sae_id = :sae_id OR master_sae_id = :sae_id"
 
-            if limit:
-                query = query.limit(limit)
+            limit_clause = f"LIMIT {limit}" if limit else ""
 
-            result = await self.db_session.execute(query)
-            key_models = result.scalars().all()
+            select_query = text(
+                f"""
+                SELECT key_id, key_data, key_size, master_sae_id, slave_sae_id,
+                       source_kme_id, target_kme_id, created_at, expires_at, status, key_metadata
+                FROM keys
+                WHERE {where_clause} AND status = 'active'
+                ORDER BY created_at DESC
+                {limit_clause}
+            """
+            )
+
+            result = await self.db_session.execute(select_query, {"sae_id": sae_id})
+            rows = result.fetchall()
 
             keys = []
-            for key_model in key_models:
-                # Skip expired keys
-                if (
-                    key_model.expires_at
-                    and key_model.expires_at < datetime.datetime.utcnow()
-                ):
-                    continue
+            for row in rows:
+                # Decrypt the key data if encryption was used
+                if self._fernet is not None:
+                    try:
+                        decrypted_key_data = self._fernet.decrypt(row.key_data)
+                    except Exception as e:
+                        self.logger.error(
+                            "Failed to decrypt key data",
+                            key_id=row.key_id,
+                            error=str(e),
+                        )
+                        continue
+                else:
+                    decrypted_key_data = row.key_data
 
-                # Decrypt and create Key object
-                if self._fernet is None:
-                    raise RuntimeError("Fernet cipher not initialized")
-                try:
-                    decrypted_key_data = self._fernet.decrypt(
-                        bytes(key_model.encrypted_key_data)
-                    )
-                    key = Key(
-                        key_ID=str(key_model.key_id),
-                        key=base64.b64encode(decrypted_key_data).decode("utf-8"),
-                        key_ID_extension=None,
-                        key_extension=None,
-                        key_size=int(key_model.key_size)
-                        if key_model.key_size is not None
-                        else None,
-                        created_at=key_model.created_at,  # type: ignore[arg-type]
-                        expires_at=key_model.expires_at,  # type: ignore[arg-type]
-                        source_kme_id=str(key_model.master_sae_id)
-                        if key_model.master_sae_id is not None
-                        else None,
-                        target_kme_id=str(key_model.slave_sae_id)
-                        if key_model.slave_sae_id is not None
-                        else None,
-                        key_metadata=dict(key_model.key_metadata)
-                        if key_model.key_metadata is not None
-                        else None,
-                    )
-                    keys.append(key)
-                except Exception as e:
-                    self.logger.warning(
-                        "Failed to decrypt key during SAE query",
-                        key_id=key_model.key_id,
-                        error=str(e),
-                    )
-                    continue
+                # Create ETSI Key object
+                key = Key(
+                    key_ID=row.key_id,
+                    key=base64.b64encode(decrypted_key_data).decode("utf-8"),
+                )
+                keys.append(key)
+
+            self.logger.info(
+                "Retrieved keys for SAE",
+                sae_id=sae_id,
+                key_count=len(keys),
+            )
 
             return keys
 
@@ -595,43 +547,45 @@ class KeyStorageService:
             self.logger.error(
                 "Failed to get keys by SAE ID",
                 sae_id=sae_id,
-                is_master=is_master,
                 error=str(e),
             )
-            raise RuntimeError(f"SAE key query failed: {e}")
+            raise RuntimeError(f"Failed to get keys by SAE ID: {e}")
 
     async def get_key_version_info(self, key_id: str) -> dict[str, Any] | None:
         """
-        Get version information for a specific key
+        Get version information for a key
 
         Args:
-            key_id: Key ID to get version info for
+            key_id: UUID of the key
 
         Returns:
-            Dict containing version information or None if key not found
+            dict: Version information or None if not found
         """
         try:
-            query = select(KeyModel).where(KeyModel.key_id == key_id)
-            result = await self.db_session.execute(query)
-            key_model = result.scalar_one_or_none()
+            select_query = text(
+                """
+                SELECT key_id, created_at, key_metadata
+                FROM keys
+                WHERE key_id = :key_id
+            """
+            )
 
-            if not key_model:
+            result = await self.db_session.execute(select_query, {"key_id": key_id})
+            row = result.fetchone()
+
+            if not row:
                 return None
 
-            return {
-                "key_id": str(key_model.key_id),
-                "version": key_model.version if hasattr(key_model, "version") else 1,
-                "created_at": key_model.created_at,
-                "last_updated": key_model.updated_at
-                if hasattr(key_model, "updated_at")
-                else key_model.created_at,
-                "encryption_version": key_model.encryption_version
-                if hasattr(key_model, "encryption_version")
+            version_info = {
+                "key_id": row.key_id,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+                "version": row.key_metadata.get("version", 1)
+                if row.key_metadata
                 else 1,
-                "key_format_version": key_model.key_format_version
-                if hasattr(key_model, "key_format_version")
-                else 1,
+                "metadata": row.key_metadata or {},
             }
+
+            return version_info
 
         except Exception as e:
             self.logger.error(
@@ -639,137 +593,130 @@ class KeyStorageService:
                 key_id=key_id,
                 error=str(e),
             )
-            raise RuntimeError(f"Key version info retrieval failed: {e}")
+            return None
 
     async def upgrade_key_version(self, key_id: str, new_version: int) -> bool:
         """
-        Upgrade a key to a new version
+        Upgrade key to a new version
 
         Args:
-            key_id: Key ID to upgrade
+            key_id: UUID of the key
             new_version: New version number
 
         Returns:
-            bool: True if upgrade successful, False otherwise
+            bool: True if upgrade was successful
         """
         try:
-            query = select(KeyModel).where(KeyModel.key_id == key_id)
-            result = await self.db_session.execute(query)
-            key_model = result.scalar_one_or_none()
-
-            if not key_model:
-                self.logger.warning("Key not found for version upgrade", key_id=key_id)
-                return False
-
-            # Decrypt the key with current encryption
-            if self._fernet is None:
-                raise RuntimeError("Fernet cipher not initialized")
-
-            decrypted_key_data = self._fernet.decrypt(
-                bytes(key_model.encrypted_key_data)
+            update_query = text(
+                """
+                UPDATE keys
+                SET key_metadata = jsonb_set(
+                    COALESCE(key_metadata, '{}'::jsonb),
+                    '{version}',
+                    :new_version::jsonb
+                )
+                WHERE key_id = :key_id
+            """
             )
 
-            # Re-encrypt with new version
-            encrypted_key_data = self._fernet.encrypt(decrypted_key_data)
-
-            # Update the key model
-            key_model.encrypted_key_data = encrypted_key_data  # type: ignore[assignment]
-            if hasattr(key_model, "version"):
-                key_model.version = new_version
-            if hasattr(key_model, "updated_at"):
-                key_model.updated_at = datetime.datetime.utcnow()
-
+            result = await self.db_session.execute(
+                update_query, {"key_id": key_id, "new_version": new_version}
+            )
             await self.db_session.commit()
 
-            self.logger.info(
-                "Key version upgraded successfully",
-                key_id=key_id,
-                new_version=new_version,
-            )
-
-            return True
+            if result.rowcount > 0:
+                self.logger.info(
+                    "Key version upgraded",
+                    key_id=key_id,
+                    new_version=new_version,
+                )
+                return True
+            else:
+                self.logger.warning("Key not found for version upgrade", key_id=key_id)
+                return False
 
         except Exception as e:
             await self.db_session.rollback()
             self.logger.error(
                 "Failed to upgrade key version",
                 key_id=key_id,
-                new_version=new_version,
                 error=str(e),
             )
-            raise RuntimeError(f"Key version upgrade failed: {e}")
+            return False
 
     async def get_key_cleanup_statistics(self) -> dict[str, Any]:
         """
         Get statistics about key cleanup operations
 
         Returns:
-            Dict containing cleanup statistics
+            dict: Cleanup statistics
         """
         try:
-            # Count expired keys
-            expired_query = select(KeyModel).where(
-                and_(
-                    KeyModel.expires_at < datetime.datetime.utcnow(),
-                    KeyModel.is_active.is_(True),
-                )
+            stats_query = text(
+                """
+                SELECT
+                    COUNT(*) as total_keys,
+                    COUNT(CASE WHEN status = 'active' THEN 1 END) as active_keys,
+                    COUNT(CASE WHEN status = 'expired' THEN 1 END) as expired_keys,
+                    COUNT(CASE WHEN status = 'consumed' THEN 1 END) as consumed_keys,
+                    COUNT(CASE WHEN expires_at < NOW() AND status = 'active' THEN 1 END) as pending_expiration,
+                    MIN(created_at) as oldest_key_created,
+                    MAX(created_at) as newest_key_created
+                FROM keys
+            """
             )
-            expired_result = await self.db_session.execute(expired_query)
-            expired_count = len(expired_result.scalars().all())
 
-            # Count keys expiring soon (within 24 hours)
-            soon_expiring_query = select(KeyModel).where(
-                and_(
-                    KeyModel.expires_at
-                    < datetime.datetime.utcnow() + datetime.timedelta(hours=24),
-                    KeyModel.expires_at > datetime.datetime.utcnow(),
-                    KeyModel.is_active.is_(True),
-                )
-            )
-            soon_expiring_result = await self.db_session.execute(soon_expiring_query)
-            soon_expiring_count = len(soon_expiring_result.scalars().all())
+            result = await self.db_session.execute(stats_query)
+            row = result.fetchone()
 
-            # Count total keys
-            total_query = select(KeyModel).where(KeyModel.is_active.is_(True))
-            total_result = await self.db_session.execute(total_query)
-            total_count = len(total_result.scalars().all())
-
-            return {
-                "total_keys": total_count,
-                "expired_keys": expired_count,
-                "expiring_soon": soon_expiring_count,
-                "cleanup_needed": expired_count > 0,
-                "last_cleanup_check": datetime.datetime.utcnow().isoformat(),
+            stats = {
+                "total_keys": row.total_keys,
+                "active_keys": row.active_keys,
+                "expired_keys": row.expired_keys,
+                "consumed_keys": row.consumed_keys,
+                "pending_expiration": row.pending_expiration,
+                "oldest_key_created": row.oldest_key_created.isoformat()
+                if row.oldest_key_created
+                else None,
+                "newest_key_created": row.newest_key_created.isoformat()
+                if row.newest_key_created
+                else None,
+                "last_updated": datetime.datetime.utcnow().isoformat(),
             }
+
+            return stats
 
         except Exception as e:
             self.logger.error("Failed to get cleanup statistics", error=str(e))
-            raise RuntimeError(f"Cleanup statistics retrieval failed: {e}")
+            return {
+                "error": str(e),
+                "last_updated": datetime.datetime.utcnow().isoformat(),
+            }
 
     async def schedule_key_cleanup(self, cleanup_interval_hours: int = 24) -> bool:
         """
-        Schedule periodic key cleanup
+        Schedule key cleanup operations
 
         Args:
-            cleanup_interval_hours: Hours between cleanup runs
+            cleanup_interval_hours: Interval between cleanup operations
 
         Returns:
-            bool: True if scheduling successful
+            bool: True if scheduling was successful
         """
         try:
-            # This would typically integrate with a task scheduler
-            # For now, we'll just log the schedule
+            # This is a placeholder for actual scheduling logic
+            # In a real implementation, this would integrate with a task scheduler
             self.logger.info(
                 "Key cleanup scheduled",
                 interval_hours=cleanup_interval_hours,
-                next_run=datetime.datetime.utcnow()
-                + datetime.timedelta(hours=cleanup_interval_hours),
             )
 
-            # In a real implementation, this would:
-            # 1. Register with a task scheduler (Celery, APScheduler, etc.)
-            # 2. Set up periodic execution
-            # 3. Handle cleanup failures and retries
+            # For now, just run cleanup immediately
+            cleaned_count = await self.cleanup_expired_keys()
+            self.logger.info(
+                "Immediate cleanup completed",
+                cleaned_count=cleaned_count,
+            )
 
             return True
 

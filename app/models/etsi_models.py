@@ -92,9 +92,9 @@ class Status(BaseModel):
     @field_validator("source_KME_ID", "target_KME_ID", "master_SAE_ID", "slave_SAE_ID")
     @classmethod
     def validate_id_length(cls, v):
-        """Validate ID length (ETSI spec doesn't specify exact length, but we use 16 chars)"""
-        if len(v) != 16:
-            raise ValueError("ID must be exactly 16 characters")
+        """Validate ID length (ETSI spec doesn't specify exact length)"""
+        if not v:
+            raise ValueError("ID cannot be empty")
         return v
 
     @field_validator("key_size", "max_key_size", "min_key_size")
@@ -200,8 +200,8 @@ class KeyRequest(BaseModel):
         """Validate additional SAE IDs"""
         if v is not None:
             for sae_id in v:
-                if len(sae_id) != 16:
-                    raise ValueError("SAE ID must be exactly 16 characters")
+                if not sae_id:
+                    raise ValueError("SAE ID cannot be empty")
         return v
 
     @field_validator("priority")

@@ -40,8 +40,8 @@ from ..core.logging import logger, security_logger
 
 def validate_sae_id(sae_id: str) -> bool:
     """Validate SAE ID format according to ETSI specification"""
-    # ETSI QKD 014 doesn't specify exact format, but typically 16 characters
-    if not sae_id or len(sae_id) != 16:
+    # ETSI QKD 014 doesn't specify exact format
+    if not sae_id:
         return False
 
     # Check if it's alphanumeric (common pattern)
@@ -53,8 +53,8 @@ def validate_sae_id(sae_id: str) -> bool:
 
 def validate_kme_id(kme_id: str) -> bool:
     """Validate KME ID format according to ETSI specification"""
-    # ETSI QKD 014 doesn't specify exact format, but typically 16 characters
-    if not kme_id or len(kme_id) != 16:
+    # ETSI QKD 014 doesn't specify exact format
+    if not kme_id:
         return False
 
     # Check if it's alphanumeric (common pattern)

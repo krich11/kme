@@ -673,7 +673,7 @@ class KeyPoolService:
             # Return defaults if no record exists
             return {
                 "max_key_count": 100000,
-                "min_key_threshold": 1000,
+                "min_key_threshold": 1,  # Lower threshold for development
                 "key_generation_rate": None,
                 "last_key_generation": None,
             }
@@ -684,7 +684,7 @@ class KeyPoolService:
             )
             return {
                 "max_key_count": 100000,
-                "min_key_threshold": 1000,
+                "min_key_threshold": 1,  # Lower threshold for development
                 "key_generation_rate": None,
                 "last_key_generation": None,
             }

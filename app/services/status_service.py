@@ -82,16 +82,12 @@ class StatusService:
         )
 
         # Validate slave_SAE_ID format
-        if not slave_sae_id or len(slave_sae_id) != 16:
-            raise ValueError(
-                f"slave_sae_id must be exactly 16 characters, got {len(slave_sae_id) if slave_sae_id else 0}"
-            )
+        if not slave_sae_id:
+            raise ValueError("slave_sae_id cannot be empty")
 
         # Validate master_sae_id if provided
-        if master_sae_id and len(master_sae_id) != 16:
-            raise ValueError(
-                f"master_sae_id must be exactly 16 characters, got {len(master_sae_id)}"
-            )
+        if master_sae_id and not master_sae_id:
+            raise ValueError("master_sae_id cannot be empty")
 
         # Validate SAE registration and authorization
         sae_access_valid = await self.validate_sae_access(slave_sae_id, master_sae_id)
@@ -258,7 +254,7 @@ class StatusService:
 
     async def _is_sae_registered(self, sae_id: str) -> bool:
         """
-        Check if SAE is registered in the database or JSON registry
+        Check if SAE is registered in the database
 
         Args:
             sae_id: SAE ID to check
@@ -267,7 +263,7 @@ class StatusService:
             bool: True if SAE is registered, False otherwise
         """
         try:
-            # First check database
+            # Check database only
             query = text(
                 "SELECT 1 FROM sae_entities WHERE sae_id = :sae_id AND status = 'active'"
             )
@@ -278,32 +274,14 @@ class StatusService:
                 self.logger.info("SAE found in database", sae_id=sae_id)
                 return True
 
-            # If not in database, check JSON registry as fallback
-            import json
-            import os
-            from pathlib import Path
-
-            registry_path = Path("admin/sae_registry.json")
-            if registry_path.exists():
-                with open(registry_path) as f:
-                    registry = json.load(f)
-
-                for sae_entry in registry:
-                    if (
-                        sae_entry.get("sae_id") == sae_id
-                        and sae_entry.get("status") == "active"
-                    ):
-                        self.logger.info("SAE found in JSON registry", sae_id=sae_id)
-                        return True
-
-            self.logger.warning(
-                "SAE not found in database or JSON registry", sae_id=sae_id
-            )
+            self.logger.warning("SAE not found in database", sae_id=sae_id)
             return False
 
         except Exception as e:
             self.logger.error(
-                "Failed to check SAE registration", sae_id=sae_id, error=str(e)
+                "Failed to check SAE registration in database",
+                sae_id=sae_id,
+                error=str(e),
             )
             return False
 
