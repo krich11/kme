@@ -28,14 +28,16 @@ from cryptography.x509.oid import NameOID
 class CertificateGenerator:
     """Generates X.509 certificates for SAEs"""
 
-    def __init__(self, ca_dir: str = "../test_certs", sae_certs_dir: str = "sae_certs"):
-        self.ca_dir = Path(ca_dir)
-        self.sae_certs_dir = Path(sae_certs_dir)
-        self.ca_cert_path = self.ca_dir / "ca_cert.pem"
-        self.ca_key_path = self.ca_dir / "ca_key.pem"
+    def __init__(self, ca_dir: str = None, sae_certs_dir: str = None):
+        """Initialize certificate generator with configurable paths"""
+        from .config import CA_DIR, SAE_CERTS_DIR
 
-        # Ensure SAE certificates directory exists
-        self.sae_certs_dir.mkdir(exist_ok=True)
+        self.ca_dir = Path(ca_dir) if ca_dir else CA_DIR
+        self.sae_certs_dir = Path(sae_certs_dir) if sae_certs_dir else SAE_CERTS_DIR
+
+        # Ensure directories exist
+        self.ca_dir.mkdir(parents=True, exist_ok=True)
+        self.sae_certs_dir.mkdir(parents=True, exist_ok=True)
 
     def generate_sae_certificate(
         self,
@@ -155,18 +157,25 @@ class CertificateGenerator:
     def _load_ca_credentials(self) -> tuple[x509.Certificate, rsa.RSAPrivateKey]:
         """Load CA certificate and private key"""
 
-        if not self.ca_cert_path.exists():
-            raise FileNotFoundError(f"CA certificate not found: {self.ca_cert_path}")
+        if not self.ca_dir.exists():
+            raise FileNotFoundError(f"CA directory not found: {self.ca_dir}")
 
-        if not self.ca_key_path.exists():
-            raise FileNotFoundError(f"CA private key not found: {self.ca_key_path}")
+        if not self.ca_dir.joinpath("ca_cert.pem").exists():
+            raise FileNotFoundError(
+                f"CA certificate not found: {self.ca_dir / 'ca_cert.pem'}"
+            )
+
+        if not self.ca_dir.joinpath("ca_key.pem").exists():
+            raise FileNotFoundError(
+                f"CA private key not found: {self.ca_dir / 'ca_key.pem'}"
+            )
 
         # Load CA certificate
-        with open(self.ca_cert_path, "rb") as f:
+        with open(self.ca_dir / "ca_cert.pem", "rb") as f:
             ca_cert = x509.load_pem_x509_certificate(f.read(), default_backend())
 
         # Load CA private key
-        with open(self.ca_key_path, "rb") as f:
+        with open(self.ca_dir / "ca_key.pem", "rb") as f:
             ca_key = serialization.load_pem_private_key(
                 f.read(), password=None, backend=default_backend()
             )
@@ -285,20 +294,24 @@ class CertificateGenerator:
 
     def validate_ca_setup(self) -> bool:
         """Validate that CA certificate and key are available"""
-        if not self.ca_cert_path.exists():
-            print(f"❌ CA certificate not found: {self.ca_cert_path}")
+        if not self.ca_dir.exists():
+            print(f"❌ CA directory not found: {self.ca_dir}")
             return False
 
-        if not self.ca_key_path.exists():
-            print(f"❌ CA private key not found: {self.ca_key_path}")
+        if not self.ca_dir.joinpath("ca_cert.pem").exists():
+            print(f"❌ CA certificate not found: {self.ca_dir / 'ca_cert.pem'}")
+            return False
+
+        if not self.ca_dir.joinpath("ca_key.pem").exists():
+            print(f"❌ CA private key not found: {self.ca_dir / 'ca_key.pem'}")
             return False
 
         try:
             # Try to load CA credentials
             ca_cert, ca_key = self._load_ca_credentials()
             print(f"✅ CA setup validated successfully")
-            print(f"   CA Certificate: {self.ca_cert_path}")
-            print(f"   CA Private Key: {self.ca_key_path}")
+            print(f"   CA Certificate: {self.ca_dir / 'ca_cert.pem'}")
+            print(f"   CA Private Key: {self.ca_dir / 'ca_key.pem'}")
             return True
         except Exception as e:
             print(f"❌ CA setup validation failed: {e}")

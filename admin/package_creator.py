@@ -24,8 +24,11 @@ logger = logging.getLogger(__name__)
 class SAEPackageCreator:
     """Creates self-extracting encrypted SAE packages"""
 
-    def __init__(self, admin_dir: str = "admin"):
-        self.admin_dir = Path(admin_dir)
+    def __init__(self, admin_dir: str = None):
+        """Initialize package creator with configurable admin directory"""
+        from .config import ADMIN_DIR
+
+        self.admin_dir = Path(admin_dir) if admin_dir else ADMIN_DIR
         self.temp_dir: str | None = None
 
     def create_package(
@@ -374,9 +377,11 @@ class SAEPackageCreator:
             from .certificate_generator import CertificateGenerator
 
         # Use correct CA directory path and SAE certs directory
-        # When running from admin/ directory, use relative paths
+        # Use config paths instead of hardcoded defaults
+        from .config import CA_DIR, SAE_CERTS_DIR
+
         cert_generator = CertificateGenerator(
-            ca_dir="../test_certs", sae_certs_dir="sae_certs"
+            ca_dir=str(CA_DIR), sae_certs_dir=str(SAE_CERTS_DIR)
         )
 
         # Define SAE configurations

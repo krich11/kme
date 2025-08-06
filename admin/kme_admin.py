@@ -258,15 +258,30 @@ class KMEAdmin:
                 logger.error(f"SAE {sae_id} is already registered")
                 return 1
 
+            # Get defaults from config if not provided
+            from .config import settings
+
+            max_keys = (
+                args.max_keys
+                if args.max_keys is not None
+                else settings.DEFAULT_MAX_KEYS_PER_REQUEST
+            )
+            max_key_size = (
+                args.max_key_size
+                if args.max_key_size is not None
+                else settings.DEFAULT_MAX_KEY_SIZE
+            )
+            min_key_size = settings.DEFAULT_MIN_KEY_SIZE
+
             # Create SAE entity
             sae_data = {
                 "sae_id": sae_id,
                 "name": args.name,
                 "kme_id": self.settings.kme_id,
                 "certificate_hash": self._get_certificate_hash(args.certificate),
-                "max_keys_per_request": args.max_keys,
-                "max_key_size": args.max_key_size,
-                "min_key_size": 64,  # Default minimum
+                "max_keys_per_request": max_keys,
+                "max_key_size": max_key_size,
+                "min_key_size": min_key_size,
                 "status": "active",
                 "registration_date": datetime.now().isoformat(),
             }
@@ -457,8 +472,20 @@ class KMEAdmin:
         try:
             sae_id = args.sae_id
             sae_name = args.name
-            validity_days = args.validity_days
-            key_size = args.key_size
+
+            # Get defaults from config if not provided
+            from .config import settings
+
+            validity_days = (
+                args.validity_days
+                if args.validity_days is not None
+                else settings.DEFAULT_CERT_VALIDITY_DAYS
+            )
+            key_size = (
+                args.key_size
+                if args.key_size is not None
+                else settings.DEFAULT_KEY_SIZE
+            )
 
             # Generate SAE ID if not provided
             if not sae_id:
@@ -518,8 +545,10 @@ class KMEAdmin:
                 # Fallback: create a simple certificate using OpenSSL
                 print("Certificate generator not available, using fallback method...")
 
-                # Create output directory
-                cert_dir = Path("certs/sae_certs")
+                # Create output directory using config
+                from .config import SAE_CERTS_DIR
+
+                cert_dir = SAE_CERTS_DIR
                 cert_dir.mkdir(parents=True, exist_ok=True)
 
                 cert_path = cert_dir / f"{sae_id}.crt"
@@ -778,13 +807,17 @@ DNS.1 = {sae_name}
                 return 1
 
             package_name = sae_data["name"].replace(" ", "_").lower()
-            output_path = f"admin/packages/{package_name}_sae_package.sh"
+
+            # Use config path for packages
+            from .config import PACKAGE_DIR
+
+            output_path = PACKAGE_DIR / f"{package_name}_sae_package.sh"
 
             # Ensure packages directory exists
-            Path("admin/packages").mkdir(parents=True, exist_ok=True)
+            PACKAGE_DIR.mkdir(parents=True, exist_ok=True)
 
             package_path = self.package_creator.create_package(
-                sae_data, output_path, password
+                sae_data, str(output_path), password
             )
 
             print(f"Package created successfully: {package_path}")
@@ -816,11 +849,9 @@ def main():
     )
     register_sae_parser.add_argument("--private-key", help="Private key file path")
     register_sae_parser.add_argument(
-        "--max-keys", type=int, default=128, help="Max keys per request"
+        "--max-keys", type=int, help="Max keys per request"
     )
-    register_sae_parser.add_argument(
-        "--max-key-size", type=int, default=1024, help="Max key size"
-    )
+    register_sae_parser.add_argument("--max-key-size", type=int, help="Max key size")
     register_sae_parser.add_argument(
         "--generate-package",
         action="store_true",
@@ -877,11 +908,9 @@ def main():
     cert_parser.add_argument("--sae-id", help="SAE ID (auto-generated if not provided)")
     cert_parser.add_argument("--name", help="SAE name (auto-generated if not provided)")
     cert_parser.add_argument(
-        "--validity-days", type=int, default=365, help="Certificate validity in days"
+        "--validity-days", type=int, help="Certificate validity in days"
     )
-    cert_parser.add_argument(
-        "--key-size", type=int, default=2048, help="Private key size in bits"
-    )
+    cert_parser.add_argument("--key-size", type=int, help="Private key size in bits")
 
     # List certificates
     list_certs_parser = sae_subparsers.add_parser(
