@@ -1,6 +1,6 @@
 {
   "test_run": {
-    "timestamp": "2024-08-06T18:39:00Z",
+    "timestamp": "2025-08-06T22:53:50.474110",
     "test_suite_version": "1.0",
     "environment": {
       "hostname": "ubuntu-2204",
@@ -64,33 +64,33 @@
     },
     "stage_0_2_cert_validation": {
       "name": "CA Setup Validation",
-      "status": "NOT_STARTED",
-      "start_time": null,
-      "end_time": null,
-      "duration_seconds": 0,
+      "status": "PASSED",
+      "start_time": "2025-08-06T22:53:50.474509",
+      "end_time": "2025-08-06T22:53:50.578123",
+      "duration_seconds": 0.103614,
       "tests": {
         "validate_ca_setup": {
           "name": "Validate CA setup",
-          "status": "NOT_STARTED",
-          "details": "",
+          "status": "PASSED",
+          "details": "CA setup validated successfully: /home/krich/src/kme/certs/ca/ca.crt",
           "error_message": null
         },
         "validate_kme_certificate": {
           "name": "Validate KME certificate",
-          "status": "NOT_STARTED",
-          "details": "",
+          "status": "PASSED",
+          "details": "KME certificate validated successfully: CN=08211C4CE5963D3C",
           "error_message": null
         },
         "validate_certificate_chain": {
           "name": "Validate certificate chain",
-          "status": "NOT_STARTED",
-          "details": "",
+          "status": "PASSED",
+          "details": "Certificate chain validated successfully",
           "error_message": null
         },
         "validate_nginx_configuration": {
           "name": "Validate nginx configuration",
-          "status": "NOT_STARTED",
-          "details": "",
+          "status": "PASSED",
+          "details": "Nginx configuration validated successfully",
           "error_message": null
         }
       }

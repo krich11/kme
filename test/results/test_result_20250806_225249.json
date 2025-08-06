@@ -1,6 +1,6 @@
 {
   "test_run": {
-    "timestamp": "2024-08-06T18:39:00Z",
+    "timestamp": "2025-08-06T22:52:49.078080",
     "test_suite_version": "1.0",
     "environment": {
       "hostname": "ubuntu-2204",
@@ -62,18 +62,18 @@
         }
       }
     },
-    "stage_0_2_cert_validation": {
+    "stage_0_2_ca_setup": {
       "name": "CA Setup Validation",
-      "status": "NOT_STARTED",
-      "start_time": null,
-      "end_time": null,
-      "duration_seconds": 0,
+      "status": "FAILED",
+      "start_time": "2025-08-06T22:52:49.078139",
+      "end_time": "2025-08-06T22:52:49.078194",
+      "duration_seconds": 5.5e-05,
       "tests": {
         "validate_ca_setup": {
           "name": "Validate CA setup",
-          "status": "NOT_STARTED",
+          "status": "FAILED",
           "details": "",
-          "error_message": null
+          "error_message": "CA certificate not found: /home/krich/src/kme/certs/ca/ca.crt"
         },
         "validate_kme_certificate": {
           "name": "Validate KME certificate",

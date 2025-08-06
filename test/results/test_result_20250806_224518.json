@@ -1,6 +1,6 @@
 {
   "test_run": {
-    "timestamp": "2024-08-06T18:39:00Z",
+    "timestamp": "2025-08-06T22:44:59.279469",
     "test_suite_version": "1.0",
     "environment": {
       "hostname": "ubuntu-2204",
@@ -25,72 +25,78 @@
   "stages": {
     "stage_0_1_reset": {
       "name": "Complete Environment Reset",
-      "status": "NOT_STARTED",
-      "start_time": null,
-      "end_time": null,
-      "duration_seconds": 0,
+      "status": "PASSED",
+      "start_time": "2025-08-06T22:44:59.279555",
+      "end_time": "2025-08-06T22:44:59.436135",
+      "duration_seconds": 0.15658,
       "tests": {
         "remove_existing_certificates": {
           "name": "Remove all existing certificates",
-          "status": "NOT_STARTED",
-          "details": "",
+          "status": "PASSED",
+          "details": "Removed 1 certificate files/directories",
           "error_message": null
         },
         "remove_config_files": {
           "name": "Remove configuration files",
-          "status": "NOT_STARTED",
-          "details": "",
+          "status": "PASSED",
+          "details": "Removed 0 configuration files",
           "error_message": null
         },
         "clear_database": {
           "name": "Clear all database entries",
-          "status": "NOT_STARTED",
-          "details": "",
+          "status": "PASSED",
+          "details": "Database schema cleared",
           "error_message": null
         },
         "reset_nginx": {
           "name": "Reset nginx configuration",
-          "status": "NOT_STARTED",
-          "details": "",
+          "status": "PASSED",
+          "details": "No KME nginx config files to remove",
           "error_message": null
         },
         "verify_clean_state": {
           "name": "Verify clean slate state",
-          "status": "NOT_STARTED",
-          "details": "",
+          "status": "PASSED",
+          "details": "Clean state verified",
           "error_message": null
         }
       }
     },
-    "stage_0_2_cert_validation": {
-      "name": "CA Setup Validation",
-      "status": "NOT_STARTED",
-      "start_time": null,
-      "end_time": null,
-      "duration_seconds": 0,
+    "stage_0_2_ca_setup": {
+      "name": "Admin Tool Configuration & CA Setup",
+      "status": "PASSED",
+      "start_time": "2025-08-06T22:45:16.032315",
+      "end_time": "2025-08-06T22:45:18.123909",
+      "duration_seconds": 2.091594,
       "tests": {
-        "validate_ca_setup": {
-          "name": "Validate CA setup",
-          "status": "NOT_STARTED",
-          "details": "",
+        "generate_ca": {
+          "name": "Generate CA using admin tools",
+          "status": "PASSED",
+          "details": "CA generated successfully: /home/krich/src/kme/certs/ca/ca.crt",
           "error_message": null
         },
-        "validate_kme_certificate": {
-          "name": "Validate KME certificate",
-          "status": "NOT_STARTED",
-          "details": "",
+        "validate_ca_structure": {
+          "name": "Validate CA certificate structure",
+          "status": "PASSED",
+          "details": "CA certificate structure validated successfully",
           "error_message": null
         },
-        "validate_certificate_chain": {
+        "generate_kme_cert": {
+          "name": "Generate KME certificate",
+          "status": "PASSED",
+          "details": "KME certificate generated successfully: /home/krich/src/kme/certs/kme_cert.pem",
+          "error_message": null
+        },
+        "validate_cert_chain": {
           "name": "Validate certificate chain",
-          "status": "NOT_STARTED",
-          "details": "",
+          "status": "PASSED",
+          "details": "Certificate chain validated successfully",
           "error_message": null
         },
-        "validate_nginx_configuration": {
-          "name": "Validate nginx configuration",
-          "status": "NOT_STARTED",
-          "details": "",
+        "configure_nginx": {
+          "name": "Configure nginx with KME certificate",
+          "status": "PASSED",
+          "details": "Nginx configuration installed to /etc/nginx/sites-available/kme",
           "error_message": null
         }
       }
