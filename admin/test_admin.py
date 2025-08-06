@@ -30,9 +30,9 @@ def test_package_creator():
         "name": "Test Encryption Module",
         "sae_id": "TEST001ABCDEFGHIJ",
         "kme_endpoint": "https://localhost:443",  # Production HTTPS port
-        "certificate_path": "test_certs/master_sae_cert.pem",  # Updated certificate path
-        "private_key_path": "test_certs/master_sae_key.pem",  # Updated key path
-        "ca_certificate_path": "test_certs/ca_cert.pem",  # Updated CA path
+        "certificate_path": "certs/sae_certs/master_sae_cert.pem",  # Updated certificate path
+        "private_key_path": "certs/sae_certs/master_sae_key.pem",  # Updated key path
+        "ca_certificate_path": "certs/ca/ca.crt",  # Updated CA path
         "registration_date": "2024-01-15T10:30:00Z",
     }
 

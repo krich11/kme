@@ -313,7 +313,7 @@ def main():
 
     # Validate CA setup
     if not generator.validate_ca_setup():
-        print("CA setup validation failed. Please check ../test_certs/ directory.")
+        print("CA setup validation failed. Please check certs/ directory.")
         return 1
 
     # List existing certificates

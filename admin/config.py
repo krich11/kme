@@ -27,19 +27,19 @@ KME_ID = os.getenv("KME_ID", "KME001")
 KME_HOST = os.getenv("KME_HOST", "localhost")
 KME_PORT = int(os.getenv("KME_PORT", "8000"))
 
-# Certificate paths (relative to admin/ directory)
-CERT_DIR = ADMIN_DIR / "sae_certs"
-CA_CERT_PATH = ADMIN_DIR / os.getenv("CA_CERT_PATH", "ca/ca_cert.pem")
-CA_KEY_PATH = ADMIN_DIR / os.getenv("CA_KEY_PATH", "ca/ca_key.pem")
+# Certificate paths (relative to project root)
+CERT_DIR = PROJECT_ROOT / "certs" / "sae_certs"
+CA_CERT_PATH = PROJECT_ROOT / os.getenv("CA_CERT_PATH", "certs/ca/ca.crt")
+CA_KEY_PATH = PROJECT_ROOT / os.getenv("CA_KEY_PATH", "certs/ca/ca.key")
 
 # Package paths (relative to admin/ directory)
 PACKAGE_DIR = ADMIN_DIR / "packages"
 TEMPLATE_DIR = ADMIN_DIR / "templates"
 
-# Test certificate paths (relative to admin/ directory)
+# Test certificate paths (relative to project root)
 TEST_CERT_DIR = PROJECT_ROOT / "test_certs"
-KME_CERT_PATH = ADMIN_DIR / os.getenv("KME_CERT_PATH", "../test_certs/kme_cert.pem")
-KME_KEY_PATH = ADMIN_DIR / os.getenv("KME_KEY_PATH", "../test_certs/kme_key.pem")
+KME_CERT_PATH = PROJECT_ROOT / os.getenv("KME_CERT_PATH", "certs/kme_cert.pem")
+KME_KEY_PATH = PROJECT_ROOT / os.getenv("KME_KEY_PATH", "certs/kme_key.pem")
 
 # Environment file paths (relative to admin/ directory)
 ENV_FILE = PROJECT_ROOT / ".env"

@@ -473,9 +473,9 @@ if __name__ == "__main__":
     settings = get_settings()
     enable_ssl = os.environ.get("KME_ENABLE_SSL", "0") == "1"
 
-    ssl_keyfile: str | None = "test_certs/kme_key.pem"
-    ssl_certfile: str | None = "test_certs/kme_cert.pem"
-    ssl_ca_certs: str | None = "test_certs/ca_cert.pem"
+    ssl_keyfile: str | None = "certs/kme_key.pem"
+    ssl_certfile: str | None = "certs/kme_cert.pem"
+    ssl_ca_certs: str | None = "certs/ca/ca.crt"
 
     if enable_ssl:
         # Check if certificates exist

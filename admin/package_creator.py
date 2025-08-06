@@ -342,7 +342,7 @@ class SAEPackageCreator:
             json.dump(config, f, indent=2)
 
         # Copy CA certificate
-        ca_cert_path = Path("../test_certs/ca_cert.pem")
+        ca_cert_path = Path("certs/ca/ca.crt")
         if ca_cert_path.exists():
             shutil.copy2(ca_cert_path, config_dir / "kme_ca_certificate.pem")
         else:

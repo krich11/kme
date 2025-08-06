@@ -2158,7 +2158,7 @@ TESTING=false
             # Security notes
             self.log("")
             self.log("🔒 SECURITY NOTES:")
-            self.log("  - KME certificates and keys are stored in admin/ directory")
+            self.log("  - KME certificates and keys are stored in certs/ directory")
             self.log("  - Master key is stored in .env file")
             self.log("  - Database credentials are in .env file")
             self.log("  - Keep these files secure and do not commit to version control")

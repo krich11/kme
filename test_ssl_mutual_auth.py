@@ -21,26 +21,26 @@ def test_ssl_config():
     # Required mutual auth configuration
     print("=== Required Mutual Auth Configuration ===")
     print("ssl_cert_reqs: CERT_REQUIRED")
-    print("ssl_ca_certs: test_certs/ca_cert.pem")
+    print("ssl_ca_certs: certs/ca/ca.crt")
     print("Result: Client certificates required")
     print()
 
     # Test if CA cert exists
-    ca_cert_path = "test_certs/ca_cert.pem"
+    ca_cert_path = "certs/ca/ca.crt"
     if os.path.exists(ca_cert_path):
         print(f"✅ CA certificate found: {ca_cert_path}")
     else:
         print(f"❌ CA certificate not found: {ca_cert_path}")
 
     # Test if server cert exists
-    server_cert_path = "test_certs/kme_cert.pem"
+    server_cert_path = "certs/kme_cert.pem"
     if os.path.exists(server_cert_path):
         print(f"✅ Server certificate found: {server_cert_path}")
     else:
         print(f"❌ Server certificate not found: {server_cert_path}")
 
     # Test if server key exists
-    server_key_path = "test_certs/kme_key.pem"
+    server_key_path = "certs/kme_key.pem"
     if os.path.exists(server_key_path):
         print(f"✅ Server key found: {server_key_path}")
     else:

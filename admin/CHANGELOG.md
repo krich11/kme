@@ -82,14 +82,14 @@ python kme_admin.py sae list
 - **CLI Help**: Added certificate generation command documentation
 
 ### CA Management
-- **Uses existing CA**: Leverages `../test_certs/ca_cert.pem` and `ca_key.pem`
+- **Uses existing CA**: Leverages `certs/ca/ca.crt` and `certs/ca/ca.key`
 - **Production ready**: Can be easily adapted for production CA setup
 - **Security focused**: Proper permissions and certificate extensions
 
 ### Files Added
 - `admin/certificate_generator.py` - Certificate generation module
-- `admin/sae_certs/` - Directory for generated certificates
-- `admin/sae_certs/serial` - Serial number tracking file
+- `certs/sae_certs/` - Directory for generated certificates
+- `certs/sae_certs/serial` - Serial number tracking file
 
 ### Files Modified
 - `admin/kme_admin.py` - Added certificate generation commands
@@ -178,7 +178,7 @@ python kme_admin.py sae list
   - **Certificate Paths**: Updated `_get_sae_data()` to use actual certificate paths from `sae_certs/`
   - **Template Path**: Fixed package template path to use relative `templates/` directory
   - **Encryption Encoding**: Fixed subprocess encoding issue in `_encrypt_archive()`
-  - **CA Certificate Path**: Updated to use correct CA certificate path `../test_certs/ca_cert.pem`
+  - **CA Certificate Path**: Updated to use correct CA certificate path `certs/ca/ca.crt`
 
 ### Technical Details
 - **Certificate Detection**: Package creator now checks for actual certificate files in `sae_certs/`
