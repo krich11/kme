@@ -167,22 +167,22 @@ class CertificateGenerator:
         if not self.ca_dir.exists():
             raise FileNotFoundError(f"CA directory not found: {self.ca_dir}")
 
-        if not self.ca_dir.joinpath("ca_cert.pem").exists():
+        if not self.ca_dir.joinpath("ca.crt").exists():
             raise FileNotFoundError(
-                f"CA certificate not found: {self.ca_dir / 'ca_cert.pem'}"
+                f"CA certificate not found: {self.ca_dir / 'ca.crt'}"
             )
 
-        if not self.ca_dir.joinpath("ca_key.pem").exists():
+        if not self.ca_dir.joinpath("ca.key").exists():
             raise FileNotFoundError(
-                f"CA private key not found: {self.ca_dir / 'ca_key.pem'}"
+                f"CA private key not found: {self.ca_dir / 'ca.key'}"
             )
 
         # Load CA certificate
-        with open(self.ca_dir / "ca_cert.pem", "rb") as f:
+        with open(self.ca_dir / "ca.crt", "rb") as f:
             ca_cert = x509.load_pem_x509_certificate(f.read(), default_backend())
 
         # Load CA private key
-        with open(self.ca_dir / "ca_key.pem", "rb") as f:
+        with open(self.ca_dir / "ca.key", "rb") as f:
             ca_key = serialization.load_pem_private_key(
                 f.read(), password=None, backend=default_backend()
             )
@@ -305,20 +305,20 @@ class CertificateGenerator:
             print(f"❌ CA directory not found: {self.ca_dir}")
             return False
 
-        if not self.ca_dir.joinpath("ca_cert.pem").exists():
-            print(f"❌ CA certificate not found: {self.ca_dir / 'ca_cert.pem'}")
+        if not self.ca_dir.joinpath("ca.crt").exists():
+            print(f"❌ CA certificate not found: {self.ca_dir / 'ca.crt'}")
             return False
 
-        if not self.ca_dir.joinpath("ca_key.pem").exists():
-            print(f"❌ CA private key not found: {self.ca_dir / 'ca_key.pem'}")
+        if not self.ca_dir.joinpath("ca.key").exists():
+            print(f"❌ CA private key not found: {self.ca_dir / 'ca.key'}")
             return False
 
         try:
             # Try to load CA credentials
             ca_cert, ca_key = self._load_ca_credentials()
             print(f"✅ CA setup validated successfully")
-            print(f"   CA Certificate: {self.ca_dir / 'ca_cert.pem'}")
-            print(f"   CA Private Key: {self.ca_dir / 'ca_key.pem'}")
+            print(f"   CA Certificate: {self.ca_dir / 'ca.crt'}")
+            print(f"   CA Private Key: {self.ca_dir / 'ca.key'}")
             return True
         except Exception as e:
             print(f"❌ CA setup validation failed: {e}")
