@@ -342,12 +342,11 @@ class SAEPackageCreator:
             json.dump(config, f, indent=2)
 
         # Copy CA certificate
-        ca_cert_path = Path("test_certs/ca_cert.pem")
+        ca_cert_path = Path("../test_certs/ca_cert.pem")
         if ca_cert_path.exists():
             shutil.copy2(ca_cert_path, config_dir / "kme_ca_certificate.pem")
         else:
-            # Create a placeholder CA certificate
-            self._create_placeholder_ca_cert(config_dir / "kme_ca_certificate.pem")
+            raise FileNotFoundError(f"CA certificate not found at {ca_cert_path}")
 
         # Create multi-SAE test script
         self._create_multi_sae_test_script(package_dir, config)
@@ -369,11 +368,15 @@ class SAEPackageCreator:
         sae_configs = []
 
         # Import CertificateGenerator to use existing certificate generation
-        from admin.certificate_generator import CertificateGenerator
+        try:
+            from certificate_generator import CertificateGenerator
+        except ImportError:
+            from .certificate_generator import CertificateGenerator
 
         # Use correct CA directory path and SAE certs directory
+        # When running from admin/ directory, use relative paths
         cert_generator = CertificateGenerator(
-            ca_dir="test_certs", sae_certs_dir="admin/sae_certs"
+            ca_dir="../test_certs", sae_certs_dir="sae_certs"
         )
 
         # Define SAE configurations
@@ -444,29 +447,10 @@ class SAEPackageCreator:
                 )
 
             except Exception as e:
-                logger.warning(
+                logger.error(
                     f"Failed to generate certificate for {sae_def['id']}: {e}"
                 )
-                # Create placeholder certificate as fallback
-                cert_path = config_dir / sae_def["cert_file"]
-                key_path = config_dir / sae_def["key_file"]
-
-                self._create_placeholder_certificate(
-                    cert_path, sae_def["id"], sae_def["name"]
-                )
-                self._create_placeholder_private_key(key_path)
-
-                # Add to configuration with fallback note
-                sae_configs.append(
-                    {
-                        "sae_id": sae_def["id"],
-                        "sae_name": sae_def["name"],
-                        "role": sae_def["role"],
-                        "certificate_file": f".config/{sae_def['cert_file']}",
-                        "private_key_file": f".config/{sae_def['key_file']}",
-                        "description": f"{sae_def['role'].title()} SAE for multi-SAE testing (placeholder cert)",
-                    }
-                )
+                raise Exception(f"Certificate generation failed for {sae_def['id']}: {e}")
 
         return sae_configs
 
@@ -593,11 +577,26 @@ for i in $(seq 0 $((sae_count - 1))); do
     print_status "  Certificate: $cert_file"
     print_status "  Private Key: $key_file"
 
-    response=$(curl -s -w "HTTPSTATUS:%{http_code}" -X GET "$KME_ENDPOINT/health/ready" \
+    # Debug: Check if files exist
+    if [[ ! -f "$cert_file" ]]; then
+        print_error "Certificate file not found: $cert_file"
+        continue
+    fi
+    if [[ ! -f "$key_file" ]]; then
+        print_error "Private key file not found: $key_file"
+        continue
+    fi
+    if [[ ! -f "$CA_FILE" ]]; then
+        print_error "CA certificate file not found: $CA_FILE"
+        continue
+    fi
+
+    print_status "Files found, attempting connection..."
+    response=$(curl -v -w "HTTPSTATUS:%{http_code}" -X GET "$KME_ENDPOINT/health/ready" \
         --cert "$cert_file" \
         --key "$key_file" \
         --cacert "$CA_FILE" \
-        --connect-timeout 10)
+        --connect-timeout 10 2>&1)
 
     http_code=$(echo "$response" | tr -d '\\n' | sed -e 's/.*HTTPSTATUS://')
     response_body=$(echo "$response" | sed -e 's/HTTPSTATUS\\:.*//g')
@@ -916,7 +915,10 @@ echo "This will run the comprehensive multi-SAE test suite."
         logger.info("Registering multi-SAE SAEs in KME system")
 
         # Import KMEAdmin to use existing registration methods
-        from admin.kme_admin import KMEAdmin
+        try:
+            from kme_admin import KMEAdmin
+        except ImportError:
+            from .kme_admin import KMEAdmin
 
         admin = KMEAdmin()
 
