@@ -21,6 +21,16 @@ from typing import Any, Dict, List
 # Add the project root to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    print(
+        "Warning: python-dotenv not available, environment variables may not be loaded"
+    )
+
 
 class CASetup:
     """Admin tool CA setup and validation"""
@@ -168,11 +178,18 @@ class CASetup:
     def generate_kme_cert(self) -> bool:
         """Generate KME certificate"""
         try:
+            # Read KME ID from environment
+            kme_id = os.getenv("KME_ID")
+            if not kme_id:
+                error_msg = "KME_ID not found in environment variables"
+                self.update_test_status("generate_kme_cert", "FAILED", error=error_msg)
+                return False
+
             # Use the CA generation script
             ca_script = self.project_root / "test" / "scripts" / "generate_ca.py"
 
-            # Generate KME certificate
-            command = ["python", str(ca_script), "kme"]
+            # Generate KME certificate with KME ID
+            command = ["python", str(ca_script), "kme", kme_id]
 
             if self.run_command(command, "Generate KME certificate"):
                 # Verify KME certificate was created

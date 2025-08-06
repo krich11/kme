@@ -23,6 +23,16 @@ from credentials import credentials
 # Add the project root to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    print(
+        "Warning: python-dotenv not available, environment variables may not be loaded"
+    )
+
 
 class SAEManagementTest:
     """Test SAE certificate generation and registration through admin tools"""
@@ -41,10 +51,16 @@ class SAEManagementTest:
         self.test_sae_id = "TEST_SAE_001_XY"
         self.test_sae_name = "Test SAE 001"
         self.test_sae_cert_path = (
-            self.project_root / "certs" / "sae_certs" / f"{self.test_sae_id}.crt"
+            self.project_root
+            / "certs"
+            / "sae_certs"
+            / f"{self.test_sae_id}_certificate.pem"
         )
         self.test_sae_key_path = (
-            self.project_root / "certs" / "sae_certs" / f"{self.test_sae_id}.key"
+            self.project_root
+            / "certs"
+            / "sae_certs"
+            / f"{self.test_sae_id}_private_key.pem"
         )
 
         # Results tracking

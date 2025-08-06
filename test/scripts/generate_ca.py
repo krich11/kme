@@ -60,8 +60,16 @@ def generate_ca(ca_dir: str = "certs/ca", ca_name: str = "Test KME CA"):
     return True
 
 
-def generate_kme_cert(ca_dir: str = "certs/ca", kme_id: str = "AAAABBBBCCCCDDDD"):
+def generate_kme_cert(ca_dir: str = "certs/ca", kme_id: str = None):
     """Generate KME certificate using the CA"""
+
+    # KME ID must be provided - this is an error condition if it's not
+    if kme_id is None:
+        print("❌ ERROR: KME ID must be provided for certificate generation")
+        print(
+            "   This indicates an installation error - KME ID should be determined earlier"
+        )
+        return False
 
     ca_path = Path(ca_dir)
     ca_key = ca_path / "ca.key"
@@ -154,9 +162,15 @@ def main():
         ca_name = sys.argv[2] if len(sys.argv) > 2 else "KME Root CA"
         success = generate_ca(ca_name=ca_name)
     elif command == "kme":
-        # Use provided KME ID or default
-        kme_id = sys.argv[2] if len(sys.argv) > 2 else "AAAABBBBCCCCDDDD"
-        success = generate_kme_cert(kme_id=kme_id)
+        # Use provided KME ID or error out
+        if len(sys.argv) > 2:
+            kme_id = sys.argv[2]
+            success = generate_kme_cert(kme_id=kme_id)
+        else:
+            print("❌ ERROR: KME ID must be provided")
+            print("Usage: python generate_ca.py kme <KME_ID>")
+            print("Example: python generate_ca.py kme 63BF19E5AD497358")
+            sys.exit(1)
     else:
         print("Unknown command. Use 'ca' or 'kme'")
         sys.exit(1)
