@@ -46,7 +46,7 @@ class KMEInstaller:
 
         # Installation paths
         self.paths = {
-            "ca_dir": self.project_root / "admin" / "ca",
+            "ca_dir": self.project_root / "certs" / "ca",
             "sae_certs_dir": self.project_root / "admin" / "sae_certs",
             "test_certs_dir": self.project_root / "test_certs",
             "scripts_dir": self.project_root / "test" / "scripts",
@@ -1473,9 +1473,9 @@ if __name__ == "__main__":
     def _configure_nginx_for_kme(self) -> bool:
         """Configure nginx for KME system"""
         try:
-            # Check if KME certificates exist
-            kme_cert = self.project_root / "admin" / "kme_cert.pem"
-            kme_key = self.project_root / "admin" / "kme_key.pem"
+            # Check if KME certificates exist in the new certs/ directory
+            kme_cert = self.project_root / "certs" / "kme_cert.pem"
+            kme_key = self.project_root / "certs" / "kme_key.pem"
 
             if not kme_cert.exists() or not kme_key.exists():
                 self.log("KME certificates not found - generating them first...")
@@ -1741,8 +1741,8 @@ TESTING=false
                 return False
 
             # Verify KME certificate files
-            kme_cert = self.project_root / "admin" / "kme_cert.pem"
-            kme_key = self.project_root / "admin" / "kme_key.pem"
+            kme_cert = self.project_root / "certs" / "kme_cert.pem"
+            kme_key = self.project_root / "certs" / "kme_key.pem"
 
             if not kme_cert.exists() or not kme_key.exists():
                 self.log("KME certificate files not created", "ERROR")
@@ -1794,8 +1794,8 @@ TESTING=false
         try:
             # Test nginx configuration generation
             nginx_gen = self.paths["scripts_dir"] / "nginx_config_generator.py"
-            kme_cert = self.project_root / "admin" / "kme_cert.pem"
-            kme_key = self.project_root / "admin" / "kme_key.pem"
+            kme_cert = self.project_root / "certs" / "kme_cert.pem"
+            kme_key = self.project_root / "certs" / "kme_key.pem"
 
             if not kme_cert.exists() or not kme_key.exists():
                 self.log("KME certificates not found for nginx test", "ERROR")
@@ -2071,7 +2071,7 @@ TESTING=false
                     pass
 
             # CA and certificates
-            ca_dir = self.project_root / "admin" / "ca"
+            ca_dir = self.project_root / "certs" / "ca"
             if ca_dir.exists():
                 ca_cert = ca_dir / "ca.crt"
                 ca_key = ca_dir / "ca.key"
@@ -2079,8 +2079,8 @@ TESTING=false
                     self.log(f"  ✅ CA Certificate: {ca_cert}")
                     self.log(f"  ✅ CA Private Key: {ca_key}")
 
-            kme_cert = self.project_root / "admin" / "kme_cert.pem"
-            kme_key = self.project_root / "admin" / "kme_key.pem"
+            kme_cert = self.project_root / "certs" / "kme_cert.pem"
+            kme_key = self.project_root / "certs" / "kme_key.pem"
             if kme_cert.exists() and kme_key.exists():
                 self.log(f"  ✅ KME Certificate: {kme_cert}")
                 self.log(f"  ✅ KME Private Key: {kme_key}")
@@ -2193,7 +2193,7 @@ TESTING=false
             if component == "ca":
                 self.log("")
                 self.log("📄 GENERATED FILES:")
-                ca_dir = self.project_root / "admin" / "ca"
+                ca_dir = self.project_root / "certs" / "ca"
                 if ca_dir.exists():
                     ca_cert = ca_dir / "ca.crt"
                     ca_key = ca_dir / "ca.key"
@@ -2201,8 +2201,8 @@ TESTING=false
                         self.log(f"  ✅ CA Certificate: {ca_cert}")
                         self.log(f"  ✅ CA Private Key: {ca_key}")
 
-                kme_cert = self.project_root / "admin" / "kme_cert.pem"
-                kme_key = self.project_root / "admin" / "kme_key.pem"
+                kme_cert = self.project_root / "certs" / "kme_cert.pem"
+                kme_key = self.project_root / "certs" / "kme_key.pem"
                 if kme_cert.exists() and kme_key.exists():
                     self.log(f"  ✅ KME Certificate: {kme_cert}")
                     self.log(f"  ✅ KME Private Key: {kme_key}")
