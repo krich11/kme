@@ -13,7 +13,7 @@ import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type
 
 import psycopg2
 from dotenv import load_dotenv
@@ -98,24 +98,24 @@ def generate_sae_id() -> str:
     return sae_id
 
 
-# Initialize module variables
-SAEPackageCreator = None
-CertificateGenerator = None
-SAEIDGenerator = None
+# Import modules with fallbacks
+# Add current directory to path for direct imports
+current_dir = Path(__file__).parent
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
 
 try:
-    from .certificate_generator import CertificateGenerator
-    from .package_creator import SAEPackageCreator
-    from .sae_id_generator import SAEIDGenerator
+    from certificate_generator import CertificateGenerator
+    from package_creator import SAEPackageCreator
+    from sae_id_generator import SAEIDGenerator
 except ImportError:
-    try:
-        from certificate_generator import CertificateGenerator
-        from package_creator import SAEPackageCreator
-        from sae_id_generator import SAEIDGenerator
-    except ImportError:
-        print(
-            "Warning: Could not import SAEPackageCreator, CertificateGenerator, or SAEIDGenerator"
-        )
+    print(
+        "Warning: Could not import SAEPackageCreator, CertificateGenerator, or SAEIDGenerator"
+    )
+    # Set to None if imports fail
+    CertificateGenerator = None
+    SAEPackageCreator = None
+    SAEIDGenerator = None
 
 
 class KMEAdmin:
@@ -526,7 +526,7 @@ class KMEAdmin:
                 key_path = cert_dir / f"{sae_id}.key"
 
                 # Generate certificate using OpenSSL command
-                import subprocess
+                import subprocess  # nosec B404
 
                 # Create OpenSSL config
                 config_content = f"""
@@ -557,7 +557,7 @@ DNS.1 = {sae_name}
                     f.write(config_content)
 
                 # Generate private key and certificate
-                subprocess.run(
+                subprocess.run(  # nosec B607, B603
                     [
                         "openssl",
                         "req",

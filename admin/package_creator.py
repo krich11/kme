@@ -447,10 +447,10 @@ class SAEPackageCreator:
                 )
 
             except Exception as e:
-                logger.error(
-                    f"Failed to generate certificate for {sae_def['id']}: {e}"
+                logger.error(f"Failed to generate certificate for {sae_def['id']}: {e}")
+                raise Exception(
+                    f"Certificate generation failed for {sae_def['id']}: {e}"
                 )
-                raise Exception(f"Certificate generation failed for {sae_def['id']}: {e}")
 
         return sae_configs
 
