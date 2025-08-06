@@ -30,7 +30,14 @@ class CertificateGenerator:
 
     def __init__(self, ca_dir: str = None, sae_certs_dir: str = None):
         """Initialize certificate generator with configurable paths"""
-        from .config import CA_DIR, SAE_CERTS_DIR
+        try:
+            from admin.config import CA_DIR, SAE_CERTS_DIR
+        except ImportError:
+            # Fallback for when running as script
+            from pathlib import Path
+
+            CA_DIR = Path(__file__).parent.parent / "certs" / "ca"
+            SAE_CERTS_DIR = Path(__file__).parent.parent / "certs" / "sae_certs"
 
         self.ca_dir = Path(ca_dir) if ca_dir else CA_DIR
         self.sae_certs_dir = Path(sae_certs_dir) if sae_certs_dir else SAE_CERTS_DIR

@@ -1,0 +1,43 @@
+{
+  "stage": "0.3",
+  "name": "Admin Tool SAE Management",
+  "timestamp": "2025-08-06T22:10:29.515581",
+  "tests": [
+    {
+      "name": "SAE Certificate Generation",
+      "status": "FAILED",
+      "timestamp": "2025-08-06T22:10:29.667864"
+    },
+    {
+      "name": "SAE Certificate Validation",
+      "status": "FAILED",
+      "timestamp": "2025-08-06T22:10:29.691159"
+    },
+    {
+      "name": "SAE Registration",
+      "status": "FAILED",
+      "timestamp": "2025-08-06T22:10:29.858480"
+    },
+    {
+      "name": "SAE Database Verification",
+      "status": "FAILED",
+      "timestamp": "2025-08-06T22:10:30.023120"
+    },
+    {
+      "name": "SAE Certificate Revocation",
+      "status": "FAILED",
+      "timestamp": "2025-08-06T22:10:30.189399"
+    },
+    {
+      "name": "SAE Management Operations",
+      "status": "FAILED",
+      "timestamp": "2025-08-06T22:10:30.371523"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "passed": 0,
+    "failed": 6,
+    "errors": []
+  }
+}

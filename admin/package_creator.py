@@ -26,7 +26,13 @@ class SAEPackageCreator:
 
     def __init__(self, admin_dir: str = None):
         """Initialize package creator with configurable admin directory"""
-        from .config import ADMIN_DIR
+        try:
+            from admin.config import ADMIN_DIR
+        except ImportError:
+            # Fallback for when running as script
+            from pathlib import Path
+
+            ADMIN_DIR = Path(__file__).parent
 
         self.admin_dir = Path(admin_dir) if admin_dir else ADMIN_DIR
         self.temp_dir: str | None = None

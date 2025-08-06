@@ -259,7 +259,22 @@ class KMEAdmin:
                 return 1
 
             # Get defaults from config if not provided
-            from .config import settings
+            try:
+                from admin.config import settings
+            except ImportError:
+                # Fallback for when running as script
+                import os
+
+                class Settings:
+                    DEFAULT_MAX_KEYS_PER_REQUEST = int(
+                        os.getenv("DEFAULT_MAX_KEYS_PER_REQUEST", "128")
+                    )
+                    DEFAULT_MAX_KEY_SIZE = int(
+                        os.getenv("DEFAULT_MAX_KEY_SIZE", "1024")
+                    )
+                    DEFAULT_MIN_KEY_SIZE = int(os.getenv("DEFAULT_MIN_KEY_SIZE", "64"))
+
+                settings = Settings()  # type: ignore
 
             max_keys = (
                 args.max_keys
@@ -474,7 +489,20 @@ class KMEAdmin:
             sae_name = args.name
 
             # Get defaults from config if not provided
-            from .config import settings
+            try:
+                from admin.config import settings
+            except ImportError:
+                # Fallback for when running as script
+                import os
+                from pathlib import Path
+
+                class Settings:
+                    DEFAULT_CERT_VALIDITY_DAYS = int(
+                        os.getenv("DEFAULT_CERT_VALIDITY_DAYS", "365")
+                    )
+                    DEFAULT_KEY_SIZE = int(os.getenv("DEFAULT_KEY_SIZE", "2048"))
+
+                settings = Settings()  # type: ignore
 
             validity_days = (
                 args.validity_days
@@ -546,7 +574,11 @@ class KMEAdmin:
                 print("Certificate generator not available, using fallback method...")
 
                 # Create output directory using config
-                from .config import SAE_CERTS_DIR
+                try:
+                    from admin.config import SAE_CERTS_DIR
+                except ImportError:
+                    # Fallback for when running as script
+                    SAE_CERTS_DIR = Path(__file__).parent.parent / "certs" / "sae_certs"
 
                 cert_dir = SAE_CERTS_DIR
                 cert_dir.mkdir(parents=True, exist_ok=True)
@@ -582,8 +614,8 @@ DNS.1 = {sae_name}
 """
 
                 config_path = cert_dir / f"{sae_id}.conf"
-                with open(config_path, "w") as f:
-                    f.write(config_content)
+                with open(config_path, "w") as f:  # type: ignore
+                    f.write(config_content)  # type: ignore
 
                 # Generate private key and certificate
                 subprocess.run(  # nosec B607, B603
@@ -809,7 +841,13 @@ DNS.1 = {sae_name}
             package_name = sae_data["name"].replace(" ", "_").lower()
 
             # Use config path for packages
-            from .config import PACKAGE_DIR
+            try:
+                from admin.config import PACKAGE_DIR
+            except ImportError:
+                # Fallback for when running as script
+                from pathlib import Path
+
+                PACKAGE_DIR = Path(__file__).parent / "packages"
 
             output_path = PACKAGE_DIR / f"{package_name}_sae_package.sh"
 
