@@ -1,0 +1,6 @@
+{
+  "Stage 0.1: Environment Reset": "PASSED",
+  "Stage 0.2: CA Setup": "SKIPPED",
+  "Stage 0.3: SAE Management": "FAILED",
+  "Stage 0.4: Database Operations": "SKIPPED"
+}

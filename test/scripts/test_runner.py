@@ -26,25 +26,56 @@ def run_test_stage(stage_name: str, stage_script: str) -> bool:
         return False
 
 
+def run_installer() -> bool:
+    """Run the KME installer to set up the environment"""
+    print("Running KME Environment Installer...")
+
+    try:
+        installer_script = (
+            Path(__file__).parent.parent.parent / "test" / "scripts" / "installer.py"
+        )
+        result = subprocess.run(
+            ["python", str(installer_script), "all"],
+            capture_output=True,
+            text=True,
+            timeout=300,  # 5 minute timeout
+        )
+        if result.returncode != 0:
+            print(f"Installer failed with error: {result.stderr}")
+        return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        print("Installer timed out after 5 minutes")
+        return False
+    except Exception as e:
+        print(f"Failed to run installer: {e}")
+        return False
+
+
 def main():
     """Main test runner"""
     stages = [
         ("Stage 0.1: Environment Reset", "stage_0_1_reset.py"),
-        ("Stage 0.2: CA Setup", "stage_0_2_ca_setup.py"),
+        ("Installer: Environment Setup", "installer.py all"),
+        ("Stage 0.2: Certificate Validation", "stage_0_2_cert_validation.py"),
         ("Stage 0.3: SAE Management", "stage_0_3_sae_management.py"),
-        ("Stage 0.4: Database Operations", "stage_0_4_database_ops.py"),
     ]
 
     results = {}
 
     for stage_name, stage_script in stages:
-        script_path = Path(__file__).parent / stage_script
-        if script_path.exists():
-            success = run_test_stage(stage_name, str(script_path))
+        if stage_name == "Installer: Environment Setup":
+            # Run the installer directly
+            success = run_installer()
             results[stage_name] = "PASSED" if success else "FAILED"
         else:
-            print(f"Stage script not found: {script_path}")
-            results[stage_name] = "SKIPPED"
+            # Run regular test stage
+            script_path = Path(__file__).parent / stage_script
+            if script_path.exists():
+                success = run_test_stage(stage_name, str(script_path))
+                results[stage_name] = "PASSED" if success else "FAILED"
+            else:
+                print(f"Stage script not found: {script_path}")
+                results[stage_name] = "SKIPPED"
 
     # Generate summary
     print("\n=== Test Results Summary ===")

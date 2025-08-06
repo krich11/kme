@@ -1,0 +1,7 @@
+{
+  "Stage 0.1: Environment Reset": "PASSED",
+  "Installer: Environment Setup": "FAILED",
+  "Stage 0.2: Certificate Validation": "FAILED",
+  "Stage 0.3: SAE Management": "FAILED",
+  "Stage 0.4: Database Operations": "SKIPPED"
+}
