@@ -9,17 +9,25 @@ import argparse
 import asyncio
 import json
 import logging
+import os
+import subprocess
 import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-# Add the project root to the Python path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add the project root to the Python path and set up environment
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+os.environ["ENV_FILE"] = str(project_root / ".env")
 
-from admin.sqlalchemy_service import close_sqlalchemy_service, get_sqlalchemy_service
-from app.core.config import settings
+# Now import the modules that depend on the path setup
+from admin.sqlalchemy_service import (
+    close_sqlalchemy_service,  # noqa: E402
+    get_sqlalchemy_service,  # noqa: E402
+)
+from app.core.config import settings  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -28,17 +36,10 @@ logger = logging.getLogger(__name__)
 
 def detect_kme_id() -> str:
     """Detect KME ID from environment or certificate"""
-    # Try environment variable first
-    kme_id = settings.kme_id
-    if kme_id:
-        return kme_id
-
-    # Try to extract from server certificate
-    server_cert_path = "certs/kme_cert.pem"
+    # Try to extract from server certificate first (most reliable)
+    server_cert_path = "../certs/kme_cert.pem"
     if Path(server_cert_path).exists():
         try:
-            import subprocess
-
             result = subprocess.run(
                 ["openssl", "x509", "-in", server_cert_path, "-subject", "-noout"],
                 capture_output=True,
@@ -53,6 +54,16 @@ def detect_kme_id() -> str:
                     return cn
         except Exception as e:
             logger.warning(f"Failed to extract KME ID from certificate: {e}")
+
+    # Try environment variable
+    kme_id = os.getenv("KME_ID")
+    if kme_id:
+        return kme_id
+
+    # Try settings (but this might be wrong due to .env loading issues)
+    kme_id = settings.kme_id
+    if kme_id and kme_id != "KME001":
+        return kme_id
 
     # Fallback to default
     return "KME001"
@@ -197,8 +208,6 @@ class KMEAdminSQLAlchemy:
     def _extract_sae_id_from_certificate(self, certificate_path: str) -> str | None:
         """Extract SAE ID from certificate"""
         try:
-            import subprocess
-
             result = subprocess.run(
                 ["openssl", "x509", "-in", certificate_path, "-subject", "-noout"],
                 capture_output=True,
@@ -217,8 +226,6 @@ class KMEAdminSQLAlchemy:
     def _get_certificate_hash(self, certificate_path: str) -> str:
         """Get certificate hash"""
         try:
-            import subprocess
-
             result = subprocess.run(
                 [
                     "openssl",
@@ -246,8 +253,6 @@ class KMEAdminSQLAlchemy:
     def _extract_certificate_subject(self, certificate_path: str) -> str:
         """Extract certificate subject"""
         try:
-            import subprocess
-
             result = subprocess.run(
                 ["openssl", "x509", "-in", certificate_path, "-subject", "-noout"],
                 capture_output=True,
@@ -265,8 +270,6 @@ class KMEAdminSQLAlchemy:
     def _extract_certificate_issuer(self, certificate_path: str) -> str:
         """Extract certificate issuer"""
         try:
-            import subprocess
-
             result = subprocess.run(
                 ["openssl", "x509", "-in", certificate_path, "-issuer", "-noout"],
                 capture_output=True,

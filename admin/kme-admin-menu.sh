@@ -11,7 +11,8 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-KME_ADMIN="python kme_admin.py"
+KME_ADMIN_OLD="python kme_admin.py"
+KME_ADMIN_NEW="python kme_admin_sqlalchemy.py"
 PACKAGE_DIR="packages"
 
 # Note: Admin tool now runs from admin directory with proper path configuration
@@ -79,13 +80,13 @@ register_new_sae() {
         key_size=${key_size:-2048}
 
         if [[ -n "$sae_id" ]]; then
-            output=$($KME_ADMIN sae generate-certificate \
+            output=$($KME_ADMIN_OLD sae generate-certificate \
                 --sae-id "$sae_id" \
                 --name "$sae_name" \
                 --validity-days "$validity_days" \
                 --key-size "$key_size" 2>&1)
         else
-            output=$($KME_ADMIN sae generate-certificate \
+            output=$($KME_ADMIN_OLD sae generate-certificate \
                 --name "$sae_name" \
                 --validity-days "$validity_days" \
                 --key-size "$key_size" 2>&1)
@@ -106,8 +107,8 @@ register_new_sae() {
                     return 1
                 fi
             fi
-            cert_path="sae_certs/${sae_id}_certificate.pem"
-            key_path="sae_certs/${sae_id}_private_key.pem"
+            cert_path="../certs/sae_certs/${sae_id}_certificate.pem"
+            key_path="../certs/sae_certs/${sae_id}_private_key.pem"
             print_status "Certificate generated successfully!"
         else
             print_error "Certificate generation failed"
@@ -140,12 +141,9 @@ register_new_sae() {
 
     # Register SAE
     print_status "Registering SAE..."
-    $KME_ADMIN sae register \
+    $KME_ADMIN_NEW sae register \
         --name "$sae_name" \
-        --certificate "$cert_path" \
-        --private-key "$key_path" \
-        --max-keys "$max_keys" \
-        --max-key-size "$max_key_size"
+        --certificate "$cert_path"
 
     if [[ $? -eq 0 ]]; then
         print_status "SAE registered successfully"
@@ -164,14 +162,14 @@ register_new_sae() {
 # Function to list SAEs
 list_saes() {
     print_subheader "SAE List"
-    $KME_ADMIN sae list
+    $KME_ADMIN_NEW sae list
 }
 
 # Function to show SAE details
 show_sae_details() {
     print_subheader "SAE Details"
     read -p "Enter SAE ID: " sae_id
-    $KME_ADMIN sae show "$sae_id"
+    $KME_ADMIN_NEW sae show "$sae_id"
 }
 
 # Function to update SAE status
@@ -180,7 +178,7 @@ update_sae_status() {
     read -p "Enter SAE ID: " sae_id
     echo "Available statuses: active, inactive, suspended, expired"
     read -p "New status: " new_status
-    $KME_ADMIN sae update-status "$sae_id" "$new_status"
+    $KME_ADMIN_NEW sae update-status "$sae_id" "$new_status"
 }
 
 # Function to revoke SAE
@@ -189,7 +187,7 @@ revoke_sae() {
     read -p "Enter SAE ID: " sae_id
     read -p "Are you sure you want to revoke access for SAE $sae_id? (y/n): " confirm
     if [[ "$confirm" == "y" ]]; then
-        $KME_ADMIN sae revoke "$sae_id"
+        $KME_ADMIN_NEW sae revoke "$sae_id"
     else
         print_status "Operation cancelled"
     fi
@@ -230,7 +228,7 @@ generate_sae_package() {
 
     # Generate encrypted package
     print_status "Generating encrypted package..."
-    $KME_ADMIN sae generate-package \
+    $KME_ADMIN_OLD sae generate-package \
         "$sae_id" \
         --password "$package_password" \
         --output "$package_file"
@@ -277,7 +275,7 @@ generate_multi_sae_test_package() {
 
     # Generate multi-SAE test package
     print_status "Generating multi-SAE test package..."
-    $KME_ADMIN sae generate-multi-sae-package \
+    $KME_ADMIN_OLD sae generate-multi-sae-package \
         --password "$package_password" \
         --output "$package_file"
 
@@ -345,13 +343,13 @@ generate_sae_certificate() {
     # Generate certificate
     print_status "Generating SAE certificate..."
     if [[ -n "$sae_id" ]]; then
-        $KME_ADMIN sae generate-certificate \
+        $KME_ADMIN_OLD sae generate-certificate \
             --sae-id "$sae_id" \
             --name "$sae_name" \
             --validity-days "$validity_days" \
             --key-size "$key_size"
     else
-        $KME_ADMIN sae generate-certificate \
+        $KME_ADMIN_OLD sae generate-certificate \
             --name "$sae_name" \
             --validity-days "$validity_days" \
             --key-size "$key_size"
@@ -368,7 +366,7 @@ generate_sae_certificate() {
 # Function to list SAE certificates
 list_sae_certificates() {
     print_subheader "SAE Certificates"
-    $KME_ADMIN sae list-certificates
+    $KME_ADMIN_OLD sae list-certificates
 }
 
 # Function to revoke SAE certificate
@@ -377,7 +375,7 @@ revoke_sae_certificate() {
     read -p "Enter SAE ID: " sae_id
     read -p "Are you sure you want to revoke the certificate for SAE $sae_id? (y/n): " confirm
     if [[ "$confirm" == "y" ]]; then
-        $KME_ADMIN sae revoke-certificate "$sae_id"
+        $KME_ADMIN_OLD sae revoke-certificate "$sae_id"
     else
         print_status "Operation cancelled"
     fi
@@ -433,7 +431,7 @@ show_help() {
     echo "h. Show Help - Display this help message"
     echo "q. Exit - Exit the admin interface"
     echo ""
-    echo "For more detailed help, run: python kme_admin.py --help"
+    echo "For more detailed help, run: python kme_admin_sqlalchemy.py --help"
 }
 
 # Function to check prerequisites
@@ -445,8 +443,8 @@ check_prerequisites() {
     fi
 
     # Check if KME admin script exists
-    if [[ ! -f "kme_admin.py" ]]; then
-        print_error "KME admin script not found: kme_admin.py"
+    if [[ ! -f "kme_admin_sqlalchemy.py" ]]; then
+    print_error "KME admin script not found: kme_admin_sqlalchemy.py"
         exit 1
     fi
 

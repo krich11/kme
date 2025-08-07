@@ -22,8 +22,8 @@ from sqlalchemy.orm import sessionmaker
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.config import settings
-from app.models.sqlalchemy_models import SAE
+from app.core.config import settings  # noqa: E402
+from app.models.sqlalchemy_models import SAE  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,15 @@ class SQLAlchemyService:
 
     def __init__(self):
         """Initialize SQLAlchemy service"""
+        # Convert postgresql:// to postgresql+asyncpg:// for async operations
+        database_url = settings.database_url
+        if database_url.startswith("postgresql://") and "+asyncpg" not in database_url:
+            database_url = database_url.replace(
+                "postgresql://", "postgresql+asyncpg://"
+            )
+
         self.engine = create_async_engine(
-            settings.database_url,
+            database_url,
             echo=False,
             pool_pre_ping=True,
         )

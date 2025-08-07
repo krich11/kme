@@ -788,9 +788,9 @@ DNS.1 = {sae_name}
         """Get SAE data for package generation"""
         try:
             # Check if certificate exists in sae_certs directory
-            cert_path = f"sae_certs/{sae_id}_certificate.pem"
-            key_path = f"sae_certs/{sae_id}_private_key.pem"
-            ca_cert_path = "certs/ca/ca.crt"
+            cert_path = f"../certs/sae_certs/{sae_id}_certificate.pem"
+            key_path = f"../certs/sae_certs/{sae_id}_private_key.pem"
+            ca_cert_path = "../certs/ca/ca.crt"
 
             # Use actual certificate paths if they exist
             if os.path.exists(cert_path) and os.path.exists(key_path):
@@ -811,9 +811,9 @@ DNS.1 = {sae_name}
                     "name": f"SAE {sae_id[:8]}",  # Generate name from SAE ID
                     "sae_id": sae_id,
                     "kme_endpoint": f"https://{self.settings.host}:{self.settings.port}",
-                    "certificate_path": "certs/sae_certs/master_sae_cert.pem",
-                    "private_key_path": "certs/sae_certs/master_sae_key.pem",
-                    "ca_certificate_path": "certs/ca/ca.crt",
+                    "certificate_path": "../certs/sae_certs/master_sae_cert.pem",
+                    "private_key_path": "../certs/sae_certs/master_sae_key.pem",
+                    "ca_certificate_path": "../certs/ca/ca.crt",
                     "registration_date": datetime.now().isoformat(),
                 }
         except Exception as e:
