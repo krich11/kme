@@ -6,41 +6,31 @@ Validates database connectivity and schema.
 """
 
 import os
-import subprocess
 import sys
+import subprocess
 
 # Database configuration
 DB_CONFIG = {
-    "host": "localhost",
-    "port": "5432",
-    "user": "krich",
-    "password": "mustang",
-    "database": "kme_db",
+    'host': 'localhost',
+    'port': '5432',
+    'user': 'krich',
+    'password': 'mustang',
+    'database': 'kme_db'
 }
-
 
 def test_connection():
     """Test database connection"""
     env = os.environ.copy()
-    env["PGPASSWORD"] = DB_CONFIG["password"]
+    env["PGPASSWORD"] = DB_CONFIG['password']
 
     cmd = [
-        "psql",
-        "-h",
-        DB_CONFIG["host"],
-        "-p",
-        DB_CONFIG["port"],
-        "-U",
-        DB_CONFIG["user"],
-        "-d",
-        DB_CONFIG["database"],
-        "-c",
-        "SELECT version();",
+        "psql", "-h", DB_CONFIG['host'], "-p", DB_CONFIG['port'],
+        "-U", DB_CONFIG['user'], "-d", DB_CONFIG['database'],
+        "-c", "SELECT version();"
     ]
 
     result = subprocess.run(cmd, env=env, capture_output=True, text=True)
     return result.returncode == 0
-
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

@@ -1535,8 +1535,11 @@ if __name__ == "__main__":
             )
             nginx_installer = self.paths["scripts_dir"] / "nginx_installer.py"
 
+            # Get CA certificate path
+            ca_cert = self.project_root / "certs" / "ca" / "ca.crt"
+            
             if not self.run_command(
-                ["python", str(nginx_installer), str(kme_cert), str(kme_key)],
+                ["python", str(nginx_installer), str(kme_cert), str(kme_key), str(ca_cert)],
                 "Install KME nginx configuration",
             ):
                 return False
@@ -2180,7 +2183,7 @@ TESTING=false
             self.log("")
             self.log("5. System Nginx Installation (requires sudo):")
             self.log(
-                f"   sudo python {self.paths['scripts_dir']}/nginx_installer.py certs/kme_cert.pem certs/kme_key.pem"
+                f"   sudo python {self.paths['scripts_dir']}/nginx_installer.py certs/kme_cert.pem certs/kme_key.pem certs/ca/ca.crt"
             )
 
             # Security notes
@@ -2292,7 +2295,7 @@ TESTING=false
                 self.log("🚀 USAGE:")
                 self.log("  Local testing: nginx -c kme_nginx.conf")
                 self.log(
-                    "  System install: sudo python test/scripts/nginx_installer.py certs/kme_cert.pem certs/kme_key.pem"
+                    "  System install: sudo python test/scripts/nginx_installer.py certs/kme_cert.pem certs/kme_key.pem certs/ca/ca.crt"
                 )
 
             elif component == "utils":

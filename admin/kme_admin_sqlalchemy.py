@@ -23,10 +23,8 @@ sys.path.insert(0, str(project_root))
 os.environ["ENV_FILE"] = str(project_root / ".env")
 
 # Now import the modules that depend on the path setup
-from admin.sqlalchemy_service import (
-    close_sqlalchemy_service,  # noqa: E402
-    get_sqlalchemy_service,  # noqa: E402
-)
+from admin.sqlalchemy_service import close_sqlalchemy_service  # noqa: E402
+from admin.sqlalchemy_service import get_sqlalchemy_service  # noqa: E402
 from app.core.config import settings  # noqa: E402
 
 # Configure logging
