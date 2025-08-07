@@ -10,11 +10,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Import secure credentials
-from credentials import credentials
-
 # Database configuration
-DB_CONFIG = credentials.get_database_config()
+DB_CONFIG = {
+    "host": "localhost",
+    "port": "5432",
+    "user": "krich",
+    "password": "mustang",
+    "database": "kme_db",
+}
 
 
 def setup_database():
@@ -39,7 +42,37 @@ def setup_database():
         print(f"Failed to create database: {result.stderr}")
         return False
 
-    print("✅ Database setup completed")
+    # Create tables using SQLAlchemy
+    create_tables_cmd = ["python", "test/scripts/create_tables.py"]
+
+    result = subprocess.run(create_tables_cmd, env=env, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to create tables: {result.stderr}")
+        return False
+
+    # Insert KME entity
+    kme_id = os.environ.get("KME_ID", "DEFAULT_KME_ID")
+    certificate_info = '{"issuer": "CN=CA", "subject": "CN=' + kme_id + '"}'
+    insert_kme_cmd = [
+        "psql",
+        "-h",
+        DB_CONFIG["host"],
+        "-p",
+        DB_CONFIG["port"],
+        "-U",
+        DB_CONFIG["user"],
+        "-d",
+        DB_CONFIG["database"],
+        "-c",
+        f"INSERT INTO kme_entities (id, kme_id, hostname, port, certificate_info, created_at, updated_at) VALUES (gen_random_uuid(), '{kme_id}', 'localhost', 443, '{certificate_info}', NOW(), NOW());",
+    ]
+
+    result = subprocess.run(insert_kme_cmd, env=env, capture_output=True, text=True)
+    if result.returncode != 0 and "duplicate key" not in result.stderr:
+        print(f"Failed to insert KME entity: {result.stderr}")
+        return False
+
+    print("✅ Database setup and tables created with KME entity")
     return True
 
 
@@ -68,7 +101,15 @@ def reset_database():
         print(f"Failed to reset database: {result.stderr}")
         return False
 
-    print("✅ Database reset completed")
+    # Create tables using SQLAlchemy
+    create_tables_cmd = ["python", "test/scripts/create_tables.py"]
+
+    result = subprocess.run(create_tables_cmd, env=env, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to create tables: {result.stderr}")
+        return False
+
+    print("✅ Database reset and tables created")
     return True
 
 

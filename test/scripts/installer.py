@@ -363,19 +363,18 @@ if __name__ == "__main__":
         try:
             self.log("🗄️ Setting up Database infrastructure...")
 
-            # Create database setup script
+            # Database setup script already exists as standalone
             db_setup = self.paths["scripts_dir"] / "database_setup.py"
             if not db_setup.exists():
-                self.log("  📝 Creating database setup script...")
-                self._create_database_setup(db_setup)
-                self.log("    ✅ Database setup script created")
+                self.log("  ❌ Database setup script not found", "ERROR")
+                return False
+            self.log("    ✅ Database setup script found")
 
-            # Create database validation script
+            # Create/update database validation script
             db_validator = self.paths["scripts_dir"] / "database_validator.py"
-            if not db_validator.exists():
-                self.log("  📝 Creating database validation script...")
-                self._create_database_validator(db_validator)
-                self.log("    ✅ Database validation script created")
+            self.log("  📝 Creating/updating database validation script...")
+            self._create_database_validator(db_validator)
+            self.log("    ✅ Database validation script created/updated")
 
             # Test database connection
             self.log("  🧪 Testing database connection...")
@@ -431,7 +430,28 @@ def setup_database():
         print(f"Failed to create database: {{result.stderr}}")
         return False
 
-    print("✅ Database setup completed")
+    # Create tables using SQLAlchemy
+    create_tables_cmd = ["python", "test/scripts/create_tables.py"]
+
+    result = subprocess.run(create_tables_cmd, env=env, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to create tables: {{result.stderr}}")
+        return False
+
+    # Insert KME entity
+    kme_id = os.environ.get('KME_ID', 'DEFAULT_KME_ID')
+    insert_kme_cmd = [
+        "psql", "-h", DB_CONFIG['host'], "-p", DB_CONFIG['port'],
+        "-U", DB_CONFIG['user'], "-d", DB_CONFIG['database'],
+        "-c", f"INSERT INTO kme_entities (id, kme_id, hostname, port, certificate_info, created_at, updated_at) VALUES (gen_random_uuid(), '{{kme_id}}', 'localhost', 443, '{{\"issuer\": \"CN=CA\", \"subject\": \"CN={{kme_id}}\"}}', NOW(), NOW());"
+    ]
+
+    result = subprocess.run(insert_kme_cmd, env=env, capture_output=True, text=True)
+    if result.returncode != 0 and "duplicate key" not in result.stderr:
+        print(f"Failed to insert KME entity: {{result.stderr}}")
+        return False
+
+    print("✅ Database setup and tables created with KME entity")
     return True
 
 def reset_database():
@@ -451,7 +471,15 @@ def reset_database():
         print(f"Failed to reset database: {{result.stderr}}")
         return False
 
-    print("✅ Database reset completed")
+    # Create tables using SQLAlchemy
+    create_tables_cmd = ["python", "test/scripts/create_tables.py"]
+
+    result = subprocess.run(create_tables_cmd, env=env, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to create tables: {{result.stderr}}")
+        return False
+
+    print("✅ Database reset and tables created")
     return True
 
 if __name__ == "__main__":

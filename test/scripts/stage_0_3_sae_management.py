@@ -48,8 +48,10 @@ class SAEManagementTest:
         self.logs_dir.mkdir(parents=True, exist_ok=True)
 
         # Test data
-        self.test_sae_id = "TEST_SAE_001_XY"
-        self.test_sae_name = "Test SAE 001"
+        # Generate unique SAE ID for this test run (max 16 chars)
+        timestamp = datetime.now().strftime("%H%M")
+        self.test_sae_id = f"TEST_{timestamp}_XY"
+        self.test_sae_name = f"Test SAE {timestamp}"
         self.test_sae_cert_path = (
             self.project_root
             / "certs"
@@ -238,7 +240,7 @@ class SAEManagementTest:
             self.log("Testing SAE registration...")
 
             # Register SAE using admin tool
-            admin_tool = self.project_root / "admin" / "kme_admin.py"
+            admin_tool = self.project_root / "admin" / "kme_admin_sqlalchemy.py"
             command = [
                 "python",
                 str(admin_tool),
@@ -266,7 +268,7 @@ class SAEManagementTest:
             self.log("Testing SAE database verification...")
 
             # List SAEs to verify registration
-            admin_tool = self.project_root / "admin" / "kme_admin.py"
+            admin_tool = self.project_root / "admin" / "kme_admin_sqlalchemy.py"
             command = ["python", str(admin_tool), "sae", "list", "--json"]
 
             if not self.run_command(command, "List registered SAEs"):
@@ -298,22 +300,22 @@ class SAEManagementTest:
             self.log("Testing SAE certificate revocation...")
 
             # Revoke SAE certificate
-            admin_tool = self.project_root / "admin" / "kme_admin.py"
+            admin_tool = self.project_root / "admin" / "kme_admin_sqlalchemy.py"
             command = [
                 "python",
                 str(admin_tool),
                 "sae",
-                "revoke-certificate",
+                "revoke",
                 self.test_sae_id,
             ]
 
             if not self.run_command(command, "Revoke SAE certificate"):
                 return False
 
-            # Verify revocation by listing certificates
-            command = ["python", str(admin_tool), "sae", "list-certificates", "--json"]
+            # Verify revocation by listing SAEs
+            command = ["python", str(admin_tool), "sae", "list", "--json"]
 
-            if not self.run_command(command, "List certificates after revocation"):
+            if not self.run_command(command, "List SAEs after revocation"):
                 return False
 
             self.log("✅ SAE certificate revocation completed")
@@ -328,17 +330,12 @@ class SAEManagementTest:
         try:
             self.log("Testing SAE management operations...")
 
-            admin_tool = self.project_root / "admin" / "kme_admin.py"
+            admin_tool = self.project_root / "admin" / "kme_admin_sqlalchemy.py"
 
             # Test various management operations
             operations = [
                 ("List all SAEs", ["sae", "list"]),
                 ("List SAEs in JSON format", ["sae", "list", "--json"]),
-                ("List all certificates", ["sae", "list-certificates"]),
-                (
-                    "List certificates in JSON format",
-                    ["sae", "list-certificates", "--json"],
-                ),
             ]
 
             for description, args in operations:

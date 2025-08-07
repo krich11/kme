@@ -51,6 +51,43 @@ from sqlalchemy.orm import declarative_base, relationship
 Base = declarative_base()
 
 
+class KME(Base):  # type: ignore[misc,valid-type]
+    """
+    KME (Key Management Entity) model
+
+    Stores KME registration and configuration information
+    """
+
+    __tablename__ = "kme_entities"
+
+    # Primary key
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # KME identifier (16 characters as per ETSI specification)
+    kme_id = Column(String(16), unique=True, nullable=False, index=True)
+
+    # KME configuration
+    hostname = Column(String(255), nullable=False, default="localhost")
+    port = Column(Integer, nullable=False, default=443)
+
+    # Certificate information
+    certificate_info = Column(JSONB, nullable=True)
+
+    # Audit fields
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    # Database constraints
+    __table_args__ = (
+        # Ensure kme_id is unique
+        UniqueConstraint("kme_id", name="uq_kme_id"),
+        # Index for efficient lookups
+        Index("idx_kme_hostname", "hostname"),
+    )
+
+
 class Key(Base):  # type: ignore[misc,valid-type]
     """
     Key storage model for ETSI QKD 014 V1.1.1 compliance
@@ -116,7 +153,7 @@ class SAE(Base):  # type: ignore[misc,valid-type]
     Stores SAE registration and authentication information
     """
 
-    __tablename__ = "saes"
+    __tablename__ = "sae_entities"
 
     # Primary key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

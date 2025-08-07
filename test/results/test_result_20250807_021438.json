@@ -1,0 +1,530 @@
+{
+  "test_run": {
+    "timestamp": "2025-08-07T02:14:38.838321",
+    "test_suite_version": "1.0",
+    "environment": {
+      "hostname": "ubuntu-2204",
+      "python_version": "3.10.12",
+      "kme_version": "1.0.0",
+      "database_version": "PostgreSQL 14.0",
+      "nginx_version": "1.18.0"
+    },
+    "execution_summary": {
+      "total_stages": 12,
+      "stages_passed": 0,
+      "stages_failed": 0,
+      "stages_skipped": 0,
+      "total_tests": 0,
+      "tests_passed": 0,
+      "tests_failed": 0,
+      "tests_skipped": 0,
+      "execution_time_seconds": 0,
+      "overall_status": "NOT_STARTED"
+    }
+  },
+  "stages": {
+    "stage_0_1_reset": {
+      "name": "Complete Environment Reset",
+      "status": "NOT_STARTED",
+      "start_time": null,
+      "end_time": null,
+      "duration_seconds": 0,
+      "tests": {
+        "remove_existing_certificates": {
+          "name": "Remove all existing certificates",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "remove_config_files": {
+          "name": "Remove configuration files",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "clear_database": {
+          "name": "Clear all database entries",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "reset_nginx": {
+          "name": "Reset nginx configuration",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "verify_clean_state": {
+          "name": "Verify clean slate state",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        }
+      }
+    },
+    "stage_0_2_cert_validation": {
+      "name": "CA Setup Validation",
+      "status": "PASSED",
+      "start_time": "2025-08-07T02:14:38.838354",
+      "end_time": "2025-08-07T02:14:38.953417",
+      "duration_seconds": 0.115063,
+      "tests": {
+        "validate_ca_setup": {
+          "name": "Validate CA setup",
+          "status": "PASSED",
+          "details": "CA setup validated successfully: /home/krich/src/kme/certs/ca/ca.crt",
+          "error_message": null
+        },
+        "validate_kme_certificate": {
+          "name": "Validate KME certificate",
+          "status": "PASSED",
+          "details": "KME certificate validated successfully: CN=B4830A43009E2590",
+          "error_message": null
+        },
+        "validate_certificate_chain": {
+          "name": "Validate certificate chain",
+          "status": "PASSED",
+          "details": "Certificate chain validated successfully",
+          "error_message": null
+        },
+        "validate_nginx_configuration": {
+          "name": "Validate nginx configuration",
+          "status": "PASSED",
+          "details": "Nginx configuration validated successfully",
+          "error_message": null
+        }
+      }
+    },
+    "stage_0_3_sae_management": {
+      "name": "Admin Tool SAE Management",
+      "status": "NOT_STARTED",
+      "start_time": null,
+      "end_time": null,
+      "duration_seconds": 0,
+      "tests": {
+        "generate_sae_cert": {
+          "name": "Generate SAE certificate",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "validate_sae_cert": {
+          "name": "Validate SAE certificate structure",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "register_sae": {
+          "name": "Register SAE through admin interface",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "verify_registration": {
+          "name": "Verify SAE registration in database",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_revocation": {
+          "name": "Test SAE certificate revocation",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        }
+      }
+    },
+    "stage_0_4_database_ops": {
+      "name": "Admin Tool Database Operations",
+      "status": "NOT_STARTED",
+      "start_time": null,
+      "end_time": null,
+      "duration_seconds": 0,
+      "tests": {
+        "validate_schema": {
+          "name": "Validate database schema",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_crud_operations": {
+          "name": "Test CRUD operations",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_cert_storage": {
+          "name": "Test certificate storage and retrieval",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_sae_management": {
+          "name": "Test SAE registration and management",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_key_operations": {
+          "name": "Test key storage and retrieval",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        }
+      }
+    },
+    "stage_1_1_kme_config": {
+      "name": "KME Configuration Validation",
+      "status": "NOT_STARTED",
+      "start_time": null,
+      "end_time": null,
+      "duration_seconds": 0,
+      "tests": {
+        "load_env_vars": {
+          "name": "Load environment variables",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "validate_kme_id": {
+          "name": "Validate KME ID consistency",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_db_connectivity": {
+          "name": "Test database connectivity",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "load_certificates": {
+          "name": "Load and validate certificates",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "configure_logging": {
+          "name": "Configure logging",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        }
+      }
+    },
+    "stage_1_2_nginx_proxy": {
+      "name": "Nginx Proxy Integration",
+      "status": "NOT_STARTED",
+      "start_time": null,
+      "end_time": null,
+      "duration_seconds": 0,
+      "tests": {
+        "test_routing": {
+          "name": "Test request routing to KME",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "validate_ssl": {
+          "name": "Validate SSL/TLS configuration",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_mutual_auth": {
+          "name": "Test mutual authentication",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_error_handling": {
+          "name": "Test error handling",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "validate_headers": {
+          "name": "Validate request/response headers",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        }
+      }
+    },
+    "stage_2_1_key_operations": {
+      "name": "Real Key Operations",
+      "status": "NOT_STARTED",
+      "start_time": null,
+      "end_time": null,
+      "duration_seconds": 0,
+      "tests": {
+        "generate_keys": {
+          "name": "Generate keys using SAE certificates",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "store_keys": {
+          "name": "Store keys in database with encryption",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "retrieve_keys": {
+          "name": "Retrieve keys with proper authorization",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "manage_pool": {
+          "name": "Manage key pool and replenishment",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "lifecycle_management": {
+          "name": "Manage key lifecycle (expiration, cleanup)",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        }
+      }
+    },
+    "stage_2_2_etsi_compliance": {
+      "name": "ETSI Compliance",
+      "status": "NOT_STARTED",
+      "start_time": null,
+      "end_time": null,
+      "duration_seconds": 0,
+      "tests": {
+        "test_endpoints": {
+          "name": "Test all ETSI API endpoints",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "validate_format": {
+          "name": "Validate request/response format",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_error_codes": {
+          "name": "Test error handling and status codes",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_rate_limiting": {
+          "name": "Test rate limiting and security headers",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "validate_key_format": {
+          "name": "Validate key format and encoding",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        }
+      }
+    },
+    "stage_3_1_load_testing": {
+      "name": "Load Testing",
+      "status": "NOT_STARTED",
+      "start_time": null,
+      "end_time": null,
+      "duration_seconds": 0,
+      "tests": {
+        "concurrent_requests": {
+          "name": "Test concurrent key requests",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "database_performance": {
+          "name": "Test database performance under load",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "monitor_resources": {
+          "name": "Monitor memory and CPU usage",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "response_times": {
+          "name": "Test response time under load",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "system_stability": {
+          "name": "Validate system stability",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        }
+      }
+    },
+    "stage_3_2_failure_testing": {
+      "name": "Failure Scenarios",
+      "status": "NOT_STARTED",
+      "start_time": null,
+      "end_time": null,
+      "duration_seconds": 0,
+      "tests": {
+        "db_connection_failure": {
+          "name": "Test database connection failures",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "cert_expiration": {
+          "name": "Test certificate expiration handling",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "service_restart": {
+          "name": "Test service restart and recovery",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "network_interruption": {
+          "name": "Test network interruption handling",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "resource_exhaustion": {
+          "name": "Test resource exhaustion scenarios",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        }
+      }
+    },
+    "stage_4_1_cleanup": {
+      "name": "Complete Cleanup",
+      "status": "NOT_STARTED",
+      "start_time": null,
+      "end_time": null,
+      "duration_seconds": 0,
+      "tests": {
+        "remove_certificates": {
+          "name": "Remove all generated certificates",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "clear_database": {
+          "name": "Clear all database entries",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "reset_configs": {
+          "name": "Reset all configuration files",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "restore_nginx": {
+          "name": "Restore original nginx configuration",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "clear_logs": {
+          "name": "Clear all log files",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        }
+      }
+    },
+    "stage_4_2_reset_validation": {
+      "name": "Reset Validation",
+      "status": "NOT_STARTED",
+      "start_time": null,
+      "end_time": null,
+      "duration_seconds": 0,
+      "tests": {
+        "verify_clean_state": {
+          "name": "Verify no test artifacts remain",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_fresh_start": {
+          "name": "Confirm fresh start capability",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "validate_admin_tools": {
+          "name": "Validate admin tools still functional",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "test_restart": {
+          "name": "Test system can restart cleanly",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        },
+        "validate_functionality": {
+          "name": "Validate original functionality",
+          "status": "NOT_STARTED",
+          "details": "",
+          "error_message": null
+        }
+      }
+    }
+  },
+  "performance_metrics": {
+    "total_execution_time": 0,
+    "average_response_time": 0,
+    "peak_memory_usage_mb": 0,
+    "peak_cpu_usage_percent": 0,
+    "database_operations_per_second": 0,
+    "concurrent_connections": 0
+  },
+  "configuration_validation": {
+    "environment_variables": {
+      "status": "NOT_VALIDATED",
+      "details": {},
+      "errors": []
+    },
+    "certificates": {
+      "status": "NOT_VALIDATED",
+      "details": {},
+      "errors": []
+    },
+    "database": {
+      "status": "NOT_VALIDATED",
+      "details": {},
+      "errors": []
+    },
+    "nginx": {
+      "status": "NOT_VALIDATED",
+      "details": {},
+      "errors": []
+    }
+  },
+  "errors": {
+    "critical": [],
+    "warnings": [],
+    "info": []
+  },
+  "recommendations": [],
+  "cleanup_verification": {
+    "status": "NOT_VERIFIED",
+    "details": "",
+    "artifacts_remaining": []
+  }
+}

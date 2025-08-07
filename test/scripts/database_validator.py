@@ -9,11 +9,14 @@ import os
 import subprocess
 import sys
 
-# Import secure credentials
-from credentials import credentials
-
 # Database configuration
-DB_CONFIG = credentials.get_database_config()
+DB_CONFIG = {
+    "host": "localhost",
+    "port": "5432",
+    "user": "krich",
+    "password": "mustang",
+    "database": "kme_db",
+}
 
 
 def test_connection():
